@@ -1,0 +1,265 @@
+<title>Finance: Deposits - Admin Panel</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+    tailwind.config = {
+        darkMode: "class",
+        theme: {
+            extend: {
+                colors: {
+                    "primary": "#00f2ff",
+                    "secondary": "#39ff14",
+                    "danger": "#ff3131",
+                    "background-light": "#f8f6f6",
+                    "background-dark": "#0a0a0a",
+                    "card-dark": "#161616",
+                    "border-dark": "#262626",
+                },
+                fontFamily: {
+                    "display": ["Public Sans"]
+                },
+                borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+            },
+        },
+    }
+</script>
+<style>
+    body { font-family: 'Public Sans', sans-serif; }
+    .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+</style>
+
+<main class="flex-1 flex flex-col overflow-hidden">
+
+    <!-- BEGIN: Header -->
+    <!--
+        Mobile: two-row stack (title+search / action buttons), auto height
+        Desktop (md+): single row, fixed h-16
+    -->
+    <header class="h-auto md:h-16 border-b border-slate-200 dark:border-border-dark flex flex-col md:flex-row md:items-center justify-between px-4 md:px-8 py-3 md:py-0 bg-white dark:bg-background-dark gap-3 md:gap-0">
+
+        <!-- Row 1: Title + Search -->
+        <div class="flex items-center gap-3 flex-1 min-w-0">
+            <h2 class="text-base md:text-lg font-bold tracking-tight shrink-0">Finance: <span class="text-primary">Deposits</span></h2>
+            <div class="w-full max-w-md ml-0 md:ml-4">
+                <div class="relative">
+                    <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">search</span>
+                    <input class="w-full pl-10 pr-4 py-1.5 bg-slate-100 dark:bg-slate-800 border-none rounded-lg text-sm focus:ring-1 focus:ring-primary/50 placeholder:text-slate-400" placeholder="Search transactions, users..." type="text"/>
+                </div>
+            </div>
+        </div>
+
+        <!-- Row 2 (mobile) / Row 1 continuation (desktop): Action Buttons -->
+        <div class="flex items-center gap-2 md:gap-3 w-full md:w-auto">
+            <button class="flex-1 md:flex-none justify-center flex items-center gap-1.5 bg-primary text-background-dark px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-bold hover:brightness-110 transition-all whitespace-nowrap">
+                <span class="material-symbols-outlined text-base md:text-lg">add</span>
+                Create Transaction
+            </button>
+            <div class="hidden md:block h-8 w-px bg-slate-200 dark:bg-border-dark mx-2"></div>
+            <a href="/admin/manage-payments" class="flex-1 md:flex-none justify-center flex items-center gap-1.5 bg-primary text-background-dark px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-bold hover:brightness-110 transition-all whitespace-nowrap">
+                <span class="material-symbols-outlined text-base md:text-lg">add</span>
+                Manage Payments
+            </a>
+        </div>
+
+    </header>
+    <!-- END: Header -->
+
+    <!-- BEGIN: Scrollable Content Body -->
+    <div class="flex-1 overflow-y-auto p-3 md:p-6 space-y-6 md:space-y-8">
+
+        <!-- BEGIN: EJS computation block — untouched -->
+        <% 
+            let totalDepositsToday = 0;
+            let totalApprovedAmount = 0;
+            
+            const startOfToday = new Date();
+            startOfToday.setHours(0, 0, 0, 0);
+
+            if (deposits && deposits.length > 0) {
+                deposits.forEach(d => {
+                    if (d.status === 'approved') {
+                        totalApprovedAmount += d.amount;
+                        if (new Date(d.createdAt) >= startOfToday) {
+                            totalDepositsToday += d.amount;
+                        }
+                    }
+                });
+            }
+        %>
+        <!-- END: EJS computation block -->
+
+        <!-- BEGIN: Stat Cards -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
+
+            <!-- Card 1 -->
+            <div class="bg-white dark:bg-card-dark p-4 md:p-5 rounded-xl border border-slate-200 dark:border-border-dark shadow-sm">
+                <div class="flex justify-between items-start mb-3 md:mb-4">
+                    <div class="p-1.5 md:p-2 rounded-lg bg-primary/10 text-primary">
+                        <span class="material-symbols-outlined text-xl md:text-2xl">payments</span>
+                    </div>
+                </div>
+                <p class="text-[10px] md:text-xs text-slate-500 dark:text-slate-400 font-medium leading-tight">Total Deposits (Today)</p>
+                <h3 class="text-lg md:text-2xl font-bold mt-1">₹<%= totalDepositsToday.toLocaleString('en-IN') %></h3>
+            </div>
+
+            <!-- Card 2 -->
+            <div class="bg-white dark:bg-card-dark p-4 md:p-5 rounded-xl border border-slate-200 dark:border-border-dark shadow-sm">
+                <div class="flex justify-between items-start mb-3 md:mb-4">
+                    <div class="p-1.5 md:p-2 rounded-lg bg-yellow-500/10 text-yellow-500">
+                        <span class="material-symbols-outlined text-xl md:text-2xl">pending_actions</span>
+                    </div>
+                </div>
+                <p class="text-[10px] md:text-xs text-slate-500 dark:text-slate-400 font-medium leading-tight">Pending Requests</p>
+                <h3 class="text-lg md:text-2xl font-bold mt-1"><%= deposits.filter(d => d.status === 'pending').length %></h3>
+            </div>
+
+            <!-- Card 3 -->
+            <div class="bg-white dark:bg-card-dark p-4 md:p-5 rounded-xl border border-slate-200 dark:border-border-dark shadow-sm">
+                <div class="flex justify-between items-start mb-3 md:mb-4">
+                    <div class="p-1.5 md:p-2 rounded-lg bg-secondary/10 text-secondary">
+                        <span class="material-symbols-outlined text-xl md:text-2xl">check_circle</span>
+                    </div>
+                </div>
+                <p class="text-[10px] md:text-xs text-slate-500 dark:text-slate-400 font-medium leading-tight">Approved Amount</p>
+                <h3 class="text-lg md:text-2xl font-bold mt-1">₹<%= totalApprovedAmount.toLocaleString('en-IN') %></h3>
+            </div>
+
+            <!-- Card 4 -->
+            <div class="bg-white dark:bg-card-dark p-4 md:p-5 rounded-xl border border-slate-200 dark:border-border-dark shadow-sm">
+                <div class="flex justify-between items-start mb-3 md:mb-4">
+                    <div class="p-1.5 md:p-2 rounded-lg bg-danger/10 text-danger">
+                        <span class="material-symbols-outlined text-xl md:text-2xl">cancel</span>
+                    </div>
+                </div>
+                <p class="text-[10px] md:text-xs text-slate-500 dark:text-slate-400 font-medium leading-tight">Rejected Requests</p>
+                <h3 class="text-lg md:text-2xl font-bold mt-1"><%= deposits.filter(d => d.status === 'rejected').length %></h3>
+            </div>
+
+        </div>
+        <!-- END: Stat Cards -->
+
+        <!-- BEGIN: Deposits Table Card -->
+        <div class="bg-white dark:bg-card-dark rounded-xl border border-slate-200 dark:border-border-dark shadow-sm overflow-hidden flex flex-col">
+
+            <!-- Tab Bar: horizontally scrollable on mobile -->
+            <div class="border-b border-slate-200 dark:border-border-dark bg-slate-50/50 dark:bg-slate-900/20">
+                <div class="flex items-center justify-between px-3 md:px-6">
+                    <!-- Tabs: scroll on mobile, normal on desktop -->
+                    <div class="flex gap-4 md:gap-8 overflow-x-auto scrollbar-hide -mb-px">
+                        <button class="shrink-0 px-1 md:px-2 py-3 md:py-4 text-xs md:text-sm font-bold border-b-2 border-primary text-primary whitespace-nowrap">All Deposits</button>
+                        <button class="shrink-0 px-1 md:px-2 py-3 md:py-4 text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 border-b-2 border-transparent hover:text-slate-900 dark:hover:text-slate-100 transition-colors whitespace-nowrap">Pending</button>
+                        <button class="shrink-0 px-1 md:px-2 py-3 md:py-4 text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 border-b-2 border-transparent hover:text-slate-900 dark:hover:text-slate-100 transition-colors whitespace-nowrap">Approved</button>
+                        <button class="shrink-0 px-1 md:px-2 py-3 md:py-4 text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 border-b-2 border-transparent hover:text-slate-900 dark:hover:text-slate-100 transition-colors whitespace-nowrap">Rejected</button>
+                    </div>
+                    <!-- Filter button -->
+                    <div class="flex items-center gap-2 ml-4 shrink-0">
+                        <button class="flex items-center gap-1 text-xs font-bold text-slate-500 px-2 md:px-3 py-1.5 rounded-lg border border-slate-200 dark:border-border-dark hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors whitespace-nowrap">
+                            <span class="material-symbols-outlined text-sm">filter_list</span>
+                            <span class="hidden sm:inline">Filter</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Table: horizontal scroll on mobile -->
+            <div class="overflow-x-auto w-full">
+                <table class="w-full min-w-[780px] text-left">
+                    <thead>
+                        <tr class="bg-slate-50/50 dark:bg-slate-900/40 text-[11px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-bold border-b border-slate-200 dark:border-border-dark">
+                            <th class="px-4 md:px-6 py-3 md:py-4">Transaction ID</th>
+                            <th class="px-4 md:px-6 py-3 md:py-4">User</th>
+                            <th class="px-4 md:px-6 py-3 md:py-4 text-right">Amount</th>
+                            <th class="px-4 md:px-6 py-3 md:py-4">Date/Time</th>
+                            <th class="px-4 md:px-6 py-3 md:py-4 text-center">Proof</th>
+                            <th class="px-4 md:px-6 py-3 md:py-4">Status</th>
+                            <th class="px-4 md:px-6 py-3 md:py-4 text-right">Actions / Remarks</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-200 dark:divide-border-dark">
+
+                        <% if (deposits && deposits.length > 0) { %>
+                            <% deposits.forEach(txn => { %>
+                                <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors group">
+
+                                    <td class="px-4 md:px-6 py-3 md:py-4 text-sm font-medium font-mono text-primary whitespace-nowrap"><%= txn.transactionId %></td>
+
+                                    <td class="px-4 md:px-6 py-3 md:py-4 text-sm font-medium whitespace-nowrap">
+                                        <%= txn.userId ? (txn.userId.username || txn.userId.toString().substring(0,8)) : 'Deleted User' %>
+                                    </td>
+
+                                    <td class="px-4 md:px-6 py-3 md:py-4 text-sm font-bold text-right text-white whitespace-nowrap">₹<%= txn.amount.toLocaleString('en-IN') %></td>
+
+                                    <td class="px-4 md:px-6 py-3 md:py-4 whitespace-nowrap">
+                                        <p class="text-xs font-medium"><%= new Date(txn.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) %></p>
+                                        <p class="text-[10px] text-slate-500"><%= new Date(txn.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) %></p>
+                                    </td>
+
+                                    <td class="px-4 md:px-6 py-3 md:py-4 text-center">
+                                        <% if (txn.paymentProof && txn.paymentProof.url) { %>
+                                            <a href="<%= txn.paymentProof.url %>" target="_blank" class="inline-block relative group/img cursor-pointer">
+                                                <img class="w-9 h-9 md:w-10 md:h-10 rounded object-cover border border-slate-200 dark:border-border-dark grayscale hover:grayscale-0 transition-all" src="<%= txn.paymentProof.url %>" alt="Payment Proof"/>
+                                                <div class="absolute inset-0 bg-background-dark/40 opacity-0 group-hover/img:opacity-100 flex items-center justify-center rounded">
+                                                    <span class="material-symbols-outlined text-white text-sm">visibility</span>
+                                                </div>
+                                            </a>
+                                        <% } else { %>
+                                            <span class="text-xs text-slate-500">N/A</span>
+                                        <% } %>
+                                    </td>
+
+                                    <td class="px-4 md:px-6 py-3 md:py-4 whitespace-nowrap">
+                                        <% if (txn.status === 'pending') { %>
+                                            <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 uppercase tracking-tight">Pending</span>
+                                        <% } else if (txn.status === 'approved') { %>
+                                            <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-secondary/10 text-secondary border border-secondary/20 uppercase tracking-tight">Approved</span>
+                                        <% } else { %>
+                                            <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-danger/10 text-danger border border-danger/20 uppercase tracking-tight">Rejected</span>
+                                        <% } %>
+                                    </td>
+
+                                    <td class="px-4 md:px-6 py-3 md:py-4 text-right">
+                                        <% if (txn.status === 'pending') { %>
+                                            <form action="/admin/transaction/<%= txn._id %>/process" method="POST" class="flex items-center justify-end gap-1.5 md:gap-2">
+                                                <input type="text" name="remarks" placeholder="Remark (optional)..." class="w-24 md:w-32 text-[10px] px-2 py-1.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-border-dark rounded text-slate-300 focus:ring-1 focus:ring-primary outline-none">
+                                                <button type="submit" name="action" value="approve" class="p-1.5 rounded-lg bg-secondary/10 text-secondary hover:bg-secondary hover:text-background-dark transition-all" title="Approve">
+                                                    <span class="material-symbols-outlined text-[16px]">check</span>
+                                                </button>
+                                                <button type="submit" name="action" value="reject" class="p-1.5 rounded-lg bg-danger/10 text-danger hover:bg-danger hover:text-white transition-all" title="Reject">
+                                                    <span class="material-symbols-outlined text-[16px]">close</span>
+                                                </button>
+                                            </form>
+                                        <% } else { %>
+                                            <div class="text-[10px] text-slate-400 max-w-[120px] md:max-w-[150px] truncate ml-auto" title="<%= txn.remarks || 'No remarks provided' %>">
+                                                <span class="font-bold uppercase"><%= txn.status %></span>: <%= txn.remarks || 'No remarks' %>
+                                            </div>
+                                        <% } %>
+                                    </td>
+
+                                </tr>
+                            <% }) %>
+                        <% } else { %>
+                            <tr>
+                                <td colspan="7" class="px-6 py-8 text-center text-slate-500">No deposits found.</td>
+                            </tr>
+                        <% } %>
+
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Table Footer -->
+            <div class="px-4 md:px-6 py-3 md:py-4 border-t border-slate-200 dark:border-border-dark flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/40">
+                <p class="text-xs text-slate-500 dark:text-slate-400 font-medium">Total Entries: <%= deposits.length %></p>
+            </div>
+
+        </div>
+        <!-- END: Deposits Table Card -->
+
+    </div>
+    <!-- END: Scrollable Content Body -->
+
+</main>

@@ -1,0 +1,262 @@
+<title>Withdrawal Management - Admin Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+    tailwind.config = {
+        darkMode: "class",
+        theme: {
+            extend: {
+                colors: {
+                    "primary": "#00f2ff",
+                    "success": "#00ff88",
+                    "danger": "#ff4d4d",
+                    "warning": "#ffcc00",
+                    "background-light": "#f8f6f6",
+                    "background-dark": "#0a0a0a",
+                    "card-dark": "#141414",
+                    "border-dark": "#1f2937",
+                },
+                fontFamily: {
+                    "display": ["Public Sans", "sans-serif"]
+                },
+                borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+            },
+        },
+    }
+</script>
+<style>
+    body { font-family: 'Public Sans', sans-serif; }
+    .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+</style>
+
+<main class="flex-1 flex flex-col min-w-0 overflow-hidden h-screen bg-background-light dark:bg-background-dark">
+
+    <!-- BEGIN: Scrollable Content Body -->
+    <div class="flex-1 overflow-y-auto p-3 md:p-8">
+
+        <div class="max-w-[1600px] mx-auto space-y-6 md:space-y-8">
+
+            <!-- BEGIN: EJS computation block — untouched -->
+            <% 
+                let totalPaidOut = 0;
+                let pendingPayouts = 0;
+                let approvedToday = 0;
+                let rejectedRequests = 0;
+                
+                const startOfToday = new Date();
+                startOfToday.setHours(0, 0, 0, 0);
+
+                if (withdrawals && withdrawals.length > 0) {
+                    withdrawals.forEach(w => {
+                        if (w.status === 'approved') {
+                            totalPaidOut += w.amount;
+                            if (new Date(w.createdAt) >= startOfToday) {
+                                approvedToday += w.amount;
+                            }
+                        } else if (w.status === 'pending') {
+                            pendingPayouts++;
+                        } else if (w.status === 'rejected') {
+                            rejectedRequests++;
+                        }
+                    });
+                }
+            %>
+            <!-- END: EJS computation block -->
+
+            <!-- BEGIN: Stat Cards -->
+            <!--
+                Mobile: 2-column grid
+                Desktop (lg+): 4-column grid
+            -->
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+
+                <!-- Card 1: Total Paid Out -->
+                <div class="bg-white dark:bg-card-dark p-4 md:p-6 rounded-xl border border-slate-200 dark:border-border-dark shadow-sm group hover:border-primary/50 transition-colors">
+                    <div class="flex justify-between items-start mb-3 md:mb-4">
+                        <p class="text-slate-500 dark:text-slate-400 text-xs md:text-sm font-medium leading-tight">Total Paid Out</p>
+                        <span class="material-symbols-outlined text-success text-xl md:text-2xl shrink-0">trending_up</span>
+                    </div>
+                    <p class="text-lg md:text-2xl font-extrabold tracking-tight">₹<%= totalPaidOut.toLocaleString('en-IN') %></p>
+                    <div class="mt-2 flex items-center gap-1.5">
+                        <span class="text-[10px] text-slate-400">All time</span>
+                    </div>
+                </div>
+
+                <!-- Card 2: Pending Payouts -->
+                <div class="bg-white dark:bg-card-dark p-4 md:p-6 rounded-xl border border-slate-200 dark:border-border-dark shadow-sm group hover:border-warning/50 transition-colors">
+                    <div class="flex justify-between items-start mb-3 md:mb-4">
+                        <p class="text-slate-500 dark:text-slate-400 text-xs md:text-sm font-medium leading-tight">Pending Payouts</p>
+                        <span class="material-symbols-outlined text-warning text-xl md:text-2xl shrink-0">pending_actions</span>
+                    </div>
+                    <p class="text-lg md:text-2xl font-extrabold tracking-tight"><%= pendingPayouts %> <span class="text-base md:text-2xl">Requests</span></p>
+                    <div class="mt-2 text-[10px] text-slate-400">Awaiting approval</div>
+                </div>
+
+                <!-- Card 3: Approved Today -->
+                <div class="bg-white dark:bg-card-dark p-4 md:p-6 rounded-xl border border-slate-200 dark:border-border-dark shadow-sm group hover:border-primary/50 transition-colors">
+                    <div class="flex justify-between items-start mb-3 md:mb-4">
+                        <p class="text-slate-500 dark:text-slate-400 text-xs md:text-sm font-medium leading-tight">Approved (Today)</p>
+                        <span class="material-symbols-outlined text-primary text-xl md:text-2xl shrink-0">verified</span>
+                    </div>
+                    <p class="text-lg md:text-2xl font-extrabold tracking-tight">₹<%= approvedToday.toLocaleString('en-IN') %></p>
+                    <div class="mt-2 flex items-center gap-1.5">
+                        <span class="text-[10px] text-slate-400">Since midnight</span>
+                    </div>
+                </div>
+
+                <!-- Card 4: Rejected Requests -->
+                <div class="bg-white dark:bg-card-dark p-4 md:p-6 rounded-xl border border-slate-200 dark:border-border-dark shadow-sm group hover:border-danger/50 transition-colors">
+                    <div class="flex justify-between items-start mb-3 md:mb-4">
+                        <p class="text-slate-500 dark:text-slate-400 text-xs md:text-sm font-medium leading-tight">Rejected Requests</p>
+                        <span class="material-symbols-outlined text-danger text-xl md:text-2xl shrink-0">cancel</span>
+                    </div>
+                    <p class="text-lg md:text-2xl font-extrabold tracking-tight text-danger"><%= rejectedRequests %> <span class="text-base md:text-2xl">Requests</span></p>
+                    <div class="mt-2 flex items-center gap-1.5">
+                        <span class="text-[10px] text-slate-400">All time</span>
+                    </div>
+                </div>
+
+            </div>
+            <!-- END: Stat Cards -->
+
+            <!-- BEGIN: Withdrawals Table Card -->
+            <div class="bg-white dark:bg-card-dark rounded-xl border border-slate-200 dark:border-border-dark shadow-xl overflow-hidden">
+
+                <!-- Tab Bar + Filter -->
+                <div class="px-3 md:px-6 py-0 md:py-0 border-b border-slate-200 dark:border-border-dark flex items-center justify-between gap-3">
+                    <!-- Tabs: scroll horizontally on mobile -->
+                    <div class="flex items-center gap-4 md:gap-6 overflow-x-auto custom-scrollbar whitespace-nowrap -mb-px py-1 md:py-0">
+                        <button class="shrink-0 pb-2 pt-3 md:pt-4 border-b-2 border-primary text-primary text-xs md:text-sm font-bold">All Requests</button>
+                        <button class="shrink-0 pb-2 pt-3 md:pt-4 border-b-2 border-transparent text-slate-500 dark:text-slate-400 hover:text-primary transition-colors text-xs md:text-sm font-bold">Pending</button>
+                        <button class="shrink-0 pb-2 pt-3 md:pt-4 border-b-2 border-transparent text-slate-500 dark:text-slate-400 hover:text-primary transition-colors text-xs md:text-sm font-bold">Approved</button>
+                        <button class="shrink-0 pb-2 pt-3 md:pt-4 border-b-2 border-transparent text-slate-500 dark:text-slate-400 hover:text-primary transition-colors text-xs md:text-sm font-bold">Rejected</button>
+                    </div>
+                    <!-- Filter button -->
+                    <div class="flex gap-2 shrink-0">
+                        <button class="flex items-center gap-1 px-2 md:px-4 py-1.5 md:py-2 bg-slate-100 dark:bg-slate-800 text-xs font-bold rounded-lg border border-slate-200 dark:border-border-dark hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors whitespace-nowrap">
+                            <span class="material-symbols-outlined text-sm">filter_list</span>
+                            <span class="hidden sm:inline">Filter</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Table: horizontal scroll on mobile -->
+                <div class="overflow-x-auto custom-scrollbar w-full">
+                    <table class="w-full min-w-[820px] text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50 dark:bg-slate-900/50">
+                                <th class="px-4 md:px-6 py-3 md:py-4 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Transaction ID</th>
+                                <th class="px-4 md:px-6 py-3 md:py-4 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">User</th>
+                                <th class="px-4 md:px-6 py-3 md:py-4 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 text-right">Amount</th>
+                                <th class="px-4 md:px-6 py-3 md:py-4 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Bank Details</th>
+                                <th class="px-4 md:px-6 py-3 md:py-4 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Date/Time</th>
+                                <th class="px-4 md:px-6 py-3 md:py-4 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Status</th>
+                                <th class="px-4 md:px-6 py-3 md:py-4 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Actions / Remarks</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-200 dark:divide-border-dark">
+
+                            <% if (withdrawals && withdrawals.length > 0) { %>
+                                <% withdrawals.forEach(txn => { %>
+                                    <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+
+                                        <td class="px-4 md:px-6 py-4 md:py-5 text-sm font-mono text-primary whitespace-nowrap"><%= txn.transactionId %></td>
+
+                                        <td class="px-4 md:px-6 py-4 md:py-5">
+                                            <div class="flex items-center gap-2 md:gap-3">
+                                                <% const initials = txn.userId.username ? txn.userId.username.substring(0,2).toUpperCase() : 'U' %>
+                                                <div class="size-7 md:size-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary shrink-0">
+                                                    <%= initials %>
+                                                </div>
+                                                <span class="text-sm font-medium whitespace-nowrap"><%= txn.userId.username || txn.userId.toString().substring(0,8) %></span>
+                                            </div>
+                                        </td>
+
+                                        <td class="px-4 md:px-6 py-4 md:py-5 text-right font-bold text-sm text-slate-900 dark:text-white whitespace-nowrap">₹<%= txn.amount.toLocaleString('en-IN') %></td>
+
+                                        <td class="px-4 md:px-6 py-4 md:py-5">
+                                            <div class="flex flex-col gap-0.5">
+                                                <span class="text-[11px] font-bold text-slate-700 dark:text-slate-300 whitespace-nowrap"><%= txn.bankDetails?.holderName || 'N/A' %></span>
+                                                <span class="text-[10px] text-slate-500 dark:text-slate-400 whitespace-nowrap">AC: <%= txn.bankDetails?.accountNumber || 'N/A' %></span>
+                                                <span class="text-[10px] text-slate-500 dark:text-slate-400 whitespace-nowrap">IFSC: <%= txn.bankDetails?.ifscCode || 'N/A' %></span>
+                                            </div>
+                                        </td>
+
+                                        <td class="px-4 md:px-6 py-4 md:py-5 whitespace-nowrap">
+                                            <p class="text-xs font-medium"><%= new Date(txn.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) %></p>
+                                            <p class="text-[10px] text-slate-500"><%= new Date(txn.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) %></p>
+                                        </td>
+
+                                        <td class="px-4 md:px-6 py-4 md:py-5 whitespace-nowrap">
+                                            <% if (txn.status === 'pending') { %>
+                                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold bg-warning/10 text-warning border border-warning/20 uppercase">
+                                                    PENDING
+                                                </span>
+                                            <% } else if (txn.status === 'approved') { %>
+                                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold bg-success/10 text-success border border-success/20 uppercase">
+                                                    APPROVED
+                                                </span>
+                                            <% } else { %>
+                                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold bg-danger/10 text-danger border border-danger/20 uppercase">
+                                                    REJECTED
+                                                </span>
+                                            <% } %>
+                                        </td>
+
+                                        <td class="px-4 md:px-6 py-4 md:py-5">
+                                            <% if (txn.status === 'pending') { %>
+                                                <form action="/admin/transaction/<%= txn._id %>/process" method="POST" class="flex items-center gap-1.5 md:gap-2">
+                                                    <input
+                                                        name="remarks"
+                                                        class="flex-1 min-w-[90px] md:min-w-[120px] bg-slate-100 dark:bg-slate-800/50 border-slate-200 dark:border-border-dark rounded-lg text-[11px] px-2 md:px-3 py-1.5 focus:ring-primary focus:border-primary transition-all text-slate-800 dark:text-white"
+                                                        placeholder="Remark..."
+                                                        type="text"
+                                                    />
+                                                    <button
+                                                        type="submit" name="action" value="approve"
+                                                        class="size-7 md:size-8 rounded-lg bg-success/20 text-success hover:bg-success hover:text-black transition-all flex items-center justify-center shrink-0" title="Approve">
+                                                        <span class="material-symbols-outlined text-sm font-bold">check</span>
+                                                    </button>
+                                                    <button
+                                                        type="submit" name="action" value="reject"
+                                                        class="size-7 md:size-8 rounded-lg bg-danger/20 text-danger hover:bg-danger hover:text-white transition-all flex items-center justify-center shrink-0" title="Reject">
+                                                        <span class="material-symbols-outlined text-sm font-bold">close</span>
+                                                    </button>
+                                                </form>
+                                            <% } else { %>
+                                                <div class="flex items-center gap-1.5 md:gap-2 <%= txn.status === 'approved' ? 'text-slate-500' : 'text-danger/80' %>">
+                                                    <span class="material-symbols-outlined text-xs"><%= txn.status === 'approved' ? 'done_all' : 'error' %></span>
+                                                    <span class="text-xs italic max-w-[110px] md:max-w-[150px] truncate" title="<%= txn.remarks %>"><%= txn.remarks || (txn.status === 'approved' ? 'Paid: Standard withdrawal' : 'Rejected without remark') %></span>
+                                                </div>
+                                            <% } %>
+                                        </td>
+
+                                    </tr>
+                                <% }) %>
+                            <% } else { %>
+                                <tr>
+                                    <td colspan="7" class="px-6 py-8 text-center text-slate-500">No withdrawals found.</td>
+                                </tr>
+                            <% } %>
+
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Table Footer -->
+                <div class="p-3 md:p-4 border-t border-slate-200 dark:border-border-dark bg-slate-50 dark:bg-slate-900/30 flex items-center justify-between">
+                    <p class="text-xs text-slate-500 dark:text-slate-400 font-medium">Total Entries: <%= withdrawals.length %></p>
+                </div>
+
+            </div>
+            <!-- END: Withdrawals Table Card -->
+
+        </div>
+    </div>
+    <!-- END: Scrollable Content Body -->
+
+</main>

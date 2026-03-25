@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>SportsBet Admin Dashboard</title>
+    <link href="https://fonts.googleapis.com" rel="preconnect" />
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;family=Lexend:wght@300;400;500;600;700&amp;display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet" />
+    
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#0eaf59',
+                        surface: {
+                            DEFAULT: '#1a1a1a',
+                            darker: '#0a0a0a',
+                            lighter: '#2a2a2a'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Lexend', 'sans-serif'],
+                    },
+                    borderRadius: {
+                        'custom': '12px',
+                    }
+                }
+            }
+        }
+    </script>
+    <style data-purpose="global-typography">
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0a0a0a;
+            color: #e5e7eb;
+        }
+
+        h1,
+        h2,
+        h3,
+        h4,
+        .font-display {
+            font-family: 'Lexend', sans-serif;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0a0a0a;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #333;
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #0eaf59;
+        }
+
+        /* Flash Message Animations */
+        @keyframes slideDown {
+            0% { transform: translate(-50%, -100%); opacity: 0; }
+            100% { transform: translate(-50%, 0); opacity: 1; }
+        }
+        @keyframes fadeOut {
+            0% { opacity: 1; }
+            100% { opacity: 0; visibility: hidden; }
+        }
+        .animate-slide-down { animation: slideDown 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .animate-fade-out { animation: fadeOut 0.3s ease-out forwards; }
+    </style>
+</head>
+
+<body class="overflow-hidden">
+    
+    <% if (typeof error !== 'undefined' && error && error.length) { %>
+        <div id="flash-error" class="fixed top-6 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-3 bg-red-500/10 border border-red-500/30 text-red-500 px-5 py-3.5 rounded-2xl shadow-[0_0_20px_rgba(239,68,68,0.15)] backdrop-blur-md animate-slide-down min-w-[300px]">
+            <span class="material-symbols-outlined text-2xl">error</span>
+            <p class="text-sm font-bold tracking-wide flex-1"><%= error %></p>
+            <button onclick="dismissFlash('flash-error')" class="opacity-60 hover:opacity-100 transition-opacity flex items-center justify-center">
+                <span class="material-symbols-outlined text-lg">close</span>
+            </button>
+        </div>
+    <% } %>
+
+    <% if (typeof success !== 'undefined' && success && success.length) { %>
+        <div id="flash-success" class="fixed top-6 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-3 bg-[#0eaf59]/10 border border-[#0eaf59]/30 text-[#0eaf59] px-5 py-3.5 rounded-2xl shadow-[0_0_20px_rgba(14,175,89,0.15)] backdrop-blur-md animate-slide-down min-w-[300px]">
+            <span class="material-symbols-outlined text-2xl">check_circle</span>
+            <p class="text-sm font-bold tracking-wide flex-1"><%= success %></p>
+            <button onclick="dismissFlash('flash-success')" class="opacity-60 hover:opacity-100 transition-opacity flex items-center justify-center">
+                <span class="material-symbols-outlined text-lg">close</span>
+            </button>
+        </div>
+    <% } %>
+    <div class="flex h-screen w-full bg-surface-darker">
+
+        <div
+            id="sidebar-backdrop"
+            class="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 hidden md:hidden"
+            onclick="closeSidebar()"
+            aria-hidden="true"
+        ></div>
+        <aside
+            id="sidebar"
+            class="
+                fixed inset-y-0 left-0 z-50
+                w-64 bg-surface border-r border-white/5 flex flex-col
+                transform -translate-x-full
+                transition-transform duration-300 ease-in-out
+                md:static md:translate-x-0 md:z-auto md:flex md:flex-shrink-0
+            "
+        >
+            <a href="/refresh" class="p-6">
+                <div class="flex items-center gap-3">
+                    <div
+                        class="w-8 h-8 bg-primary rounded-custom flex items-center justify-center text-white font-bold">
+                        WA</div>
+                    <span class="text-xl font-display font-bold tracking-tight text-white">WicketAdda</span>
+                </div>
+            </a>
+            <nav class="flex-1 px-4 space-y-1 overflow-y-auto">
+                <a class="flex items-center gap-3 px-3 py-2.5 rounded-custom transition-colors <%= activeTab === 'Dashboard' ? 'bg-primary/10 text-primary font-medium' : 'text-gray-400 hover:bg-white/5 hover:text-white' %>"
+                    href="/admin?tab=Dashboard">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                    </svg>
+                    Dashboard
+                </a>
+
+                <a class="flex items-center gap-3 px-3 py-2.5 rounded-custom transition-colors <%= activeTab === 'Events' ? 'bg-primary/10 text-primary font-medium' : 'text-gray-400 hover:bg-white/5 hover:text-white' %>"
+                    href="/admin?tab=Events">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                    </svg>
+                    Events
+                </a>
+
+                <a class="flex items-center gap-3 px-3 py-2.5 rounded-custom transition-colors <%= activeTab === 'Markets' ? 'bg-primary/10 text-primary font-medium' : 'text-gray-400 hover:bg-white/5 hover:text-white' %>"
+                    href="/admin?tab=Markets">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 002 2h2a2 2 0 002-2" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                    </svg>
+                    Markets
+                </a>
+
+                <a class="flex items-center gap-3 px-3 py-2.5 rounded-custom transition-colors <%= activeTab === 'UserManagement' ? 'bg-primary/10 text-primary font-medium' : 'text-gray-400 hover:bg-white/5 hover:text-white' %>"
+                    href="/admin?tab=UserManagement">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                    </svg>
+                    User Management
+                </a>
+
+                <a class="flex items-center gap-3 px-3 py-2.5 rounded-custom transition-colors <%= activeTab === 'Finances' ? 'bg-primary/10 text-primary font-medium' : 'text-gray-400 hover:bg-white/5 hover:text-white' %>"
+                    href="/admin?tab=Finances">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                    </svg>
+                    Finances
+                </a>
+
+                <a class="flex items-center gap-3 px-3 py-2.5 rounded-custom transition-colors <%= activeTab === 'Withdrawals' ? 'bg-primary/10 text-primary font-medium' : 'text-gray-400 hover:bg-white/5 hover:text-white' %>"
+                href="/admin?tab=Withdrawals">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z"></path>
+                </svg>
+                Withdrawals
+                </a>
+
+                <a class="flex items-center gap-3 px-3 py-2.5 rounded-custom transition-colors <%= activeTab === 'Complaints' ? 'bg-primary/10 text-primary font-medium' : 'text-gray-400 hover:bg-white/5 hover:text-white' %>"
+                    href="/admin?tab=Complaints">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z"></path>
+                    </svg>
+                    Complaints
+                </a>
+
+                <a class="flex items-center gap-3 px-3 py-2.5 rounded-custom transition-colors <%= activeTab === 'Settings' ? 'bg-primary/10 text-primary font-medium' : 'text-gray-400 hover:bg-white/5 hover:text-white' %>"
+                    href="/admin?tab=Settings">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                        <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                    </svg>
+                    Settings
+                </a>
+            </nav>
+            <div class="p-4 border-t border-white/5">
+                <div class="flex items-center gap-3 p-2 bg-white/5 rounded-custom">
+                    <img alt="Admin" class="w-9 h-9 rounded-full border-2 border-primary"
+                        src="https://media.licdn.com/dms/image/v2/D5603AQEJ6_G7ojsXPw/profile-displayphoto-scale_400_400/B56Zwu8UKmHIAg-/0/1770314095579?e=1775692800&v=beta&t=b3e1vnY5QKF4xmKMX5XzC9G4MKxEr5KesHgBuO4Vm2g" />
+                    <div class="overflow-hidden">
+                        <p class="text-xs font-semibold text-white truncate">Amit Kushwaha</p>
+                        <p class="text-[10px] text-gray-400 truncate">Super Admin</p>
+                    </div>
+                </div>
+            </div>
+        </aside>
+        <div class="flex flex-col flex-1 min-w-0 overflow-hidden">
+
+            <header class="flex items-center gap-4 px-4 py-3 bg-surface border-b border-white/5 md:hidden flex-shrink-0">
+                <button
+                    id="hamburger-btn"
+                    onclick="openSidebar()"
+                    aria-label="Open navigation menu"
+                    class="flex items-center justify-center w-9 h-9 rounded-custom text-gray-400 hover:text-white hover:bg-white/5 transition-colors flex-shrink-0"
+                >
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                    </svg>
+                </button>
+                <a href="/refresh" class="flex items-center gap-2">
+                    <div class="w-7 h-7 bg-primary rounded-custom flex items-center justify-center text-white font-bold text-xs">SB</div>
+                    <span class="text-lg font-display font-bold tracking-tight text-white">WicketAdda</span>
+                </a>
+            </header>
+            <main class="flex-1 overflow-y-auto overflow-x-hidden">
+                <% if(activeTab === "Dashboard") { %>
+                    <%- include('../includes/admin/dashboard/dashboard.ejs') %>
+                <% } else if(activeTab === "Events") { %>
+                    <%- include('../includes/admin/events/events.ejs') %>
+                <% } else if(activeTab === "Finances") { %>
+                    <%- include('../includes/admin/finances/finances.ejs') %>
+                <% } else if(activeTab === "Withdrawals") { %>
+                    <%- include('../includes/admin/finances/withdrawals.ejs') %>
+                <% } else if(activeTab === "UserManagement") { %>
+                    <%- include('../includes/admin/userManagement.ejs') %>
+                <% }else if(activeTab === "Complaints") { %>
+                    <%- include('../includes/admin/complaints.ejs') %>
+                <% } else { %>
+                    <div class="p-8">
+                        <h2 class="text-2xl font-bold text-white">Page Not Found</h2>
+                        <p class="text-gray-400">The requested page could not be found.</p>
+                    </div>
+                <% } %>
+            </main>
+            </div>
+        </div>
+    <div class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center hidden"
+        data-purpose="user-creation-modal" id="modal-overlay">
+        <div
+            class="bg-surface w-full max-w-md mx-4 rounded-custom shadow-2xl border border-white/10 p-6 md:p-8 scale-in animate-scale-up">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="font-display text-xl font-bold text-white">Create New User ID</h2>
+                <button class="text-gray-500 hover:text-white"
+                    onclick="document.getElementById('modal-overlay').classList.add('hidden')">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+                        <path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+                        </path>
+                    </svg>
+                </button>
+            </div>
+            <form action="/admin/user/create" method="POST" class="space-y-5">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-400 uppercase mb-1.5">Full Name *</label>
+                        <input name="name" required class="w-full bg-surface-darker border-white/10 rounded-custom px-4 py-3 text-sm text-white focus:ring-primary focus:border-primary" placeholder="e.g., Amit Kumar" type="text" />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-400 uppercase mb-1.5">Username *</label>
+                        <input name="username" required class="w-full bg-surface-darker border-white/10 rounded-custom px-4 py-3 text-sm text-white focus:ring-primary focus:border-primary" placeholder="Enter username" type="text" />
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-400 uppercase mb-1.5">Temporary Password *</label>
+                        <input name="password" required class="w-full bg-surface-darker border-white/10 rounded-custom px-4 py-3 text-sm text-white focus:ring-primary focus:border-primary" placeholder="••••••••" type="password" />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-400 uppercase mb-1.5">Contact Number</label>
+                        <input name="contactNumber" class="w-full bg-surface-darker border-white/10 rounded-custom px-4 py-3 text-sm text-white focus:ring-primary focus:border-primary" placeholder="+91..." type="text" />
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-400 uppercase mb-1.5">Account Role</label>
+                        <select name="role" class="w-full bg-surface-darker border-white/10 rounded-custom px-4 py-3 text-sm text-white focus:ring-primary focus:border-primary">
+                            <option value="user" selected>User (Player)</option>
+                            <option value="panel">Panel (Agent)</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-400 uppercase mb-1.5">Starting Balance (₹)</label>
+                        <div class="relative">
+                            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 text-sm">₹</span>
+                            <input name="balance" class="w-full bg-surface-darker border-white/10 rounded-custom pl-8 pr-4 py-3 text-sm text-white focus:ring-primary focus:border-primary" placeholder="0.00" type="number" min="0" step="1" value="0" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pt-4 flex gap-3">
+                    <button class="flex-1 bg-white/5 hover:bg-white/10 text-white font-semibold py-3 rounded-custom text-sm transition-all border border-white/5" onclick="document.getElementById('modal-overlay').classList.add('hidden')" type="button">
+                        Cancel
+                    </button>
+                    <button class="flex-1 bg-primary hover:bg-primary/90 text-black font-bold py-3 rounded-custom text-sm transition-all" type="submit">
+                        Create Account
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <style data-purpose="animations">
+        @keyframes scaleUp {
+            from {
+                opacity: 0;
+                transform: scale(0.95);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .animate-scale-up {
+            animation: scaleUp 0.2s ease-out forwards;
+        }
+    </style>
+
+    <script data-purpose="ui-interactivity">
+        // ─── Modal: close on outside click ───────────────────────────────────────
+        window.onclick = function (event) {
+            const modal = document.getElementById('modal-overlay');
+            if (event.target == modal) {
+                modal.classList.add('hidden');
+            }
+        }
+
+        // ─── Mobile Sidebar: open / close helpers ────────────────────────────────
+        const sidebar  = document.getElementById('sidebar');
+        const backdrop = document.getElementById('sidebar-backdrop');
+
+        function openSidebar() {
+            sidebar.classList.remove('-translate-x-full');
+            backdrop.classList.remove('hidden');
+            document.body.style.overflow = 'hidden'; // prevent body scroll while drawer is open
+        }
+
+        function closeSidebar() {
+            sidebar.classList.add('-translate-x-full');
+            backdrop.classList.add('hidden');
+            document.body.style.overflow = '';
+        }
+
+        // Close sidebar automatically when a nav link is tapped on mobile
+        sidebar.querySelectorAll('nav a').forEach(function (link) {
+            link.addEventListener('click', function () {
+                if (window.innerWidth < 768) {
+                    closeSidebar();
+                }
+            });
+        });
+
+        // Re-show body scroll and reset sidebar state on window resize to desktop
+        window.addEventListener('resize', function () {
+            if (window.innerWidth >= 768) {
+                backdrop.classList.add('hidden');
+                document.body.style.overflow = '';
+            }
+        });
+
+        // ─── Flash Message Handling ──────────────────────────────────────────────
+        function dismissFlash(elementId) {
+            const el = document.getElementById(elementId);
+            if (el) {
+                el.classList.add('animate-fade-out');
+                setTimeout(() => el.remove(), 300); // Remove from DOM after animation completes
+            }
+        }
+
+        // Auto dismiss after 4 seconds
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                dismissFlash('flash-error');
+                dismissFlash('flash-success');
+            }, 4000);
+        });
+    </script>
+</body>
+
+</html>

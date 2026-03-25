@@ -1,0 +1,461 @@
+<% layout('layouts/boilerplate.ejs') -%>
+
+<script id="tailwind-config">
+    tailwind.config = {
+        darkMode: "class",
+        theme: {
+            extend: {
+                colors: {
+                    "primary": "#258cf4",
+                    "background-dark": "#0a0a0a",
+                    "mine-red": "#ff3b30",
+                    "diamond-blue": "#00d2ff",
+                    "cashout-green": "#34c759",
+                    "bet-orange": "#ff9500"
+                },
+                fontFamily: { "display": ["Space Grotesk"] }
+            },
+        },
+    }
+</script>
+
+<style>
+    .tile-shadow { box-shadow: inset 0 0 10px rgba(37, 140, 244, 0.2); }
+    .diamond-glow { filter: drop-shadow(0 0 8px #00d2ff); }
+    .mine-glow { filter: drop-shadow(0 0 12px #ff3b30); }
+    .glass-panel { background: rgba(40, 48, 57, 0.6); backdrop-filter: blur(10px); }
+    .tile-disabled { pointer-events: none; opacity: 0.8; }
+    .dimmed-overlay { background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(8px); }
+    .metallic-gold {
+        background: linear-gradient(180deg, #BF953F 0%, #FCF6BA 25%, #B38728 50%, #FBF5B7 75%, #AA771C 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        filter: drop-shadow(0 0 2px rgba(255, 215, 0, 0.5));
+    }
+    .sparkle-anim { animation: sparkle 1.5s infinite; }
+    @keyframes sparkle {
+        0%, 100% { opacity: 0; transform: scale(0.5); }
+        50% { opacity: 1; transform: scale(1.2); }
+    }
+    .coin-fall {
+        position: fixed; top: -50px;
+        animation: fall 3s linear infinite;
+    }
+    @keyframes fall { to { transform: translateY(100vh) rotate(360deg); } }
+    @keyframes shine {
+        100% { transform: translateX(100%); }
+    }
+    
+    /* Hide number input arrows */
+    input[type=number]::-webkit-inner-spin-button, 
+    input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    
+    /* Toast Notification Animations */
+    @keyframes toastEnter {
+        0% { opacity: 0; transform: translateX(100%) scale(0.9); }
+        100% { opacity: 1; transform: translateX(0) scale(1); }
+    }
+    @keyframes toastLeave {
+        0% { opacity: 1; transform: translateX(0) scale(1); }
+        100% { opacity: 0; transform: translateX(100%) scale(0.9); }
+    }
+    .toast-enter { animation: toastEnter 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+    .toast-leave { animation: toastLeave 0.3s ease-in forwards; }
+</style>
+
+<body class="bg-background-dark font-display text-white min-h-screen flex flex-col overflow-x-hidden">
+    
+    <div id="toast-container" class="fixed top-20 right-4 z-[100] flex flex-col gap-3 pointer-events-none w-full max-w-[280px]"></div>
+
+    <header id="game-header" class="sticky top-0 z-40 flex items-center bg-background-dark/90 backdrop-blur-md p-4 justify-between border-b border-white/5 transition-opacity duration-500">
+        <div class="flex items-center gap-2">
+            <a href="/home"><span class="material-symbols-outlined text-white cursor-pointer hover:text-primary">arrow_back_ios</span></a>
+        </div>
+        <h2 class="text-white text-lg font-bold">Mines Pro</h2>
+        <div class="flex items-center gap-2 bg-[#1a1a1a] px-3 py-1.5 rounded-full border border-white/10">
+            <span class="text-primary font-bold text-sm">₹</span>
+            <span id="user-balance" class="text-white text-base font-bold tabular-nums"><%= currUser.balance.toFixed(2) %></span>
+        </div>
+    </header>
+
+    <main id="game-main" class="flex-1 flex flex-col max-w-md mx-auto w-full px-4 pt-2 pb-[320px] transition-opacity duration-500 overflow-y-auto no-scrollbar">
+        <div class="py-4 text-center">
+            <p class="text-[#9cabba] text-xs font-medium uppercase tracking-widest">Multiplier</p>
+            <p id="display-multiplier" class="text-white text-5xl font-bold tracking-tighter diamond-glow">1.00x</p>
+            <p id="profit-display" class="text-cashout-green text-sm font-bold mt-1 hidden">+ ₹0.00 Profit</p>
+        </div>
+
+        <div id="game-grid" class="grid grid-cols-5 gap-2 mb-8">
+            <% for(let i=0; i<25; i++) { %>
+                <div onclick="revealTile(<%= i %>, this)" 
+                     class="tile aspect-square bg-[#1a1a1a] rounded-lg border border-primary/30 flex items-center justify-center cursor-pointer hover:bg-[#222] transition-all tile-shadow tile-disabled"
+                     data-index="<%= i %>">
+                </div>
+            <% } %>
+        </div>
+    </main>
+
+    <footer id="game-footer" class="fixed bottom-0 left-0 right-0 bg-[#131313]/95 backdrop-blur-xl border-t border-white/10 p-3 pb-safe max-w-md mx-auto z-40 rounded-t-[2rem] shadow-[0_-15px_40px_rgba(0,0,0,0.8)] transition-all duration-500">
+        <div class="flex flex-col gap-2">
+            
+            <div class="bg-[#1c1b1b] rounded-xl p-2.5 border border-white/5 shadow-inner relative overflow-hidden">
+                <div class="flex justify-between items-center mb-1.5">
+                    <label class="text-[9px] font-bold text-[#9cabba] uppercase tracking-widest flex items-center gap-1">
+                        <span class="material-symbols-outlined text-[12px]">payments</span>
+                        Stake Amount
+                    </label>
+                    <span class="text-[9px] font-bold text-white/40 font-mono" id="wallet-preview">Balance: ₹<%= currUser.balance.toFixed(2) %></span>
+                </div>
+                
+                <div class="flex items-center gap-2 mb-2">
+                    <div class="relative flex-1">
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-white/50 font-bold">₹</span>
+                        <input type="number" id="bet-amount" value="100" min="10" class="w-full bg-[#131313] border border-white/10 rounded-lg h-10 text-white font-black text-lg pl-7 pr-2 outline-none focus:border-[#ff6b00]/50 transition-colors shadow-inner">
+                    </div>
+                    
+                    <div class="flex items-center bg-[#131313] rounded-lg p-0.5 border border-white/10 h-10">
+                        <button onclick="modifyMinesBet('half')" class="px-2 h-full text-xs font-black text-[#9cabba] hover:text-white hover:bg-white/10 rounded transition-colors">/2</button>
+                        <div class="w-[1px] h-4 bg-white/10 mx-0.5"></div>
+                        <button onclick="modifyMinesBet('double')" class="px-2 h-full text-xs font-black text-[#9cabba] hover:text-white hover:bg-white/10 rounded transition-colors">x2</button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-4 gap-1.5">
+                    <button onclick="modifyMinesBet(100)" class="bg-white/5 hover:bg-white/10 border border-white/5 rounded-lg py-1.5 text-[10px] font-bold text-white transition-colors">+100</button>
+                    <button onclick="modifyMinesBet(500)" class="bg-white/5 hover:bg-white/10 border border-white/5 rounded-lg py-1.5 text-[10px] font-bold text-white transition-colors">+500</button>
+                    <button onclick="modifyMinesBet(1000)" class="bg-white/5 hover:bg-white/10 border border-white/5 rounded-lg py-1.5 text-[10px] font-bold text-white transition-colors">+1K</button>
+                    <button onclick="modifyMinesBet('max')" class="bg-[#ff6b00]/10 border border-[#ff6b00]/30 hover:bg-[#ff6b00]/20 rounded-lg py-1.5 text-[10px] font-black text-[#ff6b00] uppercase tracking-wider transition-colors">Max</button>
+                </div>
+            </div>
+
+            <div class="bg-[#1c1b1b] rounded-xl p-2.5 border border-white/5 shadow-inner flex items-center justify-between">
+                <label class="text-[9px] font-bold text-[#9cabba] uppercase tracking-widest flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-[12px] text-[#ff4d4d]">bomb</span>
+                    Mines Quantity
+                </label>
+                <div class="relative w-1/3">
+                    <select id="mine-count" class="w-full bg-[#131313] border border-white/10 rounded-lg h-9 text-white font-black text-center appearance-none outline-none focus:border-[#ff6b00]/50 cursor-pointer shadow-inner text-sm">
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3" selected>3</option>
+                        <option value="5">5</option>
+                        <option value="10">10</option>
+                        <option value="24">24</option>
+                    </select>
+                    <span class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-white/50 pointer-events-none text-[16px]">expand_more</span>
+                </div>
+            </div>
+
+            <button id="main-action-btn" onclick="toggleGame()" class="w-full bg-gradient-to-b from-[#ff8533] to-[#ff6b00] hover:from-[#ff944d] hover:to-[#ff751a] text-white font-black text-xl py-3.5 rounded-xl shadow-[0_0_20px_rgba(255,107,0,0.3)] uppercase tracking-widest transition-all active:scale-[0.98] border border-white/10 relative overflow-hidden">
+                <span class="relative z-10 drop-shadow-md">Bet</span>
+                <div class="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-12 hover:animate-[shine_1s_ease-in-out]"></div>
+            </button>
+            
+        </div>
+    </footer>
+
+    <div id="game-over-overlay" class="fixed inset-0 z-[100] items-center justify-center p-6 dimmed-overlay hidden">
+        <div class="w-full max-w-sm bg-[#1a1a1a] border border-mine-red/30 rounded-[2rem] p-8 flex flex-col items-center shadow-2xl shadow-mine-red/20 relative overflow-hidden">
+            <div class="absolute -top-24 -left-24 w-48 h-48 bg-mine-red/20 blur-[80px] rounded-full"></div>
+            <div class="mb-6 bg-mine-red/10 p-5 rounded-full border border-mine-red/20">
+                <span class="material-symbols-outlined text-mine-red text-6xl mine-glow" style="font-variation-settings: 'FILL' 1">explosion</span>
+            </div>
+            <h1 class="text-mine-red text-3xl font-black italic tracking-tighter mb-2 text-center uppercase">BOOM! GAME OVER</h1>
+            <p id="lost-amount-text" class="text-[#9cabba] text-lg font-medium mb-10">₹0.00 Lost</p>
+            <div class="w-full flex flex-col gap-4">
+                <button onclick="location.reload()" class="w-full bg-bet-orange text-white font-black text-xl py-5 rounded-2xl shadow-lg shadow-bet-orange/30 flex items-center justify-center gap-2 uppercase transition-all pulse-effect">
+                    Try Again
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="cashout-success-overlay" class="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm px-6 hidden">
+        <div class="fixed inset-0 pointer-events-none z-[60]" id="coin-container"></div>
+        <div class="relative w-full max-w-sm text-center">
+            <span class="material-symbols-outlined absolute -top-10 -left-4 text-gold sparkle-anim text-3xl" style="animation-delay: 0.1s;">auto_awesome</span>
+            <span class="material-symbols-outlined absolute -top-16 right-10 text-gold sparkle-anim text-4xl" style="animation-delay: 0.4s;">auto_awesome</span>
+            <span class="material-symbols-outlined absolute top-20 -right-4 text-gold sparkle-anim text-2xl" style="animation-delay: 0.7s;">auto_awesome</span>
+            
+            <h1 class="metallic-gold text-5xl font-black tracking-tighter mb-4 italic">CONGRATULATIONS!</h1>
+            
+            <div class="space-y-1 mb-8">
+                <p class="text-[#9cabba] font-bold uppercase tracking-widest text-sm">Amount Won</p>
+                <p id="win-amount-text" class="text-cashout-green text-6xl font-black drop-shadow-[0_0_20px_rgba(52,199,89,0.4)]">₹0.00</p>
+                <div class="inline-block mt-3 bg-cashout-green/20 border border-cashout-green/30 px-4 py-1 rounded-full">
+                    <p id="win-multiplier-text" class="text-cashout-green font-bold text-lg">1.00x Multiplier</p>
+                </div>
+            </div>
+
+            <div class="flex flex-col gap-4 w-full px-4">
+                <button onclick="location.reload()" class="w-full bg-bet-orange hover:bg-bet-orange/90 text-white font-black text-xl py-5 rounded-2xl shadow-xl shadow-bet-orange/20 transition-transform active:scale-95 uppercase">
+                    Play Again
+                </button>
+                <a href="/transaction/withdraw" class="w-full bg-transparent border-2 border-white/30 hover:bg-white/10 text-white font-bold text-lg py-4 rounded-2xl transition-all uppercase flex items-center justify-center">
+                    Withdraw to Wallet
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const safeSound = new Audio('../sounds/diamondSound.mp3');
+        const bustSound = new Audio('../sounds/bombSound.mp3');
+        const coinSound = new Audio('../sounds/coinDrop.mp3');
+        
+        safeSound.volume = 0.6;
+        bustSound.volume = 0.8;
+        coinSound.volume = 0.8;
+
+        let isGameActive = false;
+        const gridTiles = document.querySelectorAll('.tile');
+        const actionBtn = document.getElementById('main-action-btn');
+
+        const minesBetInput = document.getElementById('bet-amount');
+        let currentMinesBalance = <%= currUser.balance %>; // Syncs dynamically to user's real balance
+
+        // --- 🏆 PREMIUM TOAST NOTIFICATIONS ---
+        function showToast(title, message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+
+            const toast = document.createElement('div');
+
+            let bgClass = "bg-surface-high border-white/10";
+            let icon = "info";
+            let iconColor = "text-on-surface-variant";
+            let glow = "shadow-lg";
+
+            if (type === 'success') {
+                bgClass = "bg-[#28a745]/10 border-[#28a745]/30 backdrop-blur-md";
+                icon = "payments";
+                iconColor = "text-[#28a745]";
+                glow = "shadow-[0_0_20px_rgba(40,167,69,0.3)]";
+            } else if (type === 'error') {
+                bgClass = "bg-[#ff3b30]/10 border-[#ff3b30]/30 backdrop-blur-md";
+                icon = "cancel";
+                iconColor = "text-[#ff3b30]"; 
+                glow = "shadow-[0_0_20px_rgba(255,59,48,0.3)]";
+            }
+
+            toast.className = `toast-enter flex items-center justify-between w-full rounded-xl p-3 border ${bgClass} ${glow} pointer-events-auto`;
+            toast.innerHTML = `
+                <div class="flex items-center gap-3">
+                    <span class="material-symbols-outlined text-[28px] ${iconColor}">${icon}</span>
+                    <div class="flex flex-col">
+                        <span class="font-black tracking-widest uppercase text-[11px] text-white">${title}</span>
+                        <span class="font-bold text-[10px] text-white/60 tracking-wide">${message}</span>
+                    </div>
+                </div>
+            `;
+
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.remove('toast-enter');
+                toast.classList.add('toast-leave');
+                setTimeout(() => toast.remove(), 300); 
+            }, 3000);
+        }
+
+        function modifyMinesBet(action) {
+            if (isGameActive) return; 
+
+            let currentVal = parseFloat(minesBetInput.value) || 0;
+
+            if (action === 'half') {
+                currentVal = Math.floor(currentVal / 2);
+            } else if (action === 'double') {
+                currentVal = currentVal * 2;
+            } else if (action === 'max') {
+                currentVal = currentMinesBalance;
+            } else if (typeof action === 'number') {
+                currentVal += action;
+            }
+
+            if (currentVal < 10) currentVal = 10; 
+            if (currentVal > currentMinesBalance) currentVal = currentMinesBalance;
+
+            minesBetInput.value = currentVal;
+        }
+
+        minesBetInput.addEventListener('input', (e) => {
+            let val = parseInt(e.target.value);
+            if (val > currentMinesBalance) {
+                e.target.value = currentMinesBalance;
+            }
+        });
+
+        async function toggleGame() {
+            if (!isGameActive) {
+                const betAmount = document.getElementById('bet-amount').value;
+                const mineCount = document.getElementById('mine-count').value;
+
+                if(betAmount > currentMinesBalance) {
+                    showToast("INSUFFICIENT FUNDS", "You do not have enough balance.", "error");
+                    return;
+                }
+
+                try {
+                    const res = await fetch('/game/mines/start', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ betAmount, mineCount })
+                    });
+
+                    const data = await res.json();
+                    if (data.success) {
+                        isGameActive = true;
+                        updateUIForStart(data.balance);
+                        showToast("GAME STARTED", `₹${betAmount} bet placed securely`, "success");
+                    } else {
+                        showToast("BET FAILED", data.error || "Failed to start game", "error");
+                    }
+                } catch(err) {
+                    showToast("NETWORK ERROR", "Failed to connect to server.", "error");
+                }
+            } else {
+                try {
+                    const res = await fetch('/game/mines/cashout', { method: 'POST' });
+                    const data = await res.json();
+                    
+                    if (data.success) {
+                        isGameActive = false;
+                        
+                        const currentMult = document.getElementById('display-multiplier').innerText;
+                        document.getElementById('win-amount-text').innerText = `₹${data.winAmount.toFixed(2)}`;
+                        document.getElementById('win-multiplier-text').innerText = `${currentMult} Multiplier`;
+
+                        const overlay = document.getElementById('cashout-success-overlay');
+                        overlay.classList.remove('hidden');
+                        
+                        triggerCoinRain();
+
+                        document.getElementById('game-main').style.opacity = "0.2";
+                        document.getElementById('game-footer').style.opacity = "0.2";
+                        document.getElementById('game-header').style.opacity = "0.2";
+                    } else {
+                        showToast("CASHOUT FAILED", data.error || "Could not process cashout.", "error");
+                    }
+                } catch(err) {
+                    showToast("NETWORK ERROR", "Failed to cash out securely.", "error");
+                }
+            }
+        }
+
+        function triggerCoinRain() {
+            coinSound.currentTime = 0;
+            coinSound.play().catch(e => console.log("Audio blocked:", e));
+            
+            const container = document.getElementById('coin-container');
+            for (let i = 0; i < 15; i++) {
+                const coin = document.createElement('div');
+                coin.className = 'coin-fall';
+                coin.style.left = Math.random() * 100 + '%';
+                coin.style.animationDelay = Math.random() * 2 + 's';
+                coin.innerHTML = `<span class="material-symbols-outlined text-[#FFD700] opacity-80">monetization_on</span>`;
+                container.appendChild(coin);
+            }
+        }
+
+        async function revealTile(index, el) {
+            if (!isGameActive || el.classList.contains('revealed')) return;
+
+            try {
+                const res = await fetch('/game/mines/reveal', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tileIndex: index })
+                });
+
+                const data = await res.json();
+                
+                if(!data.success && data.error) {
+                    showToast("ERROR", data.error, "error");
+                    return;
+                }
+
+                el.classList.add('revealed');
+
+                if (data.status === 'bust') {
+                    bustSound.currentTime = 0;
+                    bustSound.play().catch(e => console.log("Audio blocked:", e));
+
+                    isGameActive = false;
+                    
+                    el.innerHTML = `<span class="material-symbols-outlined text-white text-3xl mine-glow" style="font-variation-settings: 'FILL' 1">explosion</span>`;
+                    el.className = "aspect-square bg-mine-red rounded-lg border-2 border-white flex items-center justify-center z-10 scale-110 shadow-2xl shadow-mine-red/50 revealed";
+
+                    revealFullBoard(data.board); 
+
+                    setTimeout(() => {
+                        const bet = document.getElementById('bet-amount').value;
+                        document.getElementById('lost-amount-text').innerText = `₹${parseFloat(bet).toFixed(2)} Lost`;
+                        
+                        const overlay = document.getElementById('game-over-overlay');
+                        overlay.classList.remove('hidden');
+                        overlay.classList.add('flex'); 
+
+                        document.getElementById('game-main').style.opacity = "0.3";
+                        document.getElementById('game-footer').style.opacity = "0.3";
+                        document.getElementById('game-header').style.opacity = "0.3";
+                        
+                        showToast("BUSTED!", `You hit a mine.`, "error");
+                    }, 800);
+
+                } else {
+                    safeSound.currentTime = 0;
+                    safeSound.play().catch(e => console.log("Audio blocked:", e));
+
+                    el.innerHTML = `<span class="material-symbols-outlined text-diamond-blue text-3xl diamond-glow" style="font-variation-settings: 'FILL' 1">diamond</span>`;
+                    el.classList.add('bg-primary/10', 'border-diamond-blue/50');
+                    document.getElementById('display-multiplier').innerText = data.multiplier + 'x';
+                    updateProfitDisplay(data.multiplier);
+                }
+            } catch(err) {
+                showToast("NETWORK ERROR", "Check connection and try again.", "error");
+            }
+        }
+
+        function revealFullBoard(board) {
+            board.forEach((tile, i) => {
+                const el = document.querySelector(`[data-index="${i}"]`);
+                if (!el.classList.contains('revealed')) {
+                    if (tile === 'mine') {
+                        el.innerHTML = `<span class="material-symbols-outlined text-mine-red/30 text-2xl" style="font-variation-settings: 'FILL' 1">explosion</span>`;
+                        el.classList.add('bg-mine-red/10', 'border-mine-red/20');
+                    } else {
+                        el.innerHTML = `<span class="material-symbols-outlined text-diamond-blue/30 text-2xl" style="font-variation-settings: 'FILL' 1">diamond</span>`;
+                        el.classList.add('bg-primary/5', 'border-diamond-blue/10');
+                    }
+                    el.classList.add('tile-disabled');
+                }
+            });
+        }
+
+        function updateUIForStart(newBalance) {
+            currentMinesBalance = newBalance;
+            document.getElementById('user-balance').innerText = newBalance.toFixed(2);
+            document.getElementById('wallet-preview').innerText = `Balance: ₹${newBalance.toFixed(2)}`;
+            actionBtn.innerText = "Cash Out";
+            actionBtn.className = "w-full bg-cashout-green text-white font-black text-xl py-3.5 rounded-xl shadow-[0_0_20px_rgba(52,199,89,0.4)] uppercase tracking-widest";
+            gridTiles.forEach(t => {
+                t.classList.remove('tile-disabled');
+                t.innerHTML = '';
+                t.className = "tile aspect-square bg-[#1a1a1a] rounded-lg border border-primary/30 flex items-center justify-center cursor-pointer hover:bg-[#222] transition-all tile-shadow";
+            });
+            document.getElementById('bet-amount').disabled = true;
+            document.getElementById('mine-count').disabled = true;
+            document.getElementById('display-multiplier').innerText = "1.00x";
+            document.getElementById('profit-display').classList.add('hidden');
+        }
+
+        function updateProfitDisplay(mult) {
+            const bet = document.getElementById('bet-amount').value;
+            const profit = (bet * mult) - bet;
+            const pDisplay = document.getElementById('profit-display');
+            pDisplay.innerText = `+ ₹${profit.toFixed(2)} Profit`;
+            pDisplay.classList.remove('hidden');
+        }
+    </script>
+</body>

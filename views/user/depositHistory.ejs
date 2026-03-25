@@ -1,0 +1,135 @@
+<% layout('layouts/boilerplate.ejs') -%>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              colors: {
+                "primary": "#f28b0d",
+                "background-light": "#f8f7f5",
+                "background-dark": "#0a0a0a",
+                "card-dark": "#1a1a1a",
+                "card-accent": "#393128",
+              },
+              fontFamily: {
+                "display": ["Lexend", "sans-serif"],
+                "numbers": ["Noto Sans", "sans-serif"]
+              },
+              borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+            },
+          },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Lexend', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .font-numbers {
+            font-family: 'Noto Sans', sans-serif;
+        }
+    </style>
+<nav class="sticky top-0 z-50 bg-background-light dark:bg-background-dark border-b border-gray-200 dark:border-gray-800">
+    <div class="flex items-center p-4 justify-between max-lg mx-auto">
+        <div class="flex size-12 shrink-0 items-center cursor-pointer">
+            <a href="/home?tab=Profile"><span class="material-symbols-outlined text-gray-700 dark:text-white">arrow_back</span></a>
+        </div>
+        <h2 class="text-gray-900 dark:text-white text-lg font-bold leading-tight tracking-tight flex-1 text-center font-display">
+            Deposit History</h2>
+        <div class="flex w-12 items-center justify-end">
+            <button class="flex items-center justify-center rounded-lg h-12 bg-transparent text-gray-700 dark:text-white">
+                <span class="material-symbols-outlined">filter_list</span>
+            </button>
+        </div>
+    </div>
+</nav>
+
+<main class="flex-1 max-w-lg mx-auto w-full pb-24">
+    <% 
+        let totalDeposited = 0;
+        let lastDepositAmount = 0;
+        let sortedDeposits = userDeposit.sort((a, b) => b.createdAt - a.createdAt); // Sort by newest first
+        
+        userDeposit.forEach(tx => {
+            if(tx.status === 'approved') totalDeposited += tx.amount;
+        });
+
+        if(sortedDeposits.length > 0) {
+            lastDepositAmount = sortedDeposits[0].amount;
+        }
+    %>
+
+    <div class="flex flex-wrap gap-4 p-4">
+        <div class="flex min-w-[158px] flex-1 flex-col gap-2 rounded-xl p-6 bg-white dark:bg-card-dark border border-gray-200 dark:border-gray-800">
+            <p class="text-gray-500 dark:text-[#baac9c] text-sm font-medium leading-normal">Total Deposited</p>
+            <p class="text-gray-900 dark:text-white tracking-tight text-2xl font-bold leading-tight font-numbers">
+                ₹<%= totalDeposited.toLocaleString('en-IN') %></p>
+            <div class="h-1 w-12 bg-primary rounded-full"></div>
+        </div>
+        <div class="flex min-w-[158px] flex-1 flex-col gap-2 rounded-xl p-6 bg-white dark:bg-card-dark border border-gray-200 dark:border-gray-800">
+            <p class="text-gray-500 dark:text-[#baac9c] text-sm font-medium leading-normal">Last Deposit</p>
+            <p class="text-gray-900 dark:text-white tracking-tight text-xl font-bold leading-tight font-numbers">
+                ₹<%= lastDepositAmount.toLocaleString('en-IN') %>
+                <% if(sortedDeposits.length > 0) { %>
+                    <span class="text-xs font-normal opacity-70">(<%= new Date(sortedDeposits[0].createdAt).toLocaleDateString() %>)</span>
+                <% } %>
+            </p>
+        </div>
+    </div>
+
+    <div class="px-4 pb-2 pt-4">
+        <h3 class="text-gray-900 dark:text-white text-lg font-bold leading-tight tracking-tight font-display">Recent Transactions</h3>
+    </div>
+
+    <div class="space-y-3 px-4">
+        <% if (userDeposit && userDeposit.length > 0) { %>
+            <% sortedDeposits.forEach((tx) => { %>
+                <div class="bg-white dark:bg-card-dark rounded-xl p-4 border border-gray-100 dark:border-gray-800 shadow-sm">
+                    <div class="flex justify-between items-start mb-3">
+                        <div class="flex gap-3 items-center">
+                            <div class="text-primary flex items-center justify-center rounded-lg bg-primary/10 shrink-0 size-10">
+                                <span class="material-symbols-outlined">account_balance_wallet</span>
+                            </div>
+                            <div>
+                                <p class="text-gray-900 dark:text-white text-base font-bold font-numbers leading-none">
+                                    ₹<%= tx.amount.toLocaleString('en-IN') %>
+                                </p>
+                                <p class="text-gray-500 dark:text-[#baac9c] text-xs mt-1">
+                                    <%= new Date(tx.createdAt).toLocaleString('en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) %>
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <% 
+                            let statusClasses = "bg-primary/10 text-primary border-primary/20"; // Default Pending
+                            if(tx.status === 'approved') statusClasses = "bg-green-500/10 text-green-500 border-green-500/20";
+                            if(tx.status === 'rejected') statusClasses = "bg-red-500/10 text-red-500 border-red-500/20";
+                        %>
+                        <span class="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border <%= statusClasses %>">
+                            <%= tx.status %>
+                        </span>
+                    </div>
+
+                    <div class="border-t border-gray-100 dark:border-gray-800 pt-3 flex flex-col gap-1">
+                        <p class="text-gray-600 dark:text-[#baac9c] text-xs font-medium">
+                            Deposit • <span class="font-numbers">ID: <%= tx.transactionId %></span>
+                        </p>
+                        
+                        <% if(tx.paymentProof) { %>
+                            <a class="text-primary text-xs font-semibold hover:underline w-fit mt-1" target="_blank" href="<%= tx.paymentProof %>">View Receipt</a>
+                        <% } %>
+
+                        <% if(tx.status === 'rejected' && tx.remarks) { %>
+                            <p class="text-red-400 text-[10px] mt-1 italic">Reason: <%= tx.remarks %></p>
+                        <% } %>
+                    </div>
+                </div>
+            <% }) %>
+        <% } else { %>
+            <div class="text-center py-20 opacity-40">
+                <span class="material-symbols-outlined text-6xl">history</span>
+                <p class="mt-2 font-bold">No Deposit History</p>
+            </div>
+        <% } %>
+    </div>
+</main>

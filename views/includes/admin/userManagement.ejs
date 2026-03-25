@@ -1,0 +1,261 @@
+<title>User Management - SportsBet Admin</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+    tailwind.config = {
+        darkMode: "class",
+        theme: {
+            extend: {
+                colors: {
+                    "primary": "#00FF88",
+                    "background-light": "#f8f6f6",
+                    "background-dark": "#0a0a0a",
+                    "card-dark": "#1a1a1a",
+                    "border-dark": "#2d2d2d"
+                },
+                fontFamily: {
+                    "display": ["Public Sans", "sans-serif"]
+                },
+                borderRadius: {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+                },
+            },
+        },
+    }
+</script>
+<style>
+    body { font-family: 'Public Sans', sans-serif; }
+    .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+    .active-nav {
+        background-color: rgba(0, 255, 136, 0.1);
+        border-left: 3px solid #00FF88;
+    }
+    .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+</style>
+
+<main class="flex-1 flex flex-col min-w-0 overflow-hidden h-screen bg-background-light dark:bg-background-dark">
+
+    <!-- BEGIN: Header -->
+    <!--
+        Mobile: two-row stack (search / action buttons), auto height
+        Desktop (md+): single row, fixed h-16
+    -->
+    <header class="h-auto md:h-16 border-b border-slate-200 dark:border-border-dark bg-white/80 dark:bg-card-dark/80 backdrop-blur-md flex flex-col md:flex-row md:items-center justify-between px-4 md:px-8 py-3 md:py-0 sticky top-0 z-40 gap-3 md:gap-0">
+
+        <!-- Search -->
+        <div class="flex-1 w-full md:max-w-xl">
+            <div class="relative">
+                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl">search</span>
+                <input class="w-full pl-10 pr-4 py-2 bg-slate-100 dark:bg-background-dark border-none rounded-xl focus:ring-2 focus:ring-primary/50 text-sm transition-all placeholder:text-slate-500" placeholder="Search users by username, email, or ID..." type="text"/>
+            </div>
+        </div>
+
+        <!-- Action buttons -->
+        <div class="flex items-center gap-2 md:gap-4 w-full md:w-auto">
+            <a href="/admin/user/create" class="flex-1 md:flex-none justify-center bg-primary text-background-dark px-3 md:px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 hover:brightness-110 transition-all shadow-[0_0_15px_rgba(0,255,136,0.2)]">
+                <span class="material-symbols-outlined text-lg">person_add</span>
+                Create User
+            </a>
+            <div class="hidden md:block h-8 w-[1px] bg-slate-200 dark:bg-border-dark mx-2"></div>
+            <button class="shrink-0 w-9 h-9 md:w-10 md:h-10 rounded-xl flex items-center justify-center text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors relative">
+                <span class="material-symbols-outlined text-xl">notifications</span>
+                <span class="absolute top-1.5 right-1.5 md:top-2 md:right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-card-dark"></span>
+            </button>
+        </div>
+
+    </header>
+    <!-- END: Header -->
+
+    <!-- BEGIN: Scrollable Content Body -->
+    <div class="flex-1 overflow-y-auto p-3 md:p-8 custom-scrollbar">
+        <div class="max-w-[1600px] mx-auto space-y-6 md:space-y-8">
+
+            <!-- BEGIN: EJS computation block — untouched -->
+            <% 
+                let activeUsers = 0;
+                let suspendedUsers = 0;
+                let totalSystemLiability = 0;
+                
+                const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+                let newUsers24h = 0;
+
+                if (users && users.length > 0) {
+                    users.forEach(u => {
+                        if (u.status === 'active') activeUsers++;
+                        if (u.status === 'suspended' || u.status === 'banned') suspendedUsers++;
+                        if (new Date(u.createdAt) > twentyFourHoursAgo) newUsers24h++;
+                        totalSystemLiability += (u.balance || 0);
+                    });
+                }
+            %>
+            <!-- END: EJS computation block -->
+
+            <!-- BEGIN: Page Title -->
+            <div class="flex flex-col gap-1">
+                <h2 class="text-xl md:text-2xl font-black tracking-tight text-slate-900 dark:text-white">User Management</h2>
+                <p class="text-xs md:text-sm text-slate-500 dark:text-slate-400">View and manage player accounts, balances, and security statuses.</p>
+            </div>
+            <!-- END: Page Title -->
+
+            <!-- BEGIN: Stat Cards -->
+            <!--
+                Mobile: 2-column grid
+                Desktop (lg+): 4-column grid
+            -->
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
+
+                <!-- Card 1: Total Users -->
+                <div class="bg-white dark:bg-card-dark p-4 md:p-5 rounded-xl border border-slate-200 dark:border-border-dark shadow-sm">
+                    <div class="flex items-start justify-between mb-2">
+                        <span class="p-1.5 md:p-2 bg-blue-100 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-lg material-symbols-outlined text-xl md:text-2xl">groups</span>
+                        <span class="text-[10px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/20 px-1.5 md:px-2 py-1 rounded-full whitespace-nowrap">All Time</span>
+                    </div>
+                    <p class="text-slate-500 dark:text-slate-400 text-[10px] md:text-xs font-semibold uppercase tracking-wider mt-2 leading-tight">Total Users</p>
+                    <p class="text-xl md:text-2xl font-black mt-1 dark:text-white"><%= users ? users.length : 0 %></p>
+                </div>
+
+                <!-- Card 2: Active Users -->
+                <div class="bg-white dark:bg-card-dark p-4 md:p-5 rounded-xl border border-slate-200 dark:border-border-dark shadow-sm">
+                    <div class="flex items-start justify-between mb-2">
+                        <span class="p-1.5 md:p-2 bg-primary/10 text-primary rounded-lg material-symbols-outlined text-xl md:text-2xl">person_check</span>
+                        <span class="text-[10px] font-bold text-primary bg-primary/20 px-1.5 md:px-2 py-1 rounded-full whitespace-nowrap"><%= newUsers24h %> New (24h)</span>
+                    </div>
+                    <p class="text-slate-500 dark:text-slate-400 text-[10px] md:text-xs font-semibold uppercase tracking-wider mt-2 leading-tight">Active Users</p>
+                    <p class="text-xl md:text-2xl font-black mt-1 dark:text-white"><%= activeUsers %></p>
+                </div>
+
+                <!-- Card 3: System Liability -->
+                <div class="bg-white dark:bg-card-dark p-4 md:p-5 rounded-xl border border-slate-200 dark:border-border-dark shadow-sm">
+                    <div class="flex items-start justify-between mb-2">
+                        <span class="p-1.5 md:p-2 bg-orange-100 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 rounded-lg material-symbols-outlined text-xl md:text-2xl">account_balance_wallet</span>
+                    </div>
+                    <p class="text-slate-500 dark:text-slate-400 text-[10px] md:text-xs font-semibold uppercase tracking-wider mt-2 leading-tight">System Liability</p>
+                    <p class="text-xl md:text-2xl font-black mt-1 dark:text-white">₹<%= totalSystemLiability.toLocaleString('en-IN', { maximumFractionDigits: 2 }) %></p>
+                </div>
+
+                <!-- Card 4: Suspended / Banned -->
+                <div class="bg-white dark:bg-card-dark p-4 md:p-5 rounded-xl border border-slate-200 dark:border-border-dark shadow-sm">
+                    <div class="flex items-start justify-between mb-2">
+                        <span class="p-1.5 md:p-2 bg-red-100 dark:bg-red-500/10 text-red-600 dark:text-red-400 rounded-lg material-symbols-outlined text-xl md:text-2xl">block</span>
+                    </div>
+                    <p class="text-slate-500 dark:text-slate-400 text-[10px] md:text-xs font-semibold uppercase tracking-wider mt-2 leading-tight">Suspended / Banned</p>
+                    <p class="text-xl md:text-2xl font-black mt-1 dark:text-white"><%= suspendedUsers %></p>
+                </div>
+
+            </div>
+            <!-- END: Stat Cards -->
+
+            <!-- BEGIN: Users Table Card -->
+            <div class="bg-white dark:bg-card-dark rounded-xl border border-slate-200 dark:border-border-dark shadow-sm overflow-hidden">
+
+                <!-- Card Header -->
+                <div class="px-4 md:px-6 py-3 md:py-4 border-b border-slate-200 dark:border-border-dark flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/20">
+                    <h3 class="font-bold text-sm">Player Directory</h3>
+                    <button class="flex items-center gap-1 text-xs font-bold text-slate-500 px-2 md:px-3 py-1.5 rounded-lg border border-slate-200 dark:border-border-dark hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                        <span class="material-symbols-outlined text-sm">filter_list</span>
+                        <span class="hidden sm:inline">Filter</span>
+                    </button>
+                </div>
+
+                <!-- Table: horizontal scroll on mobile -->
+                <div class="overflow-x-auto w-full custom-scrollbar">
+                    <table class="w-full min-w-[640px] text-left">
+                        <thead class="bg-slate-50 dark:bg-slate-900/40 border-b border-slate-200 dark:border-border-dark">
+                            <tr>
+                                <th class="px-4 md:px-6 py-3 md:py-4 text-xs font-bold uppercase tracking-wider text-slate-500">Player</th>
+                                <th class="px-4 md:px-6 py-3 md:py-4 text-xs font-bold uppercase tracking-wider text-slate-500">Contact / ID</th>
+                                <th class="px-4 md:px-6 py-3 md:py-4 text-xs font-bold uppercase tracking-wider text-slate-500 text-right">Balance</th>
+                                <th class="px-4 md:px-6 py-3 md:py-4 text-xs font-bold uppercase tracking-wider text-slate-500 text-center">Status</th>
+                                <th class="px-4 md:px-6 py-3 md:py-4 text-xs font-bold uppercase tracking-wider text-slate-500 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-200 dark:divide-border-dark">
+
+                            <% if (users && users.length > 0) { %>
+                                <% users.forEach(user => { %>
+                                    <tr class="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
+
+                                        <td class="px-4 md:px-6 py-3 md:py-4">
+                                            <div class="flex items-center gap-2 md:gap-3">
+                                                <% const initials = user.username ? user.username.substring(0,2).toUpperCase() : 'U' %>
+                                                <div class="w-7 h-7 md:w-8 md:h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-[10px] font-bold text-primary border border-slate-200 dark:border-border-dark shrink-0"><%= initials %></div>
+                                                <div class="min-w-0">
+                                                    <span class="text-sm font-bold block dark:text-white truncate"><%= user.username %></span>
+                                                    <span class="text-[10px] text-slate-500 uppercase tracking-wider truncate"><%= user.name || 'User' %></span>
+                                                </div>
+                                            </div>
+                                        </td>
+
+                                        <td class="px-4 md:px-6 py-3 md:py-4">
+                                            <div class="text-sm text-slate-500 dark:text-slate-400 whitespace-nowrap"><%= user.contactNumber || 'No contact number' %></div>
+                                            <div class="font-mono text-[10px] text-slate-400 mt-0.5 whitespace-nowrap">ID: <%= user._id.toString().substring(0,20) %>…</div>
+                                        </td>
+
+                                        <td class="px-4 md:px-6 py-3 md:py-4 text-sm font-bold text-right dark:text-white whitespace-nowrap">
+                                            ₹<%= (user.balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %>
+                                        </td>
+
+                                        <td class="px-4 md:px-6 py-3 md:py-4 text-center whitespace-nowrap">
+                                            <% if (!user.isBlocked) { %>
+                                                <span class="px-2 py-1 rounded-md text-[10px] font-bold bg-primary/10 text-primary border border-primary/20 uppercase tracking-wide">Active</span>
+                                            <% } else { %>
+                                                <span class="px-2 py-1 rounded-md text-[10px] font-bold bg-red-500/10 text-red-500 border border-red-500/20 uppercase tracking-wide">Suspended</span>
+                                            <% } %>
+                                        </td>
+
+                                        <td class="px-4 md:px-6 py-3 md:py-4 text-right">
+                                            <div class="flex items-center justify-end gap-0.5 md:gap-1">
+                                                <a href="/admin/user/<%= user._id %>/balance" class="p-1 md:p-1.5 text-slate-400 hover:text-primary hover:bg-primary/10 rounded-lg transition-all" title="Adjust Balance">
+                                                    <span class="material-symbols-outlined text-[17px] md:text-[18px]">account_balance_wallet</span>
+                                                </a>
+                                                <a href="/admin/user/<%= user._id %>/history" class="p-1 md:p-1.5 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg transition-all" title="Betting History">
+                                                    <span class="material-symbols-outlined text-[17px] md:text-[18px]">receipt_long</span>
+                                                </a>
+                                                <form action="/admin/user/<%= user._id %>/toggle-status" method="POST" class="inline">
+                                                    <% if (!user.isBlocked) { %>
+                                                        <button type="submit" class="p-1 md:p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all" title="Suspend User">
+                                                            <span class="material-symbols-outlined text-[17px] md:text-[18px]">block</span>
+                                                        </button>
+                                                    <% } else { %>
+                                                        <button type="submit" class="p-1 md:p-1.5 text-slate-400 hover:text-primary hover:bg-primary/10 rounded-lg transition-all" title="Activate User">
+                                                            <span class="material-symbols-outlined text-[17px] md:text-[18px]">how_to_reg</span>
+                                                        </button>
+                                                    <% } %>
+                                                </form>
+                                            </div>
+                                        </td>
+
+                                    </tr>
+                                <% }) %>
+                            <% } else { %>
+                                <tr>
+                                    <td colspan="5" class="px-6 py-8 text-center text-slate-500">No users found.</td>
+                                </tr>
+                            <% } %>
+
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Table Footer -->
+                <div class="px-4 md:px-6 py-3 md:py-4 bg-slate-50 dark:bg-slate-900/30 border-t border-slate-200 dark:border-border-dark flex items-center justify-between">
+                    <p class="text-xs text-slate-500">Total <span class="font-bold text-slate-900 dark:text-white"><%= users ? users.length : 0 %></span> players</p>
+                </div>
+
+            </div>
+            <!-- END: Users Table Card -->
+
+        </div>
+    </div>
+    <!-- END: Scrollable Content Body -->
+
+</main>

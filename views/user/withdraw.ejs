@@ -1,0 +1,72 @@
+<% layout('layouts/boilerplate.ejs') -%>
+<header
+    class="sticky top-0 z-50 bg-black/80 backdrop-blur-lg border-b border-white/5 px-4 h-16 flex items-center justify-between">
+    <a href="/home?tab=Profile" class="w-10 h-10 flex items-center justify-center rounded-full active:bg-white/10">
+        <span class="material-symbols-outlined text-white">arrow_back_ios_new</span>
+    </a>
+    <h1 class="text-lg font-bold">Withdraw Funds</h1>
+    <button class="w-10 h-10 flex items-center justify-center rounded-full active:bg-white/10 text-primary">
+        <span class="material-symbols-outlined">history</span>
+    </button>
+</header>
+<main class="px-5 pt-8 pb-32">
+    <div class="text-center mb-8">
+        <p class="text-xs font-medium text-white/50 tracking-wider uppercase mb-1">Available for Withdrawal</p>
+        <h2 class="text-4xl font-black text-primary tracking-tight">₹<%= currUser.balance.toLocaleString('en-IN') %></h2>
+    </div>
+    <div class="bg-surface-dark p-6 rounded-3xl space-y-6 shadow-2xl">
+        <form action="/transaction/withdraw" method="POST">
+        <div class="space-y-2">
+            <label class="text-xs font-semibold text-white/40 uppercase tracking-widest px-1">Bank Holder Name</label>
+            <div
+                class="flex items-center gap-3 bg-black/40 border border-white/5 p-4 rounded-2xl form-input-focus transition-all">
+                <span class="material-symbols-outlined text-primary text-xl">person</span>
+                <input name="bankDetails[holderName]" class="bg-transparent border-none p-0 w-full text-white font-medium focus:ring-0 text-base"
+                    placeholder="HOLDER NAME" type="text"  required/>
+            </div>
+        </div>
+        <div class="space-y-2">
+            <label class="text-xs font-semibold text-white/40 uppercase tracking-widest px-1">Account Number</label>
+            <div
+                class="flex items-center gap-3 bg-black/40 border border-white/5 p-4 rounded-2xl form-input-focus transition-all">
+                <span class="material-symbols-outlined text-primary text-xl">lock</span>
+                <input name="bankDetails[accountNumber]" class="bg-transparent border-none p-0 w-full text-white font-medium focus:ring-0 text-base"
+                    placeholder="••••••••••••" type="number" required/>
+            </div>
+        </div>
+        <div class="space-y-2">
+            <label class="text-xs font-semibold text-white/40 uppercase tracking-widest px-1">IFSC Code</label>
+            <div
+                class="flex items-center gap-3 bg-black/40 border border-white/5 p-4 rounded-2xl form-input-focus transition-all">
+                <span class="material-symbols-outlined text-primary text-xl">account_balance</span>
+                <input name="bankDetails[ifscCode]"
+                    class="bg-transparent border-none p-0 w-full text-white font-medium focus:ring-0 text-base uppercase"
+                    placeholder="HDFC0001234" type="text" required/>
+            </div>
+        </div>
+        <div class="space-y-2">
+            <div class="flex justify-between items-center px-1">
+                <label class="text-xs font-semibold text-white/40 uppercase tracking-widest">Amount</label>
+                <span class="text-[10px] font-bold text-white/30 italic">Min: ₹500 | Max: ₹1,00,000</span>
+            </div>
+            <div
+                class="flex items-center gap-3 bg-black/40 border border-white/5 p-4 rounded-2xl form-input-focus transition-all">
+                <span class="text-primary font-bold text-xl">₹</span>
+                <input name="amount" class="bg-transparent border-none p-0 w-full text-white font-black focus:ring-0 text-2xl"
+                    placeholder="Enter Amount" type="number" required/>
+            </div>
+        </div>
+        <div class="pt-4">
+            <button type="submit"
+                class="w-full bg-primary py-5 rounded-2xl text-black font-black uppercase tracking-widest shadow-xl shadow-primary/20 active:scale-[0.98] transition-all">
+                Request Withdrawal
+            </button>
+            
+        </div>
+        </form>
+    </div>
+    <div class="mt-8 flex items-center justify-center gap-2 text-white/20">
+        <span class="material-symbols-outlined text-sm">verified_user</span>
+        <span class="text-[10px] uppercase font-bold tracking-widest">Encrypted Secure Transaction</span>
+    </div>
+</main>

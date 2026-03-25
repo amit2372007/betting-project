@@ -1,0 +1,54 @@
+<% if(success && success.length > 0) { %>
+<div id="flash-banner" class="fixed top-0 left-0 right-0 z-[100] pointer-events-none">
+    <div class="animate-slide-down pointer-events-auto bg-gradient-to-r from-emerald-600 to-green-500 h-14 flex items-center px-4 shadow-2xl border-b border-white/20">
+        <div class="flex items-center justify-between w-full">
+            <div class="flex items-center gap-3">
+                <span class="material-symbols-outlined text-white text-2xl">check_circle</span>
+                <span class="text-white text-sm font-bold tracking-tight"><%= success %></span>
+            </div>
+            <button onclick="this.closest('#flash-banner').remove()" class="flex items-center justify-center">
+                <span class="material-symbols-outlined text-white text-xl">close</span>
+            </button>
+        </div>
+        <div id="progress-bar" class="absolute bottom-0 left-0 h-1 bg-white/40" style="width: 100%; transition: width 5s linear;"></div>
+    </div>
+</div>
+<% } %>
+
+<% if(error && error.length > 0) { %>
+<div id="error-banner" class="fixed top-0 left-0 right-0 z-[100] pointer-events-none">
+    <div class="animate-slide-down pointer-events-auto bg-gradient-to-r from-red-600 to-rose-500 h-14 flex items-center px-4 shadow-2xl border-b border-white/20">
+        <div class="flex items-center justify-between w-full">
+            <div class="flex items-center gap-3">
+                <span class="material-symbols-outlined text-white text-2xl">error</span>
+                <span class="text-white text-sm font-bold tracking-tight"><%= error %></span>
+            </div>
+            <button onclick="this.closest('#error-banner').remove()" class="flex items-center justify-center">
+                <span class="material-symbols-outlined text-white text-xl">close</span>
+            </button>
+        </div>
+        <div id="error-progress-bar" class="absolute bottom-0 left-0 h-1 bg-white/40" style="width: 100%; transition: width 5s linear;"></div>
+    </div>
+</div>
+<% } %>
+
+<script>
+    // Handles progress bar and auto-removal without affecting body margins
+    document.addEventListener('DOMContentLoaded', () => {
+        const banners = [
+            { id: 'flash-banner', bar: 'progress-bar' },
+            { id: 'error-banner', bar: 'error-progress-bar' }
+        ];
+
+        banners.forEach(item => {
+            const el = document.getElementById(item.id);
+            const bar = document.getElementById(item.bar);
+            if (el) {
+                // Start bar animation
+                setTimeout(() => { if(bar) bar.style.width = '0%'; }, 100);
+                // Completely remove from DOM after 5s to clear all space
+                setTimeout(() => { el.remove(); }, 5000);
+            }
+        });
+    });
+</script>

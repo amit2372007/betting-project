@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Adjust Wallet Balance</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet" />
+    
+    <script id="tailwind-config">
+        // Your existing Tailwind config goes here...
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary-container": "#00f2ff",
+                        "on-primary": "#00363a",
+                        "secondary": "#4edea3",
+                        "surface-container-highest": "#353534",
+                        "surface-dim": "#131313",
+                        "outline-variant": "#3a494b",
+                        "error": "#ffb4ab",
+                        "error-container": "#93000a",
+                        "surface-container-lowest": "#0e0e0e",
+                        "surface-container-low": "#1c1b1b",
+                        "surface-container-high": "#2a2a2a",
+                        "on-surface-variant": "#b9cacb",
+                        "on-surface": "#e5e2e1"
+                    },
+                    fontFamily: {
+                        "headline": ["Inter"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        body { font-family: 'Inter', sans-serif; background-color: #131313; min-height: max(884px, 100dvh); }
+    </style>
+</head>
+
+<body class="min-h-screen flex items-center justify-center p-4 overflow-hidden">
+    <a href="/admin?tab=UserManagement" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-40"></a>
+    
+    <div class="relative z-50 w-full max-w-md bg-[#201f1f] rounded-xl shadow-[0_20px_40px_rgba(0,219,231,0.04)] overflow-hidden">
+        
+        <header class="flex justify-between items-center px-5 h-16 bg-[#131313] rounded-t-[1.5rem]">
+            <h1 class="text-[#e1fdff] font-headline headline-sm font-bold tracking-tight">Adjust Balance</h1>
+            <a href="/admin?tab=UserManagement" class="text-on-surface-variant hover:bg-surface-container-high p-2 rounded-full transition-colors active:scale-95 duration-200 flex items-center justify-center">
+                <span class="material-symbols-outlined">close</span>
+            </a>
+        </header>
+
+        <div class="px-5 py-4 bg-white/5 border-y border-outline-variant/10 flex justify-between items-center">
+            <div class="flex flex-col">
+                <span class="text-on-surface-variant text-[0.6875rem] uppercase tracking-wider font-label font-medium">User / ID</span>
+                <span class="text-on-surface font-semibold"><%= user.username %> <span class="text-xs text-gray-500 font-mono">(<%= user._id.toString().substring(0,6) %>)</span></span>
+            </div>
+            <div class="flex flex-col items-end">
+                <span class="text-on-surface-variant text-[0.6875rem] uppercase tracking-wider font-label font-medium">Current Balance</span>
+                <span class="text-secondary font-bold text-lg">₹<%= (user.balance || 0).toLocaleString('en-IN', {minimumFractionDigits: 2}) %></span>
+            </div>
+        </div>
+
+        <form action="/admin/user/<%= user._id %>/balance" method="POST" class="flex flex-col">
+            <div class="p-6 space-y-6">
+                <div class="space-y-3">
+                    <label class="text-on-surface-variant text-[0.6875rem] uppercase tracking-wider font-label font-bold">Transaction Type</label>
+                    <div class="grid grid-cols-2 gap-4">
+                        <label class="relative group cursor-pointer">
+                            <input checked class="peer sr-only" name="action" value="credit" type="radio" />
+                            <div class="flex flex-col items-center justify-center p-4 rounded-xl border border-outline-variant/20 bg-surface-container-low transition-all peer-checked:border-secondary peer-checked:bg-secondary/10 hover:bg-[#2a2a2a]">
+                                <span class="material-symbols-outlined text-secondary text-3xl mb-2" style="font-variation-settings: 'FILL' 1;">add_circle</span>
+                                <span class="text-on-surface font-medium text-sm">Credit (Add)</span>
+                            </div>
+                        </label>
+                        <label class="relative group cursor-pointer">
+                            <input class="peer sr-only" name="action" value="debit" type="radio" />
+                            <div class="flex flex-col items-center justify-center p-4 rounded-xl border border-outline-variant/20 bg-surface-container-low transition-all peer-checked:border-error peer-checked:bg-error-container/20 hover:bg-[#2a2a2a]">
+                                <span class="material-symbols-outlined text-error text-3xl mb-2" style="font-variation-settings: 'FILL' 1;">do_not_disturb_on</span>
+                                <span class="text-on-surface font-medium text-sm">Debit (Deduct)</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="space-y-3">
+                    <label class="text-on-surface-variant text-[0.6875rem] uppercase tracking-wider font-label font-bold">Adjustment Amount</label>
+                    <div class="relative group">
+                        <div class="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+                            <span class="text-primary-container font-bold text-xl">₹</span>
+                        </div>
+                        <input name="amount" required class="w-full bg-[#0e0e0e] border-none ring-1 ring-outline-variant/15 focus:ring-2 focus:ring-primary-container text-on-surface font-headline text-2xl py-4 pl-10 pr-4 rounded-xl transition-all placeholder:text-on-surface-variant/30" placeholder="0.00" step="0.01" min="1" type="number" />
+                    </div>
+                </div>
+
+                <div class="space-y-3">
+                    <div class="flex justify-between items-center">
+                        <label class="text-on-surface-variant text-[0.6875rem] uppercase tracking-wider font-label font-bold">Reason / Remarks (Required)</label>
+                    </div>
+                    <textarea name="remarks" required class="w-full bg-[#0e0e0e] border-none ring-1 ring-outline-variant/15 focus:ring-2 focus:ring-primary-container text-on-surface body-md p-4 rounded-xl transition-all placeholder:text-on-surface-variant/30 resize-none" placeholder="Explain the reason for this manual adjustment..." rows="3"></textarea>
+                </div>
+            </div>
+
+            <footer class="px-6 py-5 bg-[#131313]/50 flex justify-end items-center gap-4">
+                <a href="/admin?tab=UserManagement" class="px-6 py-2.5 rounded-xl text-[#e1fdff] font-medium border border-outline-variant/15 hover:bg-[#2a2a2a] active:scale-95 transition-all">
+                    Cancel
+                </a>
+                <button type="submit" class="px-6 py-2.5 rounded-xl bg-[#00f2ff] text-[#00363a] font-bold shadow-[0_0_15px_rgba(0,242,255,0.2)] hover:shadow-[0_0_20px_rgba(0,242,255,0.4)] hover:brightness-110 active:scale-95 transition-all">
+                    Confirm Adjustment
+                </button>
+            </footer>
+        </form>
+    </div>
+
+    <div class="fixed top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary-container/5 blur-[120px] rounded-full pointer-events-none"></div>
+    <div class="fixed bottom-[-10%] right-[-10%] w-[30%] h-[30%] bg-[#00a572]/5 blur-[100px] rounded-full pointer-events-none"></div>
+</body>
+</html>

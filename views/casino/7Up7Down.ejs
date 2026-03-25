@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport" />
+    <title>7 Up 7 Down | Premium Casino</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;1,700;1,800;1,900&amp;display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet" />
+    
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "background": "#131313",
+                        "error": "#ffb4ab",
+                        "outline": "#8a919e",
+                        "on-surface": "#e5e2e1",
+                        "secondary": "#ffb4aa",
+                        "primary": "#a5c8ff",
+                        "surface-bright": "#393939",
+                        "surface-container-highest": "#353534",
+                        "surface-dim": "#131313",
+                        "on-surface-variant": "#c0c7d5",
+                        "surface-container": "#201f1f",
+                        "surface-container-low": "#1c1b1b",
+                        "primary-container": "#3092fa",
+                        "surface-container-lowest": "#0e0e0e",
+                        "surface-container-high": "#2a2a2a",
+                        "surface": "#131313",
+                        "tertiary": "#53e16f"
+                    },
+                    fontFamily: {
+                        "headline": ["Inter"],
+                        "body": ["Inter"],
+                    }
+                },
+            },
+        }
+    </script>
+    <style>
+        .glass-card {
+            background: rgba(28, 27, 27, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+
+        .neon-glow-primary { box-shadow: 0 0 20px rgba(48, 146, 250, 0.4); border-color: rgba(48, 146, 250, 0.8) !important; }
+        .neon-glow-tertiary { box-shadow: 0 0 20px rgba(83, 225, 111, 0.4); border-color: rgba(83, 225, 111, 0.8) !important; }
+        .neon-glow-secondary { box-shadow: 0 0 20px rgba(255, 180, 170, 0.4); border-color: rgba(255, 180, 170, 0.8) !important; }
+
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+
+        /* Toast Notification Animations */
+        @keyframes toastEnter {
+            0% { opacity: 0; transform: translateX(100%) scale(0.9); }
+            100% { opacity: 1; transform: translateX(0) scale(1); }
+        }
+        @keyframes toastLeave {
+            0% { opacity: 1; transform: translateX(0) scale(1); }
+            100% { opacity: 0; transform: translateX(100%) scale(0.9); }
+        }
+        .toast-enter { animation: toastEnter 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        .toast-leave { animation: toastLeave 0.3s ease-in forwards; }
+
+        /* Dice Rolling Animation */
+        @keyframes shake {
+            0% { transform: translate(1px, 1px) rotate(0deg); }
+            10% { transform: translate(-1px, -2px) rotate(-5deg); }
+            20% { transform: translate(-3px, 0px) rotate(5deg); }
+            30% { transform: translate(3px, 2px) rotate(0deg); }
+            40% { transform: translate(1px, -1px) rotate(5deg); }
+            50% { transform: translate(-1px, 2px) rotate(-5deg); }
+            60% { transform: translate(-3px, 1px) rotate(0deg); }
+            70% { transform: translate(3px, 1px) rotate(-5deg); }
+            80% { transform: translate(-1px, -1px) rotate(5deg); }
+            90% { transform: translate(1px, 2px) rotate(0deg); }
+            100% { transform: translate(1px, -2px) rotate(-5deg); }
+        }
+        .rolling { animation: shake 0.3s infinite; filter: blur(1px); }
+
+        /* Dice Dot Styling */
+        .dot { width: 12px; height: 12px; background-color: #e5e2e1; border-radius: 50%; box-shadow: inset 0 2px 4px rgba(0,0,0,0.5); }
+    </style>
+</head>
+
+<body class="bg-background text-on-surface font-body min-h-screen flex flex-col pb-[320px] overflow-x-hidden">
+    
+    <div id="toast-container" class="fixed top-20 right-4 z-[100] flex flex-col gap-3 pointer-events-none w-full max-w-[280px]"></div>
+
+    <header class="fixed top-0 w-full z-50 bg-[#131313]/90 backdrop-blur-md flex justify-between items-center px-4 py-3">
+        <div class="flex items-center gap-2">
+            <a href="/home" class="flex items-center">
+                <span class="material-symbols-outlined text-[#258CF4] active:scale-95 transition-transform" style="font-variation-settings: 'FILL' 1;">arrow_back_ios</span>
+            </a>
+            <h1 class="text-lg font-black italic text-slate-100 uppercase tracking-wider font-headline">7 UP 7 DOWN</h1>
+        </div>
+        <div class="bg-surface-container-high px-3 py-1.5 rounded-full flex items-center gap-2 border border-white/10">
+            <span class="text-sm font-bold text-on-surface" id="wallet-balance">₹<%= typeof user !== 'undefined' ? user.balance.toFixed(2) : '5000.00' %></span>
+            <span class="material-symbols-outlined text-[#258CF4] text-lg" style="font-variation-settings: 'FILL' 1;">account_balance_wallet</span>
+        </div>
+    </header>
+
+    <main class="pt-20 px-4 flex-1">
+        <section class="mb-6">
+            <div class="flex items-center gap-3 overflow-x-auto no-scrollbar py-2" id="history-ticker">
+                <span class="text-xs font-bold text-on-surface-variant uppercase tracking-widest mr-1">History:</span>
+                </div>
+        </section>
+
+        <section class="mb-8 relative flex flex-col items-center">
+            <div class="glass-card w-full max-w-sm aspect-[21/9] rounded-3xl flex items-center justify-center gap-6 sm:gap-10 relative overflow-hidden border border-white/5 shadow-2xl">
+                <div class="absolute inset-0 bg-gradient-to-tr from-primary-container/10 to-transparent pointer-events-none"></div>
+                
+                <div id="dice1" class="w-20 h-20 sm:w-24 sm:h-24 bg-gradient-to-br from-surface-bright to-surface-container-highest rounded-2xl relative shadow-[0_10px_30px_rgba(0,0,0,0.8)] border border-white/10 flex items-center justify-center p-3">
+                    </div>
+                
+                <div id="dice2" class="w-20 h-20 sm:w-24 sm:h-24 bg-gradient-to-br from-surface-bright to-surface-container-highest rounded-2xl relative shadow-[0_10px_30px_rgba(0,0,0,0.8)] border border-white/10 flex items-center justify-center p-3">
+                     </div>
+            </div>
+
+            <div class="mt-[-20px] z-10 bg-primary-container px-8 py-2 rounded-full shadow-[0_0_30px_rgba(48,146,250,0.4)] border border-white/20 transition-all duration-300" id="sum-badge">
+                <span class="text-2xl font-black italic tracking-tighter text-on-primary-container font-headline" id="sum-display">SUM: --</span>
+            </div>
+        </section>
+
+        <section class="grid grid-cols-3 gap-3 mb-6">
+            <button id="zone-7down" onclick="selectZone('7_down')" class="bet-zone flex flex-col items-center p-3 sm:p-4 rounded-2xl bg-surface-container-low border border-white/10 transition-all duration-200 active:scale-95 relative overflow-hidden group">
+                <div class="absolute inset-0 bg-secondary/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <span class="text-[9px] font-bold uppercase tracking-widest text-on-surface-variant mb-1">Payout 2.0x</span>
+                <span class="text-lg sm:text-xl font-black italic text-secondary mb-1 font-headline leading-none">7 DOWN</span>
+                <span class="text-[10px] font-bold text-secondary/60 tracking-widest">2 TO 6</span>
+            </button>
+
+            <button id="zone-7exact" onclick="selectZone('7_exact')" class="bet-zone flex flex-col items-center p-3 sm:p-4 rounded-2xl bg-surface-container-low border border-white/10 transition-all duration-200 active:scale-95 relative overflow-hidden group">
+                <div class="absolute inset-0 bg-tertiary/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <span class="text-[9px] font-bold uppercase tracking-widest text-on-surface-variant mb-1">Payout 5.0x</span>
+                <span class="text-lg sm:text-xl font-black italic text-tertiary mb-1 font-headline leading-none">EXACT 7</span>
+                <span class="text-[10px] font-bold text-tertiary/60 tracking-widest">ONLY 7</span>
+            </button>
+
+            <button id="zone-7up" onclick="selectZone('7_up')" class="bet-zone flex flex-col items-center p-3 sm:p-4 rounded-2xl bg-surface-container-low border border-white/10 transition-all duration-200 active:scale-95 relative overflow-hidden group">
+                <div class="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <span class="text-[9px] font-bold uppercase tracking-widest text-on-surface-variant mb-1">Payout 2.0x</span>
+                <span class="text-lg sm:text-xl font-black italic text-primary mb-1 font-headline leading-none">7 UP</span>
+                <span class="text-[10px] font-bold text-primary/60 tracking-widest">8 TO 12</span>
+            </button>
+        </section>
+
+        <section class="mb-4">
+            <h3 class="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-3 flex items-center gap-1.5 px-1">
+                <span class="material-symbols-outlined text-[14px] text-[#258CF4]">casino</span>
+                Exact Sum Bets
+            </h3>
+            
+            <div class="grid grid-cols-4 gap-2">
+                <button id="zone-sum2" onclick="selectZone('sum_2')" class="bet-zone flex flex-col items-center py-2.5 rounded-xl bg-surface-container-low border border-white/10 active:scale-95 transition-all">
+                    <span class="text-lg font-black italic text-on-surface mb-0.5">2</span>
+                    <span class="text-[8px] font-bold uppercase tracking-widest text-primary/70">30.0x</span>
+                </button>
+                <button id="zone-sum3" onclick="selectZone('sum_3')" class="bet-zone flex flex-col items-center py-2.5 rounded-xl bg-surface-container-low border border-white/10 active:scale-95 transition-all">
+                    <span class="text-lg font-black italic text-on-surface mb-0.5">3</span>
+                    <span class="text-[8px] font-bold uppercase tracking-widest text-primary/70">15.0x</span>
+                </button>
+                <button id="zone-sum4" onclick="selectZone('sum_4')" class="bet-zone flex flex-col items-center py-2.5 rounded-xl bg-surface-container-low border border-white/10 active:scale-95 transition-all">
+                    <span class="text-lg font-black italic text-on-surface mb-0.5">4</span>
+                    <span class="text-[8px] font-bold uppercase tracking-widest text-primary/70">10.0x</span>
+                </button>
+                <button id="zone-sum5" onclick="selectZone('sum_5')" class="bet-zone flex flex-col items-center py-2.5 rounded-xl bg-surface-container-low border border-white/10 active:scale-95 transition-all">
+                    <span class="text-lg font-black italic text-on-surface mb-0.5">5</span>
+                    <span class="text-[8px] font-bold uppercase tracking-widest text-primary/70">7.5x</span>
+                </button>
+                <button id="zone-sum6" onclick="selectZone('sum_6')" class="bet-zone flex flex-col items-center py-2.5 rounded-xl bg-surface-container-low border border-white/10 active:scale-95 transition-all">
+                    <span class="text-lg font-black italic text-on-surface mb-0.5">6</span>
+                    <span class="text-[8px] font-bold uppercase tracking-widest text-primary/70">6.0x</span>
+                </button>
+                <button id="zone-sum7" onclick="selectZone('sum_7')" class="bet-zone flex flex-col items-center py-2.5 rounded-xl bg-surface-container-low border border-white/10 active:scale-95 transition-all">
+                    <span class="text-lg font-black italic text-on-surface mb-0.5">7</span>
+                    <span class="text-[8px] font-bold uppercase tracking-widest text-primary/70">5.0x</span>
+                </button>
+                <button id="zone-sum8" onclick="selectZone('sum_8')" class="bet-zone flex flex-col items-center py-2.5 rounded-xl bg-surface-container-low border border-white/10 active:scale-95 transition-all">
+                    <span class="text-lg font-black italic text-on-surface mb-0.5">8</span>
+                    <span class="text-[8px] font-bold uppercase tracking-widest text-primary/70">6.0x</span>
+                </button>
+                <button id="zone-sum9" onclick="selectZone('sum_9')" class="bet-zone flex flex-col items-center py-2.5 rounded-xl bg-surface-container-low border border-white/10 active:scale-95 transition-all">
+                    <span class="text-lg font-black italic text-on-surface mb-0.5">9</span>
+                    <span class="text-[8px] font-bold uppercase tracking-widest text-primary/70">7.5x</span>
+                </button>
+                <button id="zone-sum10" onclick="selectZone('sum_10')" class="bet-zone flex flex-col items-center py-2.5 rounded-xl bg-surface-container-low border border-white/10 active:scale-95 transition-all">
+                    <span class="text-lg font-black italic text-on-surface mb-0.5">10</span>
+                    <span class="text-[8px] font-bold uppercase tracking-widest text-primary/70">10.0x</span>
+                </button>
+                <button id="zone-sum11" onclick="selectZone('sum_11')" class="bet-zone flex flex-col items-center py-2.5 rounded-xl bg-surface-container-low border border-white/10 active:scale-95 transition-all">
+                    <span class="text-lg font-black italic text-on-surface mb-0.5">11</span>
+                    <span class="text-[8px] font-bold uppercase tracking-widest text-primary/70">15.0x</span>
+                </button>
+                <button id="zone-sum12" onclick="selectZone('sum_12')" class="bet-zone flex flex-col items-center py-2.5 rounded-xl bg-surface-container-low border border-white/10 active:scale-95 transition-all">
+                    <span class="text-lg font-black italic text-on-surface mb-0.5">12</span>
+                    <span class="text-[8px] font-bold uppercase tracking-widest text-primary/70">30.0x</span>
+                </button>
+            </div>
+        </section>
+
+    </main>
+
+    <div class="fixed bottom-0 left-0 w-full z-50">
+        <div class="bg-[#131313]/95 backdrop-blur-xl rounded-t-[2.5rem] p-5 pb-safe shadow-[0_-15px_40px_rgba(0,0,0,0.8)] border-t border-white/5">
+            <div class="flex flex-col gap-4 max-w-lg mx-auto">
+                
+                <div class="flex items-center gap-3">
+                    <div class="flex-1 flex items-center bg-[#1c1b1b] rounded-2xl p-1.5 border border-white/10 shadow-inner">
+                        <button onclick="modifyStake('half')" class="w-12 h-12 flex items-center justify-center text-on-surface-variant hover:text-white font-black bg-white/5 rounded-xl transition-colors">/2</button>
+                        <div class="flex-1 relative flex items-center justify-center">
+                            <span class="absolute left-2 text-white/50 font-bold">₹</span>
+                            <input id="bet-amount" class="w-full bg-transparent border-none text-center font-black text-2xl focus:ring-0 text-white p-0" type="number" value="100" min="10" />
+                        </div>
+                        <button onclick="modifyStake('double')" class="w-12 h-12 flex items-center justify-center text-on-surface-variant hover:text-white font-black bg-white/5 rounded-xl transition-colors">x2</button>
+                    </div>
+                </div>
+
+                <div class="flex justify-between gap-2 overflow-x-auto no-scrollbar pb-1">
+                    <button onclick="modifyStake(100)" class="flex-1 py-2.5 rounded-xl bg-surface-container-high text-xs font-bold text-on-surface-variant active:bg-surface-bright transition-colors border border-white/5">+100</button>
+                    <button onclick="modifyStake(500)" class="flex-1 py-2.5 rounded-xl bg-surface-container-high text-xs font-bold text-on-surface-variant active:bg-surface-bright transition-colors border border-white/5">+500</button>
+                    <button onclick="modifyStake(1000)" class="flex-1 py-2.5 rounded-xl bg-surface-container-high text-xs font-bold text-on-surface-variant active:bg-surface-bright transition-colors border border-white/5">+1K</button>
+                    <button onclick="modifyStake('max')" class="flex-1 py-2.5 rounded-xl bg-primary/10 text-xs font-black text-primary border border-primary/20 active:bg-primary/30 transition-colors uppercase tracking-widest">MAX</button>
+                </div>
+
+                <button id="roll-btn" onclick="rollDice()" disabled class="w-full bg-surface-container-high text-on-surface-variant py-5 rounded-2xl font-black italic tracking-widest uppercase text-xl transition-all duration-200 opacity-50 cursor-not-allowed">
+                    Select a Zone
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 🎵 AUDIO ASSETS 🎵 ---
+        const buttonTouch = new Audio('/sounds/buttonTouch.mp3');
+        const placeBet = new Audio('/sounds/placeBet.mp3');
+        const diceRoll = new Audio('/sounds/diceRoll.mp3');
+
+        // Safe play function to prevent browser autoplay blocking errors
+        function playSound(audioEl) {
+            if (!audioEl) return;
+            audioEl.currentTime = 0;
+            audioEl.play().catch(err => console.log("Audio play blocked:", err));
+        }
+
+        // --- GAME STATE ---
+        let currentBalance = <%= typeof user !== 'undefined' ? user.balance : 5000 %>;
+        let selectedZone = null;
+        let isRolling = false;
+        let rollInterval;
+        
+        // DOM Elements
+        const ui = {
+            betInput: document.getElementById('bet-amount'),
+            balance: document.getElementById('wallet-balance'),
+            rollBtn: document.getElementById('roll-btn'),
+            dice1: document.getElementById('dice1'),
+            dice2: document.getElementById('dice2'),
+            sumDisplay: document.getElementById('sum-display'),
+            sumBadge: document.getElementById('sum-badge'),
+            ticker: document.getElementById('history-ticker'),
+            zones: {
+                '7_down': document.getElementById('zone-7down'),
+                '7_exact': document.getElementById('zone-7exact'),
+                '7_up': document.getElementById('zone-7up'),
+                'sum_2': document.getElementById('zone-sum2'),
+                'sum_3': document.getElementById('zone-sum3'),
+                'sum_4': document.getElementById('zone-sum4'),
+                'sum_5': document.getElementById('zone-sum5'),
+                'sum_6': document.getElementById('zone-sum6'),
+                'sum_7': document.getElementById('zone-sum7'),
+                'sum_8': document.getElementById('zone-sum8'),
+                'sum_9': document.getElementById('zone-sum9'),
+                'sum_10': document.getElementById('zone-sum10'),
+                'sum_11': document.getElementById('zone-sum11'),
+                'sum_12': document.getElementById('zone-sum12'),
+            }
+        };
+
+        // --- 🏆 PREMIUM TOAST NOTIFICATIONS ---
+        function showToast(title, message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+
+            const toast = document.createElement('div');
+
+            let bgClass = "bg-surface-high border-white/10";
+            let icon = "info";
+            let iconColor = "text-on-surface-variant";
+            let glow = "shadow-lg";
+
+            if (type === 'success') {
+                bgClass = "bg-[#28a745]/10 border-[#28a745]/30 backdrop-blur-md";
+                icon = "payments";
+                iconColor = "text-[#28a745]";
+                glow = "shadow-[0_0_20px_rgba(40,167,69,0.3)]";
+            } else if (type === 'error') {
+                bgClass = "bg-[#ff3b30]/10 border-[#ff3b30]/30 backdrop-blur-md";
+                icon = "cancel";
+                iconColor = "text-[#ff3b30]"; 
+                glow = "shadow-[0_0_20px_rgba(255,59,48,0.3)]";
+            }
+
+            toast.className = `toast-enter flex items-center justify-between w-full rounded-xl p-3 border ${bgClass} ${glow} pointer-events-auto`;
+            toast.innerHTML = `
+                <div class="flex items-center gap-3">
+                    <span class="material-symbols-outlined text-[28px] ${iconColor}">${icon}</span>
+                    <div class="flex flex-col">
+                        <span class="font-black tracking-widest uppercase text-[11px] text-white">${title}</span>
+                        <span class="font-bold text-[10px] text-white/60 tracking-wide">${message}</span>
+                    </div>
+                </div>
+            `;
+
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.remove('toast-enter');
+                toast.classList.add('toast-leave');
+                setTimeout(() => toast.remove(), 300); 
+            }, 3000);
+        }
+
+        // --- DICE RENDERING ENGINE ---
+        function renderDiceFace(number) {
+            let html = '';
+            const dot = '<div class="dot"></div>';
+            
+            if (number === 1) {
+                html = `<div class="flex items-center justify-center w-full h-full">${dot}</div>`;
+            } else if (number === 2) {
+                html = `<div class="flex flex-col justify-between items-center w-full h-full p-1"><div class="self-start">${dot}</div><div class="self-end">${dot}</div></div>`;
+            } else if (number === 3) {
+                html = `<div class="flex flex-col justify-between items-center w-full h-full p-1"><div class="self-start">${dot}</div><div>${dot}</div><div class="self-end">${dot}</div></div>`;
+            } else if (number === 4) {
+                html = `<div class="flex flex-col justify-between w-full h-full p-1"><div class="flex justify-between">${dot}${dot}</div><div class="flex justify-between">${dot}${dot}</div></div>`;
+            } else if (number === 5) {
+                html = `<div class="flex flex-col justify-between w-full h-full p-1"><div class="flex justify-between">${dot}${dot}</div><div class="flex justify-center">${dot}</div><div class="flex justify-between">${dot}${dot}</div></div>`;
+            } else if (number === 6) {
+                html = `<div class="flex flex-col justify-between w-full h-full p-1"><div class="flex justify-between">${dot}${dot}</div><div class="flex justify-between">${dot}${dot}</div><div class="flex justify-between">${dot}${dot}</div></div>`;
+            }
+            return html;
+        }
+
+        // Initialize dice to 3 and 4 (Sum 7) on load
+        ui.dice1.innerHTML = renderDiceFace(3);
+        ui.dice2.innerHTML = renderDiceFace(4);
+
+        // --- UI LOGIC ---
+        function selectZone(zone) {
+            if (isRolling) return;
+            playSound(buttonTouch); // 🔊 Play touch sound
+            
+            selectedZone = zone;
+            
+            // Clear all zones
+            Object.values(ui.zones).forEach(btn => {
+                if(!btn) return;
+                btn.classList.remove('neon-glow-primary', 'neon-glow-secondary', 'neon-glow-tertiary', 'bg-surface-container-low', 'scale-105', 'z-10', 'bg-secondary/10', 'bg-tertiary/10', 'bg-primary/10');
+                btn.classList.add('bg-surface-container-low');
+                
+                const badge = btn.querySelector('.selected-badge');
+                if(badge) badge.remove();
+            });
+
+            // Activate selected zone
+            const activeBtn = ui.zones[zone];
+            activeBtn.classList.remove('bg-surface-container-low');
+            activeBtn.classList.add('scale-105', 'z-10');
+            
+            let badgeColor = '';
+            
+            // Handle color assignments for Main vs Exact Sums
+            if (zone === '7_down') {
+                activeBtn.classList.add('neon-glow-secondary', 'bg-secondary/10');
+                badgeColor = 'bg-secondary text-[#690005]';
+            } else if (zone === '7_exact') {
+                activeBtn.classList.add('neon-glow-tertiary', 'bg-tertiary/10');
+                badgeColor = 'bg-tertiary text-[#003911]';
+            } else if (zone === '7_up') {
+                activeBtn.classList.add('neon-glow-primary', 'bg-primary/10');
+                badgeColor = 'bg-primary text-[#00315e]';
+            } else {
+                // For all specific sum number buttons, use Primary Blue highlighting
+                activeBtn.classList.add('neon-glow-primary', 'bg-primary/10');
+                badgeColor = 'bg-primary text-[#00315e]';
+            }
+
+            // Add Selected Badge
+            const badge = document.createElement('div');
+            badge.className = `selected-badge absolute -top-2 right-2 text-[8px] font-bold px-2 py-0.5 rounded-full uppercase shadow-md ${badgeColor}`;
+            badge.innerText = 'Selected';
+            activeBtn.appendChild(badge);
+
+            // Update Roll Button
+            ui.rollBtn.disabled = false;
+            ui.rollBtn.className = 'w-full bg-primary-container text-on-primary-container py-5 rounded-2xl font-black italic tracking-widest uppercase text-xl shadow-[0_8px_30px_rgba(48,146,250,0.4)] active:scale-[0.98] transition-all duration-200';
+            ui.rollBtn.innerText = 'ROLL DICE';
+        }
+
+        function modifyStake(action) {
+            if (isRolling) return;
+            playSound(buttonTouch); // 🔊 Play touch sound
+
+            let currentVal = parseFloat(ui.betInput.value) || 0;
+
+            if (action === 'half') currentVal = Math.floor(currentVal / 2);
+            else if (action === 'double') currentVal = currentVal * 2;
+            else if (action === 'max') currentVal = currentBalance;
+            else if (typeof action === 'number') currentVal += action;
+
+            if (currentVal < 10) currentVal = 10;
+            if (currentVal > currentBalance) currentVal = currentBalance;
+
+            ui.betInput.value = currentVal;
+        }
+
+        // Prevent typing more than balance
+        ui.betInput.addEventListener('input', (e) => {
+            let val = parseInt(e.target.value);
+            if (val > currentBalance) e.target.value = currentBalance;
+        });
+
+        function addToHistory(sum) {
+            const el = document.createElement('div');
+            let colorClass = "border-tertiary/30 bg-tertiary/10 text-tertiary shadow-[0_0_10px_rgba(83,225,111,0.2)]"; 
+            
+            if (sum < 7) {
+                colorClass = "border-secondary/30 bg-secondary/10 text-secondary shadow-[0_0_10px_rgba(255,180,170,0.2)]"; 
+            } else if (sum > 7) {
+                colorClass = "border-primary/30 bg-primary/10 text-primary shadow-[0_0_10px_rgba(165,200,255,0.2)]"; 
+            }
+
+            el.className = `flex-shrink-0 w-10 h-10 rounded-full border flex items-center justify-center font-bold ${colorClass}`;
+            el.innerText = sum;
+            
+            ui.ticker.insertBefore(el, ui.ticker.children[1]); 
+            
+            if (ui.ticker.children.length > 15) {
+                ui.ticker.removeChild(ui.ticker.lastChild);
+            }
+        }
+
+        // --- MAIN GAME ENGINE ---
+        async function rollDice() {
+            
+            const stake = parseFloat(ui.betInput.value);
+
+            if (!selectedZone) return;
+            if (stake < 10) { showToast("INVALID STAKE", "Minimum bet is ₹10", "error"); return; }
+            if (stake > currentBalance) { showToast("INSUFFICIENT FUNDS", "Balance too low", "error"); return; }
+
+            // 1. Lock UI & Play Audio
+            isRolling = true;
+            playSound(placeBet); // 🔊 Play bet placement sound
+            playSound(diceRoll); // 🔊 Start rolling sound
+
+            ui.rollBtn.disabled = true;
+            ui.rollBtn.innerText = 'ROLLING...';
+            ui.rollBtn.classList.add('opacity-50', 'cursor-wait');
+            ui.sumDisplay.innerText = 'SUM: --';
+            ui.sumBadge.className = 'mt-[-20px] z-10 bg-surface-container-high px-8 py-2 rounded-full border border-white/10';
+
+            // 2. Start Animation
+            ui.dice1.classList.add('rolling');
+            ui.dice2.classList.add('rolling');
+            
+            rollInterval = setInterval(() => {
+                ui.dice1.innerHTML = renderDiceFace(Math.floor(Math.random() * 6) + 1);
+                ui.dice2.innerHTML = renderDiceFace(Math.floor(Math.random() * 6) + 1);
+            }, 100);
+
+            // 3. API Call to backend
+            try {
+                const res = await fetch('/game/7up7down/roll', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ stake, selection: selectedZone })
+                });
+                
+                const data = await res.json();
+
+                // Fake a slight delay for suspense if network is too fast
+                setTimeout(() => {
+                    clearInterval(rollInterval);
+                    ui.dice1.classList.remove('rolling');
+                    ui.dice2.classList.remove('rolling');
+                    diceRoll.pause(); // 🔇 Stop rolling sound
+
+                    if (data.success) {
+                        // Show actual dice
+                        ui.dice1.innerHTML = renderDiceFace(data.dice1);
+                        ui.dice2.innerHTML = renderDiceFace(data.dice2);
+                        
+                        // Update Sum & Balance
+                        ui.sumDisplay.innerText = `SUM: ${data.sum}`;
+                        currentBalance = data.newBalance;
+                        ui.balance.innerText = `₹${currentBalance.toFixed(2)}`;
+                        
+                        addToHistory(data.sum);
+
+                        // Highlight Sum Badge
+                        if (data.sum < 7) {
+                            ui.sumBadge.className = 'mt-[-20px] z-10 bg-secondary/20 px-8 py-2 rounded-full border border-secondary shadow-[0_0_30px_rgba(255,180,170,0.4)]';
+                            ui.sumDisplay.className = 'text-2xl font-black italic tracking-tighter text-secondary font-headline';
+                        } else if (data.sum === 7) {
+                            ui.sumBadge.className = 'mt-[-20px] z-10 bg-tertiary/20 px-8 py-2 rounded-full border border-tertiary shadow-[0_0_30px_rgba(83,225,111,0.4)]';
+                            ui.sumDisplay.className = 'text-2xl font-black italic tracking-tighter text-tertiary font-headline';
+                        } else {
+                            ui.sumBadge.className = 'mt-[-20px] z-10 bg-primary/20 px-8 py-2 rounded-full border border-primary shadow-[0_0_30px_rgba(165,200,255,0.4)]';
+                            ui.sumDisplay.className = 'text-2xl font-black italic tracking-tighter text-primary font-headline';
+                        }
+
+                        // Show Toast Result
+                        if (data.isWin) {
+                            showToast("YOU WON!", `Payout: ₹${data.payout.toFixed(2)}`, "success");
+                        } else {
+                            showToast("BET LOST", "Better luck next roll", "error");
+                        }
+
+                    } else {
+                        // Error fallback
+                        ui.dice1.innerHTML = renderDiceFace(3);
+                        ui.dice2.innerHTML = renderDiceFace(4);
+                        showToast("ROLL FAILED", data.error, "error");
+                    }
+
+                    // Unlock UI
+                    isRolling = false;
+                    ui.rollBtn.disabled = false;
+                    ui.rollBtn.innerText = 'ROLL AGAIN';
+                    ui.rollBtn.classList.remove('opacity-50', 'cursor-wait');
+
+                }, 800); // 800ms artificial suspense delay
+
+            } catch (err) {
+                clearInterval(rollInterval);
+                ui.dice1.classList.remove('rolling');
+                ui.dice2.classList.remove('rolling');
+                diceRoll.pause(); // 🔇 Stop rolling sound
+                
+                showToast("NETWORK ERROR", "Failed to reach game server", "error");
+                
+                isRolling = false;
+                ui.rollBtn.disabled = false;
+                ui.rollBtn.innerText = 'RETRY ROLL';
+                ui.rollBtn.classList.remove('opacity-50', 'cursor-wait');
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,24 @@
+<% if(currUser) { %>
+    <nav class="fixed bottom-0 inset-x-0 bg-background-dark/95 backdrop-blur-xl border-t border-white/10 px-6 pb-6 pt-3 flex justify-between items-center z-50">
+        
+        <a href="/home?tab=Home" class="flex flex-col items-center gap-1 <%= activeTab === 'Home' ? 'text-primary' : 'text-white/40' %>">
+            <span class="material-symbols-outlined <%= activeTab === 'Home' ? 'font-fill' : '' %>">home</span>
+            <span class="text-[9px] font-bold uppercase">Home</span>
+        </a>
+
+        <a href="/home?tab=Casino" class="flex flex-col items-center gap-1 <%= activeTab === 'Casino' ? 'text-primary' : 'text-white/40' %>">
+            <span class="material-symbols-outlined <%= activeTab === 'Casino' ? 'font-fill' : '' %>">explore</span>
+            <span class="text-[9px] font-bold uppercase">Casino</span>
+        </a>
+
+        <a href="/home?tab=MyBets" class="flex flex-col items-center gap-1 <%= activeTab === 'MyBets' ? 'text-primary' : 'text-white/40' %>">
+            <span class="material-symbols-outlined <%= activeTab === 'MyBets' ? 'font-fill' : '' %>">list_alt</span>
+            <span class="text-[9px] font-bold uppercase">My Bets</span>
+        </a>
+
+        <a href="/home?tab=Profile" class="flex flex-col items-center gap-1 <%= activeTab === 'Profile' ? 'text-primary' : 'text-white/40' %>">
+            <span class="material-symbols-outlined <%= activeTab === 'Profile' ? 'font-fill' : '' %>">person</span>
+            <span class="text-[9px] font-bold uppercase">Profile</span>
+        </a>
+    </nav>
+<% } %>

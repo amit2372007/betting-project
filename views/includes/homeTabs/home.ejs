@@ -1,0 +1,510 @@
+<style>
+    @keyframes oddsFlashUp {
+        0% { background-color: #22c55e; color: white; transform: scale(1.05); } /* Tailwind Green-500 */
+        100% { background-color: inherit; color: inherit; transform: scale(1); }
+    }
+    @keyframes oddsFlashDown {
+        0% { background-color: #ef4444; color: white; transform: scale(1.05); } /* Tailwind Red-500 */
+        100% { background-color: inherit; color: inherit; transform: scale(1); }
+    }
+    .flash-up { animation: oddsFlashUp 1s ease-out !important; }
+    .flash-down { animation: oddsFlashDown 1s ease-out !important; }
+</style>
+<main class="pb-24">
+    <section class="w-full overflow-hidden px-3 py-2">
+        <div class="flex overflow-x-auto no-scrollbar gap-5 items-start px-2 py-2 scroll-smooth">
+
+            <a href="/inplay"
+                class="group flex flex-col items-center gap-2 shrink-0 transition-transform duration-200 active:scale-95">
+                <div
+                    class="relative size-14 rounded-full bg-primary flex items-center justify-center border border-primary/50 shadow-[0_0_15px_rgba(255,140,0,0.3)]">
+                    <div class="absolute inset-0 rounded-full border-2 border-primary animate-ping opacity-20"></div>
+                    <span class="material-symbols-outlined text-background-dark text-2xl font-bold"
+                        style="font-variation-settings: 'FILL' 1;">bolt</span>
+                </div>
+                <p class="text-[10px] font-black text-primary tracking-widest uppercase">Inplay</p>
+            </a>
+
+            <a href="#"
+                class="group flex flex-col items-center gap-2 shrink-0 opacity-60 hover:opacity-100 transition-all duration-300 active:scale-95">
+                <div
+                    class="size-14 rounded-full bg-gradient-to-b from-surface-dark to-[#111] border border-white/10 flex items-center justify-center group-hover:border-white/30 group-hover:shadow-[0_4px_12px_rgba(255,255,255,0.05)] transition-all">
+                    <span
+                        class="material-symbols-outlined text-white text-2xl group-hover:-translate-y-0.5 transition-transform duration-300">sports_cricket</span>
+                </div>
+                <p class="text-[10px] font-bold text-white/90 tracking-widest uppercase">Cricket</p>
+            </a>
+
+            <a href="#"
+                class="group flex flex-col items-center gap-2 shrink-0 opacity-60 hover:opacity-100 transition-all duration-300 active:scale-95">
+                <div
+                    class="size-14 rounded-full bg-gradient-to-b from-surface-dark to-[#111] border border-white/10 flex items-center justify-center group-hover:border-white/30 group-hover:shadow-[0_4px_12px_rgba(255,255,255,0.05)] transition-all">
+                    <span
+                        class="material-symbols-outlined text-white text-2xl group-hover:-translate-y-0.5 transition-transform duration-300">sports_soccer</span>
+                </div>
+                <p class="text-[10px] font-bold text-white/90 tracking-widest uppercase">Football</p>
+            </a>
+
+            <a href="#"
+                class="group flex flex-col items-center gap-2 shrink-0 opacity-60 hover:opacity-100 transition-all duration-300 active:scale-95">
+                <div
+                    class="size-14 rounded-full bg-gradient-to-b from-surface-dark to-[#111] border border-white/10 flex items-center justify-center group-hover:border-white/30 group-hover:shadow-[0_4px_12px_rgba(255,255,255,0.05)] transition-all">
+                    <span
+                        class="material-symbols-outlined text-white text-2xl group-hover:-translate-y-0.5 transition-transform duration-300">sports_tennis</span>
+                </div>
+                <p class="text-[10px] font-bold text-white/90 tracking-widest uppercase">Tennis</p>
+            </a>
+
+            <a href="#"
+                class="group flex flex-col items-center gap-2 shrink-0 opacity-60 hover:opacity-100 transition-all duration-300 active:scale-95">
+                <div
+                    class="size-14 rounded-full bg-gradient-to-b from-surface-dark to-[#111] border border-white/10 flex items-center justify-center group-hover:border-white/30 group-hover:shadow-[0_4px_12px_rgba(255,255,255,0.05)] transition-all">
+                    <span
+                        class="material-symbols-outlined text-white text-2xl group-hover:-translate-y-0.5 transition-transform duration-300">casino</span>
+                </div>
+                <p class="text-[10px] font-bold text-white/90 tracking-widest uppercase">Casino</p>
+            </a>
+
+        </div>
+    </section>
+    <section class="px-4 mb-6">
+    <div id="game-carousel" class="flex gap-3 overflow-x-auto no-scrollbar snap-x snap-mandatory scroll-smooth">
+        
+        <a href="/casino/vso"
+            class="group min-w-[70%] sm:min-w-[40%] h-32 rounded-xl relative overflow-hidden flex flex-col justify-end border border-white/10 shadow-lg hover:shadow-primary/20 transition-all duration-300 snap-center">
+
+            <div class="absolute inset-0 bg-[url('https://ik.imagekit.io/xcrdwi6be/Batting_assets/pngtree-pakistan-vs-india-cricket-match-image_16015466.jpg')] bg-cover bg-center transition-transform duration-700 group-hover:scale-110"></div>
+            <div class="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/60 to-transparent"></div>
+            <div class="absolute top-0 right-0 w-32 h-32 bg-primary/30 blur-3xl rounded-full -mr-10 -mt-10 transition-opacity duration-300 opacity-60 group-hover:opacity-100"></div>
+
+            <div class="relative z-10 p-4">
+                <p class="text-[10px] font-black text-primary tracking-widest uppercase mb-0.5 drop-shadow-md">Featured</p>
+                <h3 class="text-xl font-black text-white italic drop-shadow-lg">SUPER OVER</h3>
+            </div>
+
+            <div class="absolute -right-2 top-2 opacity-50 group-hover:opacity-80 group-hover:-translate-y-1 group-hover:scale-105 transition-all duration-300 z-10">
+                <span class="material-symbols-outlined text-6xl text-primary drop-shadow-[0_0_15px_rgba(var(--color-primary),0.6)]">sports_cricket</span>
+            </div>
+        </a>
+
+        <a href="/casino/aviator"
+            class="group min-w-[70%] sm:min-w-[40%] h-32 rounded-xl relative overflow-hidden flex flex-col justify-end border border-white/10 shadow-lg hover:shadow-error/20 transition-all duration-300 snap-center">
+
+            <div class="absolute inset-0 bg-[url('https://ik.imagekit.io/xcrdwi6be/Batting_assets/aviator-game-review-1024x475-1.png')] bg-cover bg-center transition-transform duration-700 group-hover:scale-110"></div>
+            <div class="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/60 to-transparent"></div>
+            <div class="absolute top-0 right-0 w-32 h-32 bg-error/30 blur-3xl rounded-full -mr-10 -mt-10 transition-opacity duration-300 opacity-60 group-hover:opacity-100"></div>
+
+            <div class="relative z-10 p-4">
+                <p class="text-[10px] font-black text-error tracking-widest uppercase mb-0.5 drop-shadow-md">Trending</p>
+                <h3 class="text-xl font-black text-white italic drop-shadow-lg">AVIATOR</h3>
+            </div>
+
+            <div class="absolute -right-2 top-2 opacity-50 group-hover:opacity-80 group-hover:-translate-y-2 group-hover:translate-x-2 group-hover:scale-105 transition-all duration-300 z-10">
+                <span class="material-symbols-outlined text-6xl text-error drop-shadow-[0_0_15px_rgba(255,180,171,0.6)]">flight_takeoff</span>
+            </div>
+        </a>
+
+        <a href="/casino/diamond-and-mines"
+            class="group min-w-[70%] sm:min-w-[40%] h-32 rounded-xl relative overflow-hidden flex flex-col justify-end border border-white/10 shadow-lg hover:shadow-blue-500/20 transition-all duration-300 snap-center">
+
+            <div class="absolute inset-0 bg-[url('https://ik.imagekit.io/xcrdwi6be/Batting_assets/OIP%20(1).png')] bg-cover bg-center transition-transform duration-700 group-hover:scale-110"></div>
+            <div class="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/60 to-transparent"></div>
+            <div class="absolute top-0 right-0 w-32 h-32 bg-blue-500/30 blur-3xl rounded-full -mr-10 -mt-10 transition-opacity duration-300 opacity-60 group-hover:opacity-100"></div>
+
+            <div class="relative z-10 p-4">
+                <p class="text-[10px] font-black text-blue-400 tracking-widest uppercase mb-0.5 drop-shadow-md">New Game</p>
+                <h3 class="text-xl font-black text-white italic drop-shadow-lg">MINES &amp; MAC</h3>
+            </div>
+
+            <div class="absolute -right-2 top-2 opacity-50 group-hover:opacity-80 group-hover:rotate-12 transition-all duration-300 z-10">
+                <span class="material-symbols-outlined text-6xl text-blue-200 drop-shadow-[0_0_15px_rgba(59,130,246,0.6)]">diamond</span>
+            </div>
+        </a>
+
+        <a href="/casino/7up-7down"
+            class="group min-w-[70%] sm:min-w-[40%] h-32 rounded-xl relative overflow-hidden flex flex-col justify-end border border-white/10 shadow-lg hover:shadow-purple-500/20 transition-all duration-300 snap-center">
+
+            <div class="absolute inset-0 bg-[url('https://ik.imagekit.io/xcrdwi6be/Batting_assets/0278e8ad1295c6663e5e59496a69c388-Picsart-AiImageEnhancer.jpg')] bg-cover bg-center transition-transform duration-700 group-hover:scale-110"></div>
+            <div class="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/60 to-transparent"></div>
+            <div class="absolute top-0 right-0 w-32 h-32 bg-purple-500/30 blur-3xl rounded-full -mr-10 -mt-10 transition-opacity duration-300 opacity-60 group-hover:opacity-100"></div>
+
+            <div class="relative z-10 p-4">
+                <p class="text-[10px] font-black text-purple-400 tracking-widest uppercase mb-0.5 drop-shadow-md">Trending</p>
+                <h3 class="text-xl font-black text-white italic drop-shadow-lg">7 UP 7 DOWN</h3>
+            </div>
+
+            <div class="absolute -right-2 top-2 opacity-50 group-hover:opacity-80 group-hover:rotate-12 transition-all duration-300 z-10">
+                <span class="material-symbols-outlined text-6xl text-purple-200 drop-shadow-[0_0_15px_rgba(168,85,247,0.6)]">casino</span>
+            </div>
+        </a>
+    </div>
+</section>
+    <% if(!currUser) { %>
+        <section class="px-4 mb-6 relative group cursor-pointer">
+    <div class="absolute inset-4 bg-primary/30 blur-xl rounded-2xl transition-all duration-500 group-hover:bg-primary/50 group-hover:blur-2xl"></div>
+
+    <div class="relative bg-gradient-to-br from-primary to-primary/80 rounded-2xl p-4 flex items-center justify-between shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-white/20 overflow-hidden transform transition-all duration-300 group-hover:-translate-y-1">
+        
+        <div class="absolute -right-8 -top-8 w-24 h-24 bg-white/20 rounded-full blur-2xl pointer-events-none"></div>
+
+        <div class="flex flex-col relative z-10">
+            <div class="flex items-center gap-2 mb-1.5">
+                <span class="relative flex h-2.5 w-2.5">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-800 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-900"></span>
+                </span>
+                <p class="text-[9px] font-black text-background-dark/80 uppercase tracking-widest leading-none">Instant Support</p>
+            </div>
+            
+            <h3 class="text-[17px] font-black text-background-dark leading-tight tracking-tight drop-shadow-sm">Need a New ID?</h3>
+            
+            <div class="mt-1.5 bg-background-dark/10 backdrop-blur-sm border border-background-dark/10 inline-flex items-center px-2 py-0.5 rounded flex-wrap w-max">
+                <span class="text-[10px] font-bold text-background-dark uppercase tracking-wide">Min. Deposit ₹100</span>
+            </div>
+        </div>
+
+        <a href="https://wa.me/918102073403?text=Hi,%20I%20need%20a%20new%20ID." target="_blank"
+            class="relative z-10 group/btn flex items-center gap-2 bg-[#25D366] hover:bg-[#20bd5a] text-white px-5 py-3 rounded-xl shadow-lg shadow-[#25D366]/40 transition-all duration-300 active:scale-95 border border-white/10">
+            
+            <svg class="w-5 h-5 fill-current drop-shadow-sm" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/>
+            </svg>
+            <span class="text-[11px] font-black uppercase tracking-widest group-hover/btn:translate-x-0.5 transition-transform">WhatsApp</span>
+        </a>
+    </div>
+</section>
+        <% } %>
+
+            <div class="mb-8">
+                <section class="px-4 mb-2">
+                    <div class="flex items-center gap-2 mb-4">
+                        <span class="material-symbols-outlined text-primary">sports_cricket</span>
+                        <h2 class="text-sm font-bold uppercase tracking-tighter">Cricket</h2>
+                    </div>
+                    <div class="flex gap-2 overflow-x-auto no-scrollbar pb-2">
+                        <div
+                            class="flex h-7 shrink-0 items-center justify-center gap-x-1 rounded-full bg-primary/20 border border-primary/30 px-3">
+                            <div class="size-1.5 rounded-full bg-red-500 animate-pulse"></div>
+                            <p class="text-primary text-[10px] font-bold uppercase">Live</p>
+                        </div>
+                        <div
+                            class="flex h-7 shrink-0 items-center justify-center rounded-full bg-surface-dark border border-white/10 px-3">
+                            <p class="text-white/60 text-[10px] font-bold uppercase">Virtual</p>
+                        </div>
+                        <div
+                            class="flex h-7 shrink-0 items-center justify-center rounded-full bg-surface-dark border border-white/10 px-3">
+                            <p class="text-white/60 text-[10px] font-bold uppercase">Premium</p>
+                        </div>
+                    </div>
+                </section>
+                <section class="px-4">
+                    <div class="space-y-1">
+                        <div class="flex items-center text-[9px] font-bold text-white/40 uppercase px-1 pb-1">
+                            <div class="flex-1">Live & Upcoming Matches</div>
+                            <div class="w-[120px] flex justify-between px-2 text-center">
+                                <span class="w-10">1</span><span class="w-10">X</span><span class="w-10">2</span>
+                            </div>
+                        </div>
+
+                        <% for(let i=0; i < Math.min(cricketEvents.length, 10); i++) { let Event=cricketEvents[i]; %>
+                            <a href="/event/<%=Event._id%>"
+                                class="bg-surface-dark border border-white/5 rounded-lg p-2 flex items-center hover:bg-white/[0.02] transition-colors group">
+
+                                <div class="px-1 flex-1">
+                                    <% if(Event.status==='live' ) { %>
+                                        <p class="text-red-500 text-[9px] font-bold mb-0.5 flex items-center gap-1">
+                                            <span
+                                                class="material-symbols-outlined text-[10px] animate-pulse">timer</span>
+                                            LIVE || <%= Event.league %>
+                                        </p>
+                                        <% } else if(Event.status==='pending' || Event.status==='upcoming' ) { %>
+                                            <div class="flex items-center gap-2 mb-0.5">
+                                                <% let formattedDate="TBA" ; if (Event.startTime) { const d=new
+                                                    Date(Event.startTime); formattedDate=d.toLocaleDateString('en-GB', {
+                                                    day: '2-digit' , month: 'short' }) + ', ' +
+                                                    d.toLocaleTimeString('en-GB', { hour: '2-digit' , minute: '2-digit'
+                                                    }); } %>
+                                                    <p class="local-time match-time text-white/40 text-[9px] font-bold uppercase truncate"
+                                                        data-utc="<%= Event.startTime %>">
+                                                        <%= formattedDate %>
+                                                    </p>
+
+                                                    <span class="text-white/20 text-[9px]">•</span>
+
+                                                    <p
+                                                        class="text-white/60 text-[9px] font-bold uppercase truncate max-w-[100px]">
+                                                        <%= Event.league %>
+                                                    </p>
+                                            </div>
+                                            <% } %>
+
+                                                <div class="space-y-0.5">
+                                                    <p class="text-xs font-bold truncate text-white">
+                                                        <%= Event.homeTeam.length> 20 ? Event.homeTeam.substring(0, 18)
+                                                            + '...' : Event.homeTeam %>
+                                                    </p>
+                                                    <p class="text-xs font-bold truncate text-white/70">
+                                                        <%= Event.awayTeam.length> 20 ? Event.awayTeam.substring(0, 18)
+                                                            + '...' : Event.awayTeam %>
+                                                    </p>
+                                                </div>
+                                </div>
+
+                                <div class="flex gap-1.5 shrink-0">
+    <div id="box-home-<%= Event._id %>" class="min-w-[44px] h-10 bg-odds-blue/15 border border-odds-blue/30 hover:bg-odds-blue hover:border-odds-blue rounded-md flex flex-col items-center justify-center cursor-pointer transition-all duration-200 group/odd shadow-inner">
+        <span id="text-home-<%= Event._id %>" data-odd="<%= Event.matchOdds?.homeOdds || 0 %>" class="text-odds-blue group-hover/odd:text-white text-[12px] font-black transition-colors">
+            <%= Event.matchOdds?.homeOdds ? Event.matchOdds.homeOdds.toFixed(2) : '--' %>
+        </span>
+    </div>
+
+    <div id="box-draw-<%= Event._id %>" class="min-w-[44px] h-10 bg-odds-blue/15 border border-odds-blue/30 hover:bg-odds-blue hover:border-odds-blue rounded-md flex flex-col items-center justify-center cursor-pointer transition-all duration-200 group/odd shadow-inner">
+        <span id="text-draw-<%= Event._id %>" data-odd="<%= Event.matchOdds?.drawOdds || 0 %>" class="text-odds-blue group-hover/odd:text-white text-[12px] font-black transition-colors">
+            <%= Event.matchOdds?.drawOdds ? Event.matchOdds.drawOdds.toFixed(2) : '--' %>
+        </span>
+    </div>
+
+    <div id="box-away-<%= Event._id %>" class="min-w-[44px] h-10 bg-odds-blue/15 border border-odds-blue/30 hover:bg-odds-blue hover:border-odds-blue rounded-md flex flex-col items-center justify-center cursor-pointer transition-all duration-200 group/odd shadow-inner">
+        <span id="text-away-<%= Event._id %>" data-odd="<%= Event.matchOdds?.awayOdds || 0 %>" class="text-odds-blue group-hover/odd:text-white text-[12px] font-black transition-colors">
+            <%= Event.matchOdds?.awayOdds ? Event.matchOdds.awayOdds.toFixed(2) : '--' %>
+        </span>
+    </div>
+</div>
+
+                            </a>
+                            <% } %>
+
+                                <% if (cricketEvents && cricketEvents.length> 10) { %>
+                                    <div class="pt-2">
+                                        <a href="/all-events?sport=cricket"
+                                            class="w-full flex items-center justify-center py-3 bg-surface-dark border border-white/10 rounded-lg text-white/60 text-[10px] font-bold uppercase tracking-wider hover:bg-white/5 transition-all gap-2">
+                                            See All Cricket Matches (<%= cricketEvents.length %>)
+                                                <span class="material-symbols-outlined text-sm">chevron_right</span>
+                                        </a>
+                                    </div>
+                                    <% } else if (!cricketEvents || cricketEvents.length===0) { %>
+                                        <div class="py-6 text-center bg-surface-dark border border-white/5 rounded-lg">
+                                            <p class="text-xs text-white/40 font-bold uppercase tracking-widest">No
+                                                Matches Available</p>
+                                        </div>
+                                        <% } %>
+                    </div>
+                </section>
+            </div>
+
+
+    <div class="mb-8">
+    <section class="px-4 mb-2">
+        <div class="flex items-center gap-2 mb-4">
+            <span class="material-symbols-outlined text-primary">sports_soccer</span>
+            <h2 class="text-sm font-bold uppercase tracking-tighter">Football</h2>
+        </div>
+        <div class="flex gap-2 overflow-x-auto no-scrollbar pb-2">
+            <div class="flex h-7 shrink-0 items-center justify-center gap-x-1 rounded-full bg-primary/20 border border-primary/30 px-3">
+                <div class="size-1.5 rounded-full bg-red-500 animate-pulse"></div>
+                <p class="text-primary text-[10px] font-bold uppercase">Live</p>
+            </div>
+            <div class="flex h-7 shrink-0 items-center justify-center rounded-full bg-surface-dark border border-white/10 px-3">
+                <p class="text-white/60 text-[10px] font-bold uppercase">Virtual</p>
+            </div>
+            <div class="flex h-7 shrink-0 items-center justify-center rounded-full bg-surface-dark border border-white/10 px-3">
+                <p class="text-white/60 text-[10px] font-bold uppercase">Premium</p>
+            </div>
+        </div>
+    </section>
+    <section class="px-4">
+        <div class="space-y-1">
+            <div class="flex items-center text-[9px] font-bold text-white/40 uppercase px-1 pb-1">
+                <div class="flex-1">Live & Upcoming Matches</div>
+                <div class="w-[120px] flex justify-between px-2 text-center">
+                    <span class="w-10">1</span><span class="w-10">X</span><span class="w-10">2</span>
+                </div>
+            </div>
+
+            <% for(let i=0; i < Math.min(footballEvents.length, 10); i++) { let Event=footballEvents[i]; %>
+                <a href="/event/<%=Event._id%>"
+                    class="bg-surface-dark border border-white/5 rounded-lg p-2 flex items-center hover:bg-white/[0.02] transition-colors group">
+
+                    <div class="px-1 flex-1">
+                        <% if(Event.status==='live' ) { %>
+                            <p class="text-red-500 text-[9px] font-bold mb-0.5 flex items-center gap-1">
+                                <span class="material-symbols-outlined text-[10px] animate-pulse">timer</span>
+                                LIVE || <%= Event.league %>
+                            </p>
+                        <% } else if(Event.status==='pending' || Event.status==='upcoming' ) { %>
+                            <div class="flex items-center gap-2 mb-0.5">
+                                <% let formattedDate="TBA" ; if (Event.startTime) { const d=new
+                                    Date(Event.startTime); formattedDate=d.toLocaleDateString('en-GB', {
+                                    day: '2-digit' , month: 'short' }) + ', ' +
+                                    d.toLocaleTimeString('en-GB', { hour: '2-digit' , minute: '2-digit'
+                                    }); } %>
+                                    <p class="local-time match-time text-white/40 text-[9px] font-bold uppercase truncate"
+                                        data-utc="<%= Event.startTime %>">
+                                        <%= formattedDate %>
+                                    </p>
+
+                                    <span class="text-white/20 text-[9px]">•</span>
+
+                                    <p class="text-white/60 text-[9px] font-bold uppercase truncate max-w-[100px]">
+                                        <%= Event.league %>
+                                    </p>
+                            </div>
+                        <% } %>
+
+                        <div class="space-y-0.5">
+    <p class="text-xs font-bold truncate text-white">
+        <% if (Event.homeTeam) { %>
+            <%= Event.homeTeam.length > 20 ? Event.homeTeam.substring(0, 18) + '...' : Event.homeTeam %>
+        <% } else { %>
+            Home Team TBA
+        <% } %>
+    </p>
+    <p class="text-xs font-bold truncate text-white/70">
+        <% if (Event.awayTeam) { %>
+            <%= Event.awayTeam.length > 20 ? Event.awayTeam.substring(0, 18) + '...' : Event.awayTeam %>
+        <% } else { %>
+            Away Team TBA
+        <% } %>
+    </p>
+</div>
+                    </div>
+
+                    <div class="flex gap-1.5 shrink-0">
+                        <div class="min-w-[44px] h-10 bg-odds-blue/15 border border-odds-blue/30 hover:bg-odds-blue hover:border-odds-blue rounded-md flex flex-col items-center justify-center cursor-pointer transition-all duration-200 group/odd shadow-inner">
+                            <span class="text-odds-blue group-hover/odd:text-white text-[12px] font-black transition-colors">
+                                <%= Event.matchOdds?.homeOdds ? Event.matchOdds.homeOdds.toFixed(2) : '--' %>
+                            </span>
+                        </div>
+
+                        <div class="min-w-[44px] h-10 bg-odds-blue/15 border border-odds-blue/30 hover:bg-odds-blue hover:border-odds-blue rounded-md flex flex-col items-center justify-center cursor-pointer transition-all duration-200 group/odd shadow-inner">
+                            <span class="text-odds-blue group-hover/odd:text-white text-[12px] font-black transition-colors">
+                                <%= Event.matchOdds?.drawOdds ? Event.matchOdds.drawOdds.toFixed(2) : '--' %>
+                            </span>
+                        </div>
+
+                        <div class="min-w-[44px] h-10 bg-odds-blue/15 border border-odds-blue/30 hover:bg-odds-blue hover:border-odds-blue rounded-md flex flex-col items-center justify-center cursor-pointer transition-all duration-200 group/odd shadow-inner">
+                            <span class="text-odds-blue group-hover/odd:text-white text-[12px] font-black transition-colors">
+                                <%= Event.matchOdds?.awayOdds ? Event.matchOdds.awayOdds.toFixed(2) : '--' %>
+                            </span>
+                        </div>
+                    </div>
+                </a>
+            <% } %>
+
+            <% if (footballEvents && footballEvents.length > 10) { %>
+                <div class="pt-2">
+                    <a href="/all-events?sport=football"
+                        class="w-full flex items-center justify-center py-3 bg-surface-dark border border-white/10 rounded-lg text-white/60 text-[10px] font-bold uppercase tracking-wider hover:bg-white/5 transition-all gap-2">
+                        See All Football Matches (<%= footballEvents.length %>)
+                        <span class="material-symbols-outlined text-sm">chevron_right</span>
+                    </a>
+                </div>
+            <% } else if (!footballEvents || footballEvents.length === 0) { %>
+                <div class="py-6 text-center bg-surface-dark border border-white/5 rounded-lg">
+                    <p class="text-xs text-white/40 font-bold uppercase tracking-widest">No Matches Available</p>
+                </div>
+            <% } %>
+        </div>
+    </section>
+</div>
+<script src="/socket.io/socket.io.js"></script> <script></script>
+</main>
+
+
+<script>
+    const socket = io();
+
+    socket.on('odds_update', (data) => {
+        // Expected data format: { eventId: "...", homeOdds: 2.15, drawOdds: 3.20, awayOdds: 2.80 }
+        console.log("🚨 SOCKET RECEIVED ON HOME PAGE:", data);
+        if(data.homeOdds) updateOddBox('home', data.eventId, data.homeOdds);
+        if(data.drawOdds) updateOddBox('draw', data.eventId, data.drawOdds);
+        if(data.awayOdds) updateOddBox('away', data.eventId, data.awayOdds);
+    });
+
+    function updateOddBox(type, eventId, newValue) {
+        const textEl = document.getElementById(`text-${type}-${eventId}`);
+        const boxEl = document.getElementById(`box-${type}-${eventId}`);
+        
+        if (!textEl || !boxEl) return; // Ignore if match isn't on the current page
+
+        const oldValue = parseFloat(textEl.getAttribute('data-odd')) || 0;
+        const newFloat = parseFloat(newValue);
+
+        // Only flash if the value actually changed
+        if (oldValue !== newFloat) {
+            // 1. Update the text and data attribute
+            textEl.textContent = newFloat.toFixed(2);
+            textEl.setAttribute('data-odd', newFloat);
+
+            // 2. Remove old animation classes so it can trigger again
+            boxEl.classList.remove('flash-up', 'flash-down');
+            textEl.classList.remove('text-white'); // temporary fix for color during flash
+            
+            // 3. Trigger DOM reflow (magic trick to restart CSS animations)
+            void boxEl.offsetWidth; 
+
+            // 4. Apply the new flash class
+            if (newFloat > oldValue) {
+                boxEl.classList.add('flash-up');
+                textEl.classList.add('text-white');
+            } else {
+                boxEl.classList.add('flash-down');
+                textEl.classList.add('text-white');
+            }
+
+            // Clean up text color after animation finishes
+            setTimeout(() => {
+                textEl.classList.remove('text-white');
+            }, 1000);
+        }
+    }
+    
+    document.querySelectorAll('.local-time').forEach(el => {
+        const utcDate = new Date(el.getAttribute('data-utc'));
+        el.innerText = utcDate.toLocaleString(undefined, {
+            day: 'numeric',
+            month: 'short',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    });
+
+    document.addEventListener("DOMContentLoaded", () => {
+        const carousel = document.getElementById('game-carousel');
+        if (!carousel) return;
+
+        let scrollInterval;
+        const scrollDelay = 3000; // 3 seconds per slide
+
+        function startCarousel() {
+            scrollInterval = setInterval(() => {
+                // Calculate the maximum possible scroll distance
+                const maxScroll = carousel.scrollWidth - carousel.clientWidth;
+                
+                // If we are at the end of the carousel, slide back to start
+                if (carousel.scrollLeft >= maxScroll - 5) {
+                    carousel.scrollTo({ left: 0, behavior: 'smooth' });
+                } else {
+                    // Otherwise, scroll right by exactly one card width + gap (12px)
+                    const cardWidth = carousel.firstElementChild.offsetWidth + 12; 
+                    carousel.scrollBy({ left: cardWidth, behavior: 'smooth' });
+                }
+            }, scrollDelay);
+        }
+
+        function stopCarousel() {
+            clearInterval(scrollInterval);
+        }
+
+        // Pause the animation if the user is interacting with it
+        carousel.addEventListener('touchstart', stopCarousel);
+        carousel.addEventListener('mouseenter', stopCarousel);
+        
+        // Resume animation when user is done
+        carousel.addEventListener('touchend', startCarousel);
+        carousel.addEventListener('mouseleave', startCarousel);
+
+        // Kick off the loop on load
+        startCarousel();
+    });
+</script>

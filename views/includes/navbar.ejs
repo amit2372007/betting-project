@@ -1,0 +1,29 @@
+<header class="sticky top-0 z-50 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md border-b border-white/5">
+    <div class="flex items-center justify-between p-4 h-16">
+        
+        <h1 class="text-white text-lg font-bold tracking-widest uppercase">Wicket<span class="text-primary">ADDA</span></h1>
+        
+        <div class="flex items-center gap-3">
+            <% if(!currUser) { %>
+                <div class="w-12 flex justify-end">
+                    <a href="/user/login"
+                        class="bg-primary text-background-dark text-[10px] font-black px-3 py-1 rounded-full tracking-tighter uppercase">
+                        Login
+                    </a>
+                </div>
+            <% } else { %>
+                <div class="flex items-center bg-white/10 rounded-full pl-3 pr-1 py-1 gap-2 border border-white/10">
+                    <div class="flex flex-col items-end">
+                        <span class="text-[10px] text-zinc-400 font-bold uppercase leading-none">Balance</span>
+                        <span class="text-primary text-sm font-black">
+                            ₹<%= currUser.balance.toLocaleString('en-IN') %>
+                        </span>
+                    </div>
+                    <div class="size-8 bg-primary rounded-full flex items-center justify-center">
+                        <span class="material-symbols-outlined text-background-dark text-xl font-bold">person</span>
+                    </div>
+                </div>
+            <% } %>
+        </div>
+    </div>
+</header>

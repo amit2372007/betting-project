@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Betting Exchange Signup V1</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&amp;display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#f28b0d",
+                        "background-light": "#f8f7f5",
+                        "background-dark": "#000000",
+                    },
+                    fontFamily: {
+                        "display": ["Lexend", "sans-serif"]
+                    },
+                    borderRadius: { "DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Lexend', sans-serif;
+            background-color: #000000;
+        }
+
+        .orange-underline {
+            border-bottom: 2px solid #f28b0d;
+        }
+
+        .orange-underline-dashed {
+            border-bottom: 2px dashed #f28b0d;
+        }
+
+        .main-frame {
+            border: 1px solid #f28b0d;
+        }
+    </style>
+    <style>
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+</head>
+
+<body class="bg-background-dark text-white min-h-screen flex items-center justify-center p-4">
+    <!-- Main Container with Orange Border Frame -->
+    <div class="main-frame w-full max-w-[400px] bg-background-dark rounded-xl overflow-hidden flex flex-col relative">
+        <!-- Header -->
+        <div class="pt-8 pb-4 flex flex-col items-center">
+            <div class="size-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
+                <span class="material-symbols-outlined text-primary text-4xl">sports_score</span>
+            </div>
+            <h1 class="text-white text-2xl font-bold tracking-widest uppercase">Create Account</h1>
+        </div>
+        <!-- Registration Form -->
+        <div class="px-6 py-4 flex flex-col gap-6">
+            <form action="/user/register" method="POST" class="flex flex-col gap-6">
+            <!-- name -->
+             <div class="flex flex-col">
+                <p class="text-primary text-xs font-bold uppercase tracking-wider mb-1">Choose Name</p>
+                <div class="flex items-center orange-underline py-2">
+                    <span class="material-symbols-outlined text-primary mr-3 text-xl">person</span>
+                    <input name="name"
+                        class="bg-transparent border-none focus:ring-0 text-white placeholder:text-zinc-600 w-full p-0 text-base"
+                        placeholder="Enter name" type="text" required/>
+                </div>
+            </div>
+
+            <!-- Username -->
+            <div class="flex flex-col">
+                <p class="text-primary text-xs font-bold uppercase tracking-wider mb-1">Choose Username</p>
+                <div class="flex items-center orange-underline py-2">
+                    <span class="material-symbols-outlined text-primary mr-3 text-xl">person</span>
+                    <input name="username"
+                        class="bg-transparent border-none focus:ring-0 text-white placeholder:text-zinc-600 w-full p-0 text-base"
+                        placeholder="Enter username" type="text" required />
+                </div>
+            </div>
+            <!-- Password -->
+            <div class="flex flex-col">
+                <p class="text-primary text-xs font-bold uppercase tracking-wider mb-1">Set Password</p>
+                <div class="flex items-center orange-underline py-2">
+                    <span class="material-symbols-outlined text-primary mr-3 text-xl">lock</span>
+                    <input name="password"
+                        class="bg-transparent border-none focus:ring-0 text-white placeholder:text-zinc-600 w-full p-0 text-base"
+                        placeholder="••••••••" type="password" required />
+                    <span class="material-symbols-outlined text-zinc-500 text-xl cursor-pointer">visibility_off</span>
+                </div>
+            </div>
+            
+            <!-- Referral Code (Dashed) -->
+            <div class="flex flex-col">
+                <p class="text-primary text-xs font-bold uppercase tracking-wider mb-1">Referral Code (Optional)</p>
+                <div class="flex items-center orange-underline-dashed py-2">
+                    <span class="material-symbols-outlined text-primary/60 mr-3 text-xl">redeem</span>
+                    <input
+                        class="bg-transparent border-none focus:ring-0 text-white placeholder:text-zinc-600 w-full p-0 text-base"
+                        placeholder="Enter code" type="text" />
+                </div>
+            </div>
+            <!-- Terms & Conditions Checkbox -->
+            <div class="flex items-start gap-3 mt-2">
+                <div class="pt-0.5">
+                    <input
+                        class="size-5 rounded border-zinc-700 bg-zinc-900 text-primary focus:ring-primary focus:ring-offset-black"
+                        id="terms" type="checkbox" />
+                </div>
+                <label class="text-zinc-400 text-sm leading-tight" for="terms">
+                    I am 18+ years old and I agree to the <span class="text-primary underline">Terms &amp;
+                        Conditions</span>
+                </label>
+            </div>
+            <!-- Register Button -->
+            <button type="submit"
+                class="bg-primary hover:bg-orange-500 text-black font-extrabold text-lg py-4 rounded-full transition-all active:scale-95 shadow-[0_0_15px_rgba(242,139,13,0.3)] mt-2">
+                REGISTER
+            </button>
+            <!-- Login Redirect -->
+            <p class="text-center text-zinc-400 text-sm pb-4">
+                Already have an account? <a class="text-primary font-bold hover:underline" href="#">Log In</a>
+            </p>
+        </div>
+        </form>
+        <!-- WhatsApp Sticky Bottom Button -->
+        <div class="mt-auto p-4 border-t border-zinc-800 bg-zinc-950/50">
+            <button
+                class="w-full bg-primary hover:bg-orange-500 text-black font-bold py-3 rounded-full flex items-center justify-center gap-2 group">
+                <span class="material-symbols-outlined text-black font-bold">chat</span>
+                JOIN WHATSAPP FOR INSTANT ID
+                <span class="material-symbols-outlined text-black animate-pulse">arrow_forward</span>
+            </button>
+        </div>
+    </div>
+</body>
+
+</html>

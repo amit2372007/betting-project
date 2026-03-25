@@ -1,0 +1,98 @@
+<header class="pt-8 pb-6 px-6">
+    <div class="flex flex-col items-center">
+        <div class="relative mb-4">
+            <div class="w-20 h-20 rounded-full bg-gradient-to-tr from-primary to-orange-300 p-1">
+                <div
+                    class="w-full h-full rounded-full bg-background-dark flex items-center justify-center overflow-hidden">
+                    <span class="material-symbols-outlined text-4xl text-white/50">person</span>
+                </div>
+            </div>
+            <div class="absolute bottom-0 right-0 w-6 h-6 bg-green-500 border-4 border-background-dark rounded-full">
+            </div>
+        </div>
+        <p class="text-xs font-medium text-white/40 tracking-widest uppercase mb-1">Name: <%=currUser.name%></p>
+        <h2 class="text-3xl font-black text-white">₹<%= currUser.balance.toLocaleString('en-IN') %></h2>
+        <p class="text-[10px] font-bold text-primary tracking-widest uppercase mt-1">Available Balance</p>
+    </div>
+</header>
+<section class="px-6 mb-8">
+    <div class="grid grid-cols-2 gap-4">
+        <a href="/transaction/deposit"
+            class="bg-primary text-black font-black py-4 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-primary/20 active:scale-95 transition-transform">
+            <span class="material-symbols-outlined text-xl">account_balance_wallet</span>
+            <span class="text-sm uppercase tracking-tight">Deposit</span>
+        </a>
+        <a href="/transaction/withdraw"
+            class="bg-surface-dark border border-primary/40 text-primary font-black py-4 rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-transform">
+            <span class="material-symbols-outlined text-xl">payments</span>
+            <span class="text-sm uppercase tracking-tight">Withdraw</span>
+        </a>
+    </div>
+</section>
+<main class="px-6 pb-32">
+    <div class="space-y-3">
+        <a class="flex items-center justify-between p-4 glass-nav rounded-2xl border border-white/5 group active:bg-white/10"
+            href="/user/accountStatements">
+            <div class="flex items-center gap-4">
+                <div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                    <span class="material-symbols-outlined">receipt_long</span>
+                </div>
+                <span class="text-sm font-semibold">Account Statement</span>
+            </div>
+            <span
+                class="material-symbols-outlined text-white/20 group-hover:text-primary transition-colors">chevron_right</span>
+        </a>
+        <a href="/user/support" 
+   class="flex items-center justify-between p-4 glass-nav rounded-2xl border border-white/5 group active:bg-white/10 transition-colors">
+    <div class="flex items-center gap-4">
+        <div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary/20 transition-colors">
+            <span class="material-symbols-outlined">support_agent</span>
+        </div>
+        <span class="text-sm font-semibold text-white/90 group-hover:text-white transition-colors">Raise a Complaint</span>
+    </div>
+    <span class="material-symbols-outlined text-white/20 group-hover:text-primary transition-colors">chevron_right</span>
+</a>
+       
+        <a class="flex items-center justify-between p-4 glass-nav rounded-2xl border border-white/5 group active:bg-white/10"
+            href="/transaction/withdraw/history">
+            <div class="flex items-center gap-4">
+                <div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                    <span class="material-symbols-outlined">history</span>
+                </div>
+                <span class="text-sm font-semibold">Withdraw History</span>
+            </div>
+            <span
+                class="material-symbols-outlined text-white/20 group-hover:text-primary transition-colors">chevron_right</span>
+        </a>
+        <a class="flex items-center justify-between p-4 glass-nav rounded-2xl border border-white/5 group active:bg-white/10"
+            href="/transaction/deposit/history">
+            <div class="flex items-center gap-4">
+                <div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                    <span class="material-symbols-outlined">history</span>
+                </div>
+                <span class="text-sm font-semibold">Deposit History</span>
+            </div>
+            <span
+                class="material-symbols-outlined text-white/20 group-hover:text-primary transition-colors">chevron_right</span>
+        </a>
+       
+        <a class="flex items-center justify-between p-4 glass-nav rounded-2xl border border-white/5 group active:bg-white/10"
+            href="/user/change-password">
+            <div class="flex items-center gap-4">
+                <div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                    <span class="material-symbols-outlined">lock_reset</span>
+                </div>
+                <span class="text-sm font-semibold">Change Password</span>
+            </div>
+            <span
+                class="material-symbols-outlined text-white/20 group-hover:text-primary transition-colors">chevron_right</span>
+        </a>
+    </div>
+    <div class="mt-8">
+        <a href="/user/logout"
+            class="w-full py-4 border-2 border-red-500/50 text-red-500 rounded-2xl font-black uppercase tracking-widest text-sm flex items-center justify-center gap-2 active:bg-red-500/10 transition-colors">
+            <span class="material-symbols-outlined">logout</span>
+            Logout Account
+        </a>
+    </div>
+</main>

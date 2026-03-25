@@ -1,0 +1,111 @@
+<% if(activeTab === 'MyBets') { %>
+    <header class="sticky top-0 z-50 bg-[#131313]/90 backdrop-blur-xl border-b border-white/5 shadow-md">
+        <div class="flex items-center justify-between p-4 h-16 max-w-2xl mx-auto w-full">
+            <a href="/home?tab=Home" class="size-10 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 active:scale-95 transition-all">
+                <span class="material-symbols-outlined text-white">arrow_back</span>
+            </a>
+            <h1 class="text-white text-base font-black tracking-widest uppercase text-shadow-sm">Active Bets</h1>
+            <button class="size-10 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 transition-all">
+                <span class="material-symbols-outlined text-white">filter_list</span>
+            </button>
+        </div>
+    </header>
+
+    <main class="p-4 pb-32 max-w-2xl mx-auto w-full min-h-[80vh]">
+    <% 
+        // 1. Create a new array containing ONLY pending bets
+        const activeBets = (typeof bets !== 'undefined') ? bets.filter(bet => bet.status === 'pending') : []; 
+    %>
+    
+    <% if (activeBets.length > 0) { %>
+        
+        <div class="flex justify-between items-end mb-4 px-1">
+            <span class="text-xs font-bold text-white/50 uppercase tracking-widest"><%= activeBets.length %> Open Slips</span>
+        </div>
+
+        <% activeBets.forEach(bet => { %>
+            
+            <div class="bg-[#1c1b1b] border border-white/5 rounded-2xl mb-4 relative overflow-hidden shadow-lg animate-in fade-in slide-in-from-bottom-4 duration-300">
+                
+                <div class="absolute left-0 top-0 bottom-0 w-1.5 <%= bet.type === 'back' ? 'bg-[#72bbef]' : 'bg-[#faa9ba]' %> shadow-[0_0_10px_currentColor]"></div>
+                
+                <div class="pl-5 pr-4 py-3 border-b border-white/5 flex justify-between items-center bg-white/[0.02]">
+                    <div class="flex items-center gap-2 text-white/70">
+                        <span class="material-symbols-outlined text-sm">
+                            <%= bet.marketType === 'session' ? 'bolt' : 'sports_cricket' %>
+                        </span>
+                        <span class="text-[10px] font-bold uppercase tracking-widest text-white/90 truncate max-w-[180px]">
+                            <%= bet.eventName || 'Cricket Match' %> 
+                        </span>
+                    </div>
+                    <div class="flex items-center gap-1.5 bg-emerald-500/10 px-2 py-0.5 rounded text-emerald-500 border border-emerald-500/20">
+                        <div class="size-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                        <span class="text-[9px] font-black uppercase tracking-widest">Live</span>
+                    </div>
+                </div>
+
+                <div class="pl-5 pr-4 py-4 flex justify-between items-center">
+                    <div>
+                        <p class="text-[9px] text-white/40 font-bold uppercase tracking-widest mb-1">
+                            <%= bet.marketType === 'session' ? 'Fancy Session' : 'Match Odds' %>
+                        </p>
+                        <h3 class="text-sm font-black text-white leading-tight tracking-tight pr-2 max-w-[200px] truncate" title="<%= bet.selection %>">
+                            <%= bet.selection %>
+                        </h3>
+                        <p class="text-[10px] text-white/40 mt-2 flex items-center gap-1 font-mono">
+                            <span class="material-symbols-outlined text-[12px]">schedule</span>
+                            <%= new Date(bet.createdAt || bet.placedAt).toLocaleString('en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) %>
+                        </p>
+                    </div>
+                    
+                    <div class="text-right flex flex-col items-end shrink-0">
+                        <span class="text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded shadow-sm mb-1 
+                            <%= bet.type === 'back' ? 'bg-[#72bbef]/20 text-[#72bbef] border border-[#72bbef]/30' : 'bg-[#faa9ba]/20 text-[#faa9ba] border border-[#faa9ba]/30' %>">
+                            <%= bet.type %>
+                        </span>
+                        <span class="text-2xl font-black <%= bet.type === 'back' ? 'text-[#72bbef]' : 'text-[#faa9ba]' %>">
+                            <%= bet.odds.toFixed(2) %>
+                        </span>
+                    </div>
+                </div>
+
+                <div class="pl-5 pr-4 py-3 bg-black/40 flex justify-between items-center border-t border-white/5">
+                    <div>
+                        <span class="block text-[9px] text-white/40 font-bold uppercase tracking-widest mb-0.5">Stake / Risk</span>
+                        <span class="text-sm font-black text-white">₹<%= bet.stake.toLocaleString('en-IN') %></span>
+                    </div>
+                    <div class="text-right">
+                        <span class="block text-[9px] text-white/40 font-bold uppercase tracking-widest mb-0.5">Potential Profit</span>
+                        <span class="text-sm font-black text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.3)]">
+                            +₹<%= bet.potentialWin.toLocaleString('en-IN') %>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        <% }) %>
+
+        <div class="flex items-center gap-4 py-8 opacity-20">
+            <div class="h-px bg-white flex-1"></div>
+            <span class="text-[9px] font-bold uppercase tracking-[0.2em]">End of open slips</span>
+            <div class="h-px bg-white flex-1"></div>
+        </div>
+
+    <% } else { %>
+        <div class="flex flex-col items-center justify-center py-20 px-8 text-center h-full">
+            <div class="relative mb-6">
+                <div class="absolute inset-0 bg-primary/20 blur-2xl rounded-full"></div>
+                <div class="size-20 rounded-full bg-[#1c1b1b] border border-white/5 flex items-center justify-center relative z-10 shadow-2xl">
+                    <span class="material-symbols-outlined text-primary/50 text-4xl" style="font-variation-settings: 'FILL' 1;">receipt_long</span>
+                </div>
+            </div>
+            <h3 class="text-white font-black text-xl tracking-tight mb-2">No Active Bets</h3>
+            <p class="text-white/40 text-xs font-medium leading-relaxed max-w-[250px] mx-auto mb-8">
+                Your current betting slip is empty. Head over to the sports section to find live matches and place your predictions.
+            </p>
+            <a href="/home?tab=Home" class="bg-primary text-black font-black text-xs uppercase tracking-widest px-8 py-3.5 rounded-xl shadow-[0_0_20px_rgba(0,242,255,0.3)] hover:scale-105 transition-transform">
+                View Live Matches
+            </a>
+        </div>
+    <% } %>
+</main>
+<% } %>

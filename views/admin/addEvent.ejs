@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Create New Event - Admin Dashboard</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'dark-bg': '#0a0a0a',
+                        'dark-surface': '#1a1a1a',
+                        'neon-blue': '#00f2ff',
+                        'neon-blue-hover': '#00d1db',
+                        'border-dark': '#2d2d2d'
+                    }
+                }
+            }
+        }
+    </script>
+    <style data-purpose="custom-layout">
+        input,
+        select {
+            background-color: #1a1a1a !important;
+            border-color: #2d2d2d !important;
+            color: #ffffff !important;
+        }
+
+        input:focus,
+        select:focus {
+            border-color: #00f2ff !important;
+            ring-color: #00f2ff !important;
+            outline: none;
+        }
+
+        ::-webkit-calendar-picker-indicator {
+            filter: invert(1);
+        }
+    </style>
+</head>
+
+<body class="bg-dark-bg text-gray-200 min-h-screen font-sans antialiased p-4 md:p-8">
+    <main class="max-w-5xl mx-auto">
+        <header class="mb-8" data-purpose="page-header">
+            <h1 class="text-3xl font-bold text-white tracking-tight">Create New Event</h1>
+            <p class="text-gray-400 mt-1">Configure and launch a new sports market.</p>
+        </header>
+        <form action="/admin/addEvent" class="space-y-8" method="POST">
+            <section class="bg-dark-surface border border-border-dark rounded-xl p-6 shadow-2xl"
+                data-purpose="event-details-section">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="h-6 w-1 bg-neon-blue rounded-full"></div>
+                    <h2 class="text-xl font-semibold text-white">1. Event Details</h2>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="flex flex-col gap-2">
+                        <label class="text-sm font-medium text-gray-400" for="sport">Sport</label>
+                        <select class="block w-full rounded-md shadow-sm sm:text-sm" id="sport" name="sport">
+                            <option value="cricket">Cricket</option>
+                            <option value="football">Football</option>
+                            <option value="tennis">Tennis</option>
+                        </select>
+                    </div>
+                    <div class="flex flex-col gap-2">
+                        <label class="text-sm font-medium text-gray-400" for="league">League/Tournament</label>
+                        <input class="block w-full rounded-md shadow-sm sm:text-sm" id="league" name="league"
+                            placeholder="e.g. Premier League" type="text" />
+                    </div>
+                    <div class="flex flex-col gap-2">
+                        <label class="text-sm font-medium text-gray-400" for="event-id">Internal Event ID</label>
+                        <input class="block w-full rounded-md shadow-sm sm:text-sm" id="event-id" name="event_id"
+                            placeholder="UID-8829" type="text" />
+                    </div>
+                    <div class="flex flex-col gap-2">
+                        <label class="text-sm font-medium text-gray-400" for="start-time">Start Time</label>
+                        <input class="block w-full rounded-md shadow-sm sm:text-sm" id="start-time" name="start_time"
+                            type="datetime-local" />
+                    </div>
+                    <div class="flex flex-col gap-2">
+                        <label class="text-sm font-medium text-gray-400" for="status">Status</label>
+                        <select class="block w-full rounded-md shadow-sm sm:text-sm" id="status" name="status">
+                            <option value="upcoming">Upcoming</option>
+                            <option value="pending">Pending</option>
+                            <option value="live">Live</option>
+                        </select>
+                    </div>
+                    <div class="flex flex-col gap-2">
+                        <label class="text-sm font-medium text-neon-blue" for="provider-id">Provider Match ID</label>
+                        <input class="block w-full rounded-md shadow-sm sm:text-sm border-neon-blue/50" id="provider-id" name="providerId"
+                            placeholder="e.g. 35387026" type="text" required />
+                        <span class="text-xs text-gray-500">External ID to link live scraped odds.</span>
+                    </div>
+                </div>
+            </section>
+            
+            <section class="bg-dark-surface border border-border-dark rounded-xl p-6 shadow-2xl"
+                data-purpose="team-details-section">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="h-6 w-1 bg-neon-blue rounded-full"></div>
+                    <h2 class="text-xl font-semibold text-white">2. Team Details</h2>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
+                    <div class="space-y-4">
+                        <div class="flex flex-col gap-2">
+                            <label class="text-sm font-medium text-gray-400" for="home-team">Home Team</label>
+                            <input class="block w-full rounded-md shadow-sm sm:text-sm" id="home-team" name="home_team"
+                                placeholder="Home Team Name" type="text" />
+                        </div>
+                        <div class="flex flex-col gap-2">
+                            <label class="text-sm font-medium text-gray-400" for="home-id">Home ID</label>
+                            <input class="block w-full rounded-md shadow-sm sm:text-sm" id="home-id" name="home_id"
+                                placeholder="HT-001" type="text" />
+                        </div>
+                    </div>
+                    <div class="space-y-4 border-t md:border-t-0 md:border-l border-border-dark pt-6 md:pt-0 md:pl-12">
+                        <div class="flex flex-col gap-2">
+                            <label class="text-sm font-medium text-gray-400" for="away-team">Away Team</label>
+                            <input class="block w-full rounded-md shadow-sm sm:text-sm" id="away-team" name="away_team"
+                                placeholder="Away Team Name" type="text" />
+                        </div>
+                        <div class="flex flex-col gap-2">
+                            <label class="text-sm font-medium text-gray-400" for="away-id">Away ID</label>
+                            <input class="block w-full rounded-md shadow-sm sm:text-sm" id="away-id" name="away_id"
+                                placeholder="AT-002" type="text" />
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <section class="bg-dark-surface border border-border-dark rounded-xl p-6 shadow-2xl"
+                data-purpose="markets-odds-section">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="h-6 w-1 bg-neon-blue rounded-full"></div>
+                    <h2 class="text-xl font-semibold text-white">3. Initial Markets &amp; Odds</h2>
+                </div>
+                <div class="grid grid-cols-1 gap-8">
+                    <div class="space-y-4">
+                        <span class="text-xs uppercase tracking-widest text-neon-blue font-bold">Match Odds (1X2)</span>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="flex flex-col gap-2">
+                                <label class="text-xs text-gray-500" for="odds-home">Home Win</label>
+                                <input class="block w-full rounded-md shadow-sm sm:text-sm" id="odds-home"
+                                    name="odds_home" placeholder="1.00" step="0.01" type="number" />
+                            </div>
+                            <div class="flex flex-col gap-2">
+                                <label class="text-xs text-gray-500" for="odds-away">Away Win</label>
+                                <input class="block w-full rounded-md shadow-sm sm:text-sm" id="odds-away"
+                                    name="odds_away" placeholder="1.00" step="0.01" type="number" />
+                            </div>
+                            <div class="flex flex-col gap-2">
+                                <label class="text-xs text-gray-500" for="odds-draw">Draw</label>
+                                <input class="block w-full rounded-md shadow-sm sm:text-sm" id="odds-draw"
+                                    name="odds_draw" placeholder="1.00" step="0.01" type="number" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="space-y-4">
+                        <span class="text-xs uppercase tracking-widest text-neon-blue font-bold">Toss Market</span>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="flex flex-col gap-2">
+                                <label class="text-xs text-gray-500" for="toss-home">Home Toss</label>
+                                <input class="block w-full rounded-md shadow-sm sm:text-sm" id="toss-home"
+                                    name="toss_home" placeholder="1.90" step="0.01" type="number" />
+                            </div>
+                            <div class="flex flex-col gap-2">
+                                <label class="text-xs text-gray-500" for="toss-away">Away Toss</label>
+                                <input class="block w-full rounded-md shadow-sm sm:text-sm" id="toss-away"
+                                    name="toss_away" placeholder="1.90" step="0.01" type="number" />
+                            </div>
+                            <div class="hidden md:block"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <footer class="flex items-center justify-end gap-4 py-4" data-purpose="form-actions">
+                <a href="/admin"
+                    class="px-6 py-2.5 rounded-lg border border-border-dark text-gray-300 font-medium hover:bg-white/5 transition-colors"
+                    type="button">
+                    Cancel
+                </a>
+                <button
+                    class="px-8 py-2.5 rounded-lg bg-neon-blue text-dark-bg font-bold shadow-[0_0_15_rgba(0,242,255,0.3)] hover:bg-neon-blue-hover hover:shadow-[0_0_20px_rgba(0,242,255,0.5)] transition-all"
+                    type="submit">
+                    Create Event
+                </button>
+            </footer>
+        </form>
+    </main>
+</body>
+
+</html>

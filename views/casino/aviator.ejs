@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    
+    <title>Aviator | Premium Crash Game</title>
+    <meta name="description" content="Play the ultimate Aviator crash game. Cash out before the plane flies away! Real-time odds and secure betting." />
+    
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+    
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "background": "#131313",
+                        "surface": "#1c1b1b",
+                        "surface-high": "#2a2a2a",
+                        "primary": "#ff4d4d", // Aggressive Aviator Red
+                        "primary-hover": "#ff3333",
+                        "success": "#28a745",
+                        "on-surface": "#ffffff",
+                        "on-surface-variant": "#a0a0a0"
+                    },
+                    fontFamily: { "body": ["Inter", "sans-serif"] }
+                }
+            }
+        }
+    </script>
+    <style>
+        .multiplier-glow { text-shadow: 0 0 20px rgba(255, 77, 77, 0.6); }
+        .success-glow { text-shadow: 0 0 20px rgba(40, 167, 69, 0.6); }
+        /* Hide number input arrows */
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        /* Feed Animations */
+        @keyframes slideDownFade {
+            0% { opacity: 0; transform: translateY(-10px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+        .animate-bet-row { animation: slideDownFade 0.3s ease-out forwards; }
+        /* Toast Notification Animations */
+        @keyframes toastEnter {
+            0% { opacity: 0; transform: translateX(100%) scale(0.9); }
+            100% { opacity: 1; transform: translateX(0) scale(1); }
+        }
+        @keyframes toastLeave {
+            0% { opacity: 1; transform: translateX(0) scale(1); }
+            100% { opacity: 0; transform: translateX(100%) scale(0.9); }
+        }
+        .toast-enter { animation: toastEnter 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        .toast-leave { animation: toastLeave 0.3s ease-in forwards; }
+    </style>
+</head>
+
+<body class="bg-background text-on-surface font-body min-h-screen flex flex-col">
+    <div id="toast-container" class="fixed top-20 right-4 z-[100] flex flex-col gap-3 pointer-events-none w-full max-w-[280px]"></div>
+    
+    <header class="w-full h-16 bg-surface flex items-center justify-between px-4 border-b border-white/5 shadow-md sticky top-0 z-50">
+        <div class="flex items-center gap-2">
+            <a href="/home" aria-label="Go back" class="text-on-surface-variant hover:text-white transition-colors">
+                <span class="material-symbols-outlined">arrow_back_ios</span>
+            </a>
+            <h1 class="font-black text-xl italic text-primary tracking-tight">AVIATOR</h1>
+        </div>
+        
+        <div class="flex items-center gap-2 sm:gap-3">
+            <div class="bg-surface-high px-2 sm:px-3 py-1.5 rounded-full border border-white/10 flex items-center gap-1.5">
+                <span class="material-symbols-outlined text-[14px] sm:text-[16px] text-primary animate-pulse">group</span>
+                <span id="live-players" class="font-bold text-xs sm:text-sm tracking-wide text-on-surface-variant">0</span>
+            </div>
+
+            <div class="bg-surface-high px-3 sm:px-4 py-1.5 rounded-full border border-white/10 flex items-center gap-1.5 sm:gap-2">
+                <span class="material-symbols-outlined text-[14px] sm:text-[16px] text-success">account_balance_wallet</span>
+                <span id="wallet-balance" class="font-bold text-xs sm:text-sm tracking-wide">₹<%= user.balance.toFixed(2) %></span>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow flex flex-col max-w-3xl mx-auto w-full p-3 gap-3 pb-24">
+        
+        <nav aria-label="Recent crash history" class="w-full overflow-x-auto no-scrollbar py-1">
+            <div id="history-ticker" class="flex items-center gap-2 font-bold text-xs" aria-live="polite">
+                <span class="text-on-surface-variant mr-1 uppercase text-[10px] tracking-widest flex-shrink-0">Recent:</span>
+                
+                <% history.forEach(round => { %>
+                    <% 
+                        // Color Logic: Purple/Green for huge wins, Red/Primary for normal, Grey for immediate busts
+                        let colorClass = 'text-on-surface-variant';
+                        if (round.crashPoint >= 10.0) colorClass = 'text-success';
+                        else if (round.crashPoint >= 2.0) colorClass = 'text-primary';
+                    %>
+                    <span class="bg-surface-high px-2 py-1 rounded-md <%= colorClass %> flex-shrink-0 history-badge">
+                        <%= round.crashPoint.toFixed(2) %>x
+                    </span>
+                <% }) %>
+
+            </div>
+        </nav>
+
+        <section id="game-canvas" aria-label="Game Canvas" class="w-full aspect-[4/3] sm:aspect-video bg-surface rounded-2xl border border-white/5 relative overflow-hidden flex flex-col items-center justify-center shadow-inner">
+            
+            <div class="absolute top-3 left-3 z-40 bg-black/30 backdrop-blur-sm border border-white/5 rounded-md px-2 py-1 flex items-center gap-1 shadow-sm">
+                <span class="material-symbols-outlined text-[12px] text-on-surface-variant/70">tag</span>
+                <span id="round-id-display" class="text-[10px] font-mono font-bold text-on-surface-variant tracking-widest uppercase">LOADING...</span>
+            </div>
+
+            <div id="grid-bg" class="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:40px_40px] will-change-[background-position]"></div>
+            
+            <div class="relative z-20 flex flex-col items-center pointer-events-none">
+                <h2 id="live-multiplier" class="text-7xl font-black text-primary multiplier-glow tabular-nums tracking-tighter transition-colors duration-300">1.00x</h2>
+                <p id="game-status" class="text-sm font-bold text-on-surface-variant uppercase tracking-widest mt-2 animate-pulse">Waiting for next round</p>
+            </div>
+
+            <svg id="trail-canvas" class="absolute inset-0 w-full h-full pointer-events-none z-10" preserveAspectRatio="none">
+                <defs>
+                    <linearGradient id="trail-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" stop-color="#ff4d4d" stop-opacity="0.4"/>
+                        <stop offset="100%" stop-color="#ff4d4d" stop-opacity="0.0"/>
+                    </linearGradient>
+                </defs>
+                <path id="trail-path" d="" fill="url(#trail-gradient)" stroke="#ff4d4d" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+
+            <div id="plane-container" class="absolute bottom-0 left-0 w-16 h-16 z-30 flex items-center justify-center origin-center will-change-transform" style="transform: translate(10px, -10px);">
+                <span class="material-symbols-outlined text-primary text-6xl drop-shadow-[0_0_15px_rgba(255,77,77,1)]" style="transform: rotate(45deg);">flight</span>
+            </div>
+        </section>
+
+        <section aria-label="Betting Controls" class="bg-surface rounded-2xl border border-white/5 p-4 flex flex-col gap-4 shadow-xl relative z-20">
+            
+            <div class="flex flex-col gap-3">
+                <div class="w-full bg-surface-high rounded-xl p-2 border border-white/10 flex items-center justify-between focus-within:border-primary transition-colors relative group">
+                    <button onclick="adjustBet(-10)" class="w-12 h-12 rounded-lg bg-background text-white font-black hover:bg-white/10 transition-colors flex items-center justify-center text-2xl shadow-inner active:scale-95">-</button>
+                    
+                    <div class="flex flex-col items-center flex-1 px-2 relative">
+                        <label for="bet-input" class="text-[9px] uppercase font-bold tracking-widest text-on-surface-variant absolute -top-1">Stake (₹)</label>
+                        <input type="number" id="bet-input" value="100" min="10" aria-label="Bet amount" class="w-full bg-transparent text-center font-black text-3xl outline-none border-none mt-3 text-white placeholder-white/20">
+                    </div>
+
+                    <div class="flex items-center gap-1">
+                        <button onclick="clearBet()" aria-label="Clear bet" class="w-12 h-12 rounded-lg bg-background text-on-surface-variant hover:text-white hover:bg-error/20 transition-colors flex items-center justify-center shadow-inner active:scale-95 group">
+                            <span class="material-symbols-outlined text-[20px] group-hover:text-error transition-colors">backspace</span>
+                        </button>
+                        <button onclick="adjustBet(10)" class="w-12 h-12 rounded-lg bg-background text-white font-black hover:bg-white/10 transition-colors flex items-center justify-center text-2xl shadow-inner active:scale-95">+</button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-3 sm:grid-cols-6 gap-2 w-full">
+                    <button onclick="setBet(100)" class="bg-surface-high rounded-lg text-xs font-bold py-3 hover:bg-white/10 border border-white/5 transition-all active:scale-95 shadow-sm text-on-surface-variant hover:text-white">₹100</button>
+                    <button onclick="setBet(500)" class="bg-surface-high rounded-lg text-xs font-bold py-3 hover:bg-white/10 border border-white/5 transition-all active:scale-95 shadow-sm text-on-surface-variant hover:text-white">₹500</button>
+                    <button onclick="setBet(1000)" class="bg-surface-high rounded-lg text-xs font-bold py-3 hover:bg-white/10 border border-white/5 transition-all active:scale-95 shadow-sm text-on-surface-variant hover:text-white">₹1K</button>
+                    <button onclick="setBet(2000)" class="bg-surface-high rounded-lg text-xs font-bold py-3 hover:bg-white/10 border border-white/5 transition-all active:scale-95 shadow-sm text-on-surface-variant hover:text-white">₹2K</button>
+                    <button onclick="setBet(5000)" class="bg-surface-high rounded-lg text-xs font-bold py-3 hover:bg-white/10 border border-white/5 transition-all active:scale-95 shadow-sm text-on-surface-variant hover:text-white">₹5K</button>
+                    <button onclick="setBet(10000)" class="bg-surface-high rounded-lg text-xs font-bold py-3 hover:bg-white/10 border border-white/5 transition-all active:scale-95 shadow-sm text-on-surface-variant hover:text-white">₹10K</button>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-between bg-surface-high rounded-xl p-3 border border-white/10">
+                <div class="flex items-center gap-3">
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="auto-cashout-toggle" class="sr-only peer" onchange="toggleAutoCashout()">
+                        <div class="w-11 h-6 bg-background peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-on-surface-variant peer-checked:after:bg-white after:border-transparent after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-success"></div>
+                    </label>
+                    <span class="text-xs font-bold uppercase tracking-widest text-on-surface-variant">Auto Cashout</span>
+                </div>
+                
+                <div class="flex items-center bg-background rounded-lg p-1 border border-white/10 focus-within:border-primary transition-colors">
+                    <input type="number" id="auto-multiplier-input" value="2.00" step="0.10" min="1.01" class="w-20 bg-transparent text-center font-bold text-sm outline-none border-none text-on-surface-variant" disabled>
+                    <span class="text-xs font-bold text-primary mr-3">x</span>
+                </div>
+            </div>
+
+            <button id="action-btn" onclick="handleAction()" class="w-full bg-primary hover:bg-primary-hover text-white font-black text-3xl py-4 min-h-[80px] rounded-xl uppercase tracking-widest shadow-[0_0_20px_rgba(255,77,77,0.3)] transition-all duration-200 active:scale-[0.98] flex flex-col items-center justify-center leading-tight">
+                BET
+            </button>
+        </section>
+
+        <section aria-label="Live Bets Feed" class="bg-surface rounded-2xl border border-white/5 p-4 flex flex-col gap-3 shadow-xl relative z-20 mb-2">
+            
+            <div class="flex items-center justify-between border-b border-white/5 pb-2">
+                <h3 class="text-xs font-bold uppercase tracking-widest text-on-surface-variant flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary text-[16px]">receipt_long</span>
+                    Live Bets
+                </h3>
+                <div class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-[14px] text-success animate-pulse" id="feed-live-icon" style="display: none;">sensors</span>
+                    <span class="text-[10px] text-on-surface-variant font-mono">ROUND: <span id="feed-round-id">WAITING...</span></span>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-4 gap-2 text-[9px] uppercase font-bold text-on-surface-variant tracking-widest px-2">
+                <div class="col-span-1">User</div>
+                <div class="col-span-1 text-right">Bet</div>
+                <div class="col-span-1 text-center">Mult</div>
+                <div class="col-span-1 text-right">Win</div>
+            </div>
+
+            <div class="relative w-full">
+                <div id="live-bets-feed" class="flex flex-col gap-1 max-h-[180px] overflow-hidden">
+                    </div>
+                <div class="absolute bottom-0 left-0 w-full h-8 bg-gradient-to-t from-surface to-transparent pointer-events-none"></div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="w-full bg-surface-high border-t border-white/5 py-2 text-center text-[10px] text-on-surface-variant px-4 mt-auto">
+        <p>Data provided by <a href="https://aviatorgames.ai/" class="text-primary hover:underline" target="_blank">aviatorgames.ai/</a> | Updates every 1000ms</p>
+        <p class="mt-1 opacity-60">Play responsibly and WIN BIG!</p>
+    </footer>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        // --- 🎵 AUDIO ASSETS 🎵 ---
+        
+        const flewAway = new Audio('/sounds/flewAway.mp3');
+        const flyingAviator = new Audio('/sounds/flyingAviator.mp3');
+        const clockTicking = new Audio('/sounds/clockTicking.mp3');
+        
+        flewAway.volume = 0.8;
+        flyingAviator.volume = 0.8;
+        flyingAviator.loop = true; 
+        clockTicking.volume = 0.8;
+
+        // --- 🏆 PREMIUM TOAST NOTIFICATIONS ---
+        function showToast(title, message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+
+            const toast = document.createElement('div');
+
+            let bgClass = "bg-surface-high border-white/10";
+            let icon = "receipt_long";
+            let iconColor = "text-on-surface-variant";
+            let glow = "shadow-lg";
+
+            if (type === 'success') {
+                bgClass = "bg-[#28a745]/10 border-[#28a745]/30 backdrop-blur-md";
+                icon = "payments";
+                iconColor = "text-[#28a745]";
+                glow = "shadow-[0_0_20px_rgba(40,167,69,0.3)]";
+            } else if (type === 'error') {
+                bgClass = "bg-primary/10 border-primary/30 backdrop-blur-md";
+                icon = "cancel";
+                iconColor = "text-primary"; 
+                glow = "shadow-[0_0_20px_rgba(255,77,77,0.3)]";
+            }
+
+            toast.className = `toast-enter flex items-center justify-between w-full rounded-xl p-3 border ${bgClass} ${glow} pointer-events-auto`;
+            toast.innerHTML = `
+                <div class="flex items-center gap-3">
+                    <span class="material-symbols-outlined text-[28px] ${iconColor}">${icon}</span>
+                    <div class="flex flex-col">
+                        <span class="font-black tracking-widest uppercase text-[11px] text-white">${title}</span>
+                        <span class="font-bold text-[10px] text-white/60 tracking-wide">${message}</span>
+                    </div>
+                </div>
+            `;
+
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.remove('toast-enter');
+                toast.classList.add('toast-leave');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // --- 👥 FAKE LIVE BETS ENGINE ---
+        const fakeNames = ["Akas***", "Raj***", "Dev***", "Poo***", "Shi***", "Vik***", "Sne***", "Joh***", "Roh***", "Moh***" , "Anu***", "Sai***", "Kav***", "Nikh***", "Har***", "Aar***", "Pri***", "Adh***", "Man***", "Shiv***", "Arj***" , "Kri***", "Suh***", "Tan***", "Dha***", "Yog***", "Ish***", "Par***", "Gau***", "Lak***", "Vi***", "Sha***", "Ragh***", "Kum***", "Chir***", "Samar***", "Nave***", "Tej***", "Vij***", "Ash***", "Mahi***", "Rit***", "Sidh***", "Ansh***", "Kaly***", "Shan***", "Raghv***", "Amit***", "Saty***", "Vish***", "Karan***", "Jai***", "Rah***", "Aditya***", "Suresh***", "Vikram***", "Sanjay***", "Rohit***", "Aman***", "Kunal***", "Pranav***", "Sahil***", "Nikhil***", "Harsh***", "Aarav***", "Priyansh***", "Adhvik***", "Manav***", "Shivam***", "Arjun***", "Krish***", "Suhas***", "Tanmay***", "Dhaval***", "Yogesh***", "Ishaan***", "Parth***", "Gaurav***", "Lakshay***", "Vishal***", "Shantanu***", "Raghavendra***", "Kumar***", "Chirag***"
+        , "Samar***", "Naveen***", "Tejas***", "Vijay***", "Ashish***", "Mahesh***", "Ritesh***", "Siddharth***", "Anshul***", "Kalyan***", "Shantanu***", "Raghvendra***", "Amitabh***", "Satyarth***", "Vishnu***", "Karanveer***", "Jaiwant***", "Rahul***", "Adityan***", "Suresh***", "Vikramaditya***", "Sanjay***", "Rohit***", "Amanpreet***", "Kunal***", "Pranav***", "Sahil***"
+        , "Nikhil***", "Harsh***", "Aarav***", "Priyansh***", "Adhvik***", "Manav***", "Shivam***", "Arjun***", "Krish***", "Suhas***", "Tanmay***", "Dhaval***", "Yogesh***", "Ishaan***", "Parth***", "Gaurav***", "Lakshay***", "Vishal***", "Shantanu***"
+        ];
+        const fakeBetAmounts = [10, 50, 100, 200, 500, 1000, 2000, 5000];
+        
+        let fakeBetsMap = new Map(); 
+        let fakeBetTimer = null;
+        let hasStartedFakeBets = false; 
+        const feedContainer = document.getElementById('live-bets-feed');
+
+        function startFakeBettingPhase() {
+            feedContainer.innerHTML = ''; 
+            fakeBetsMap.clear();
+            document.getElementById('feed-live-icon').style.display = 'none';
+            
+            for(let i=0; i<4; i++) {
+                placeRandomFakeBet(true);
+            }
+            
+            placeRandomFakeBet();
+        }
+
+        function placeRandomFakeBet(isInstant = false) {
+            if (gameStatus !== 'starting') return;
+            
+            const name = fakeNames[Math.floor(Math.random() * fakeNames.length)];
+            const bet = fakeBetAmounts[Math.floor(Math.random() * fakeBetAmounts.length)];
+            const rowId = 'fake-' + Date.now() + Math.random();
+
+            const row = document.createElement('div');
+            row.className = 'grid grid-cols-4 gap-2 items-center bg-surface-high rounded-lg px-2 py-1.5 border border-white/5 animate-bet-row transition-colors duration-300';
+            row.id = rowId;
+            
+            row.innerHTML = `
+                <div class="col-span-1 text-[11px] font-bold text-on-surface">${name}</div>
+                <div class="col-span-1 text-[11px] text-right font-mono text-on-surface-variant">₹${bet}</div>
+                <div class="col-span-1 text-[11px] text-center font-bold text-on-surface-variant mult-display">-</div>
+                <div class="col-span-1 text-[11px] text-right font-bold text-on-surface-variant win-display">-</div>
+            `;
+
+            feedContainer.insertBefore(row, feedContainer.firstChild);
+            
+            if (feedContainer.children.length > 12) {
+                feedContainer.removeChild(feedContainer.lastChild);
+            }
+
+            fakeBetsMap.set(rowId, { amount: bet, element: row, cashedOut: false });
+
+            if (!isInstant) {
+                const nextBetDelay = Math.random() * 600 + 200;
+                fakeBetTimer = setTimeout(placeRandomFakeBet, nextBetDelay);
+            }
+        }
+
+        function processFakeCashouts(currentMultiplier) {
+            if (gameStatus !== 'flying') return;
+            
+            fakeBetsMap.forEach((bet, id) => {
+                if (!bet.cashedOut && Math.random() < 0.06) {
+                    bet.cashedOut = true;
+                    
+                    const el = bet.element;
+                    const winAmt = (bet.amount * currentMultiplier).toFixed(2);
+                    
+                    el.classList.replace('bg-surface-high', 'bg-success/10');
+                    el.classList.replace('border-white/5', 'border-success/30');
+                    
+                    const multDisplay = el.querySelector('.mult-display');
+                    multDisplay.innerText = currentMultiplier.toFixed(2) + 'x';
+                    multDisplay.classList.replace('text-on-surface-variant', 'text-success');
+                    
+                    const winDisplay = el.querySelector('.win-display');
+                    winDisplay.innerText = '₹' + winAmt;
+                    winDisplay.classList.replace('text-on-surface-variant', 'text-success');
+                }
+            });
+        }
+
+        function freezeFakeBets() {
+            clearTimeout(fakeBetTimer);
+            document.getElementById('feed-live-icon').style.display = 'none';
+            
+            fakeBetsMap.forEach((bet) => {
+                if (!bet.cashedOut) {
+                    bet.element.style.opacity = '0.4';
+                }
+            });
+        }
+
+        // --- LIVE MULTIPLAYER STATE ---
+        const socket = io(); 
+        let currentBet = 100;
+        let myBetPlaced = false;
+        let gameStatus = 'starting'; 
+        
+        // AUTO-CASHOUT STATE
+        let isAutoCashoutActive = false;
+        let targetAutoMultiplier = 2.00;
+        let isCashingOut = false; 
+        
+        const ui = {
+            betInput: document.getElementById('bet-input'),
+            actionBtn: document.getElementById('action-btn'),
+            liveMultiplier: document.getElementById('live-multiplier'),
+            gameStatusText: document.getElementById('game-status'),
+            walletBalance: document.getElementById('wallet-balance'),
+            autoToggle: document.getElementById('auto-cashout-toggle'),
+            autoInput: document.getElementById('auto-multiplier-input'),
+            roundIdDisplay: document.getElementById('round-id-display')
+        };
+
+        // --- ✈️ ANIMATION ENGINE ---
+        const animUI = {
+            canvas: document.getElementById('game-canvas'),
+            plane: document.getElementById('plane-container'),
+            trail: document.getElementById('trail-path'),
+            grid: document.getElementById('grid-bg')
+        };
+
+        let gridOffset = 0;
+
+        function updateFlightAnimation(multiplier) {
+            const w = animUI.canvas.clientWidth;
+            const h = animUI.canvas.clientHeight;
+            const padding = 40; 
+            let progress = 1 - (1 / parseFloat(multiplier));
+            const targetX = progress * (w - padding);
+            const targetY = progress * (h - padding * 2);
+            const tilt = Math.min(15, progress * 20); 
+            animUI.plane.style.transition = 'transform 0.1s linear';
+            animUI.plane.style.transform = `translate(${targetX + 10}px, ${-targetY - 10}px) rotate(${-tilt}deg)`;
+            const startY = h;
+            const curX = targetX + 10;
+            const curY = h - targetY - 10;
+            const pathData = `M 0,${startY} Q ${curX * 0.4},${startY} ${curX},${curY} L ${curX},${startY} Z`;
+            animUI.trail.setAttribute('d', pathData);
+            gridOffset -= (1 + progress * 5); 
+            animUI.grid.style.backgroundPosition = `${gridOffset}px ${gridOffset}px`;
+        }
+
+        function triggerCrashAnimation() {
+            animUI.plane.style.transition = 'transform 0.4s ease-in, opacity 0.3s ease-in';
+            animUI.plane.style.transform = `translate(${animUI.canvas.clientWidth + 100}px, -${animUI.canvas.clientHeight + 100}px)`;
+            animUI.plane.style.opacity = '0';
+            animUI.trail.style.transition = 'opacity 0.2s';
+            animUI.trail.style.opacity = '0';
+        }
+
+        function resetFlightAnimation() {
+            animUI.plane.style.transition = 'none';
+            animUI.plane.style.transform = `translate(10px, -10px) rotate(0deg)`;
+            animUI.plane.style.opacity = '1';
+            animUI.trail.style.transition = 'none';
+            animUI.trail.style.opacity = '1';
+            animUI.trail.setAttribute('d', '');
+            gridOffset = 0;
+            animUI.grid.style.backgroundPosition = `0px 0px`;
+        }
+
+        // --- STAKE CONTROLS ---
+        function clearBet() {
+            if (myBetPlaced) return;
+            currentBet = 10;
+            ui.betInput.value = currentBet;
+        }
+
+        function adjustBet(amount) {
+            if (myBetPlaced) return; 
+            currentBet = Math.max(10, currentBet + amount);
+            ui.betInput.value = currentBet;
+        }
+
+        function setBet(amount) {
+            if (myBetPlaced) return;
+            currentBet = amount;
+            ui.betInput.value = currentBet;
+        }
+
+        ui.betInput.addEventListener('input', (e) => {
+            currentBet = parseInt(e.target.value) || 10;
+        });
+
+        function toggleAutoCashout() {
+            isAutoCashoutActive = ui.autoToggle.checked;
+            ui.autoInput.disabled = !isAutoCashoutActive;
+            
+            if (isAutoCashoutActive) {
+                ui.autoInput.classList.replace('text-on-surface-variant', 'text-white');
+            } else {
+                ui.autoInput.classList.replace('text-white', 'text-on-surface-variant');
+            }
+        }
+
+        ui.autoInput.addEventListener('input', (e) => {
+            targetAutoMultiplier = parseFloat(e.target.value) || 2.00;
+        });
+
+        // --- CORE ACTIONS ---
+        async function performCashout() {
+            if (!myBetPlaced || isCashingOut) return;
+            
+            isCashingOut = true;
+            ui.actionBtn.disabled = true;
+
+            try {
+                const res = await fetch('/game/aviator/cashout', { method: 'POST' });
+                const data = await res.json();
+
+                if (data.success) {
+                    myBetPlaced = false;
+                    ui.walletBalance.innerText = '₹' + data.newBalance.toFixed(2);
+                    ui.actionBtn.classList.remove('bg-success');
+                    ui.actionBtn.classList.add('bg-primary', 'hover:bg-primary-hover');
+                    ui.actionBtn.style.boxShadow = "0 0 20px rgba(255,77,77,0.3)";       
+                    ui.actionBtn.innerHTML = `BET`;
+                    ui.actionBtn.disabled = false;
+
+                    showToast("CASH OUT SUCCESS!", `Won ₹${data.payout.toFixed(2)} at ${data.lockedMultiplier}x`, "success");
+                } else {
+                    showToast("CASHOUT FAILED", data.error, "error");
+                    ui.actionBtn.disabled = false;
+                }
+            } catch (err) {
+                showToast("ERROR", "Network failure during cashout.", "error");
+                ui.actionBtn.disabled = false;
+            } finally {
+                isCashingOut = false; 
+            }
+        }
+
+        async function handleAction() {
+            if (gameStatus === 'starting' && !myBetPlaced) {
+                ui.actionBtn.disabled = true;
+                try {
+                    const res = await fetch('/game/aviator/bet', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ stake: currentBet })
+                    });
+                    const data = await res.json();
+
+                    if (data.success) {
+                        myBetPlaced = true;
+                        ui.walletBalance.innerText = '₹' + data.newBalance.toFixed(2);
+                        ui.actionBtn.classList.replace('bg-primary', 'bg-error');
+                        ui.actionBtn.innerHTML = `WAITING FOR ROUND...`;
+                        
+                        showToast("BET PLACED", `₹${currentBet} ready for takeoff`, "info");
+                    } else {
+                        showToast("BET FAILED", data.error, "error");
+                        ui.actionBtn.disabled = false;
+                    }
+                } catch (err) {
+                    showToast("ERROR", "Network failure placing bet.", "error");
+                    ui.actionBtn.disabled = false;
+                }
+            } else if (gameStatus === 'flying' && myBetPlaced) {
+                performCashout();
+            }
+        }
+
+        // --- 📡 SOCKET.IO LISTENERS ---
+        socket.on('aviator_sync', (state) => {
+            gameStatus = state.status;
+
+            if (state.roundId) {
+                ui.roundIdDisplay.innerText = state.roundId;
+            }
+
+            if (state.status === 'starting') {
+                document.getElementById('feed-round-id').innerText = state.roundId || "WAITING...";
+
+                if (!hasStartedFakeBets) {
+                    startFakeBettingPhase();
+                    hasStartedFakeBets = true;
+                }
+
+                if (state.timer > 2) {
+                    if (clockTicking.paused) clockTicking.play().catch(e => console.log("Audio blocked:", e));
+                } else if (state.timer <= 2) {
+                    if (!clockTicking.paused) {
+                        clockTicking.pause();
+                        clockTicking.currentTime = 0;
+                    }
+                }
+
+                resetFlightAnimation();
+                ui.liveMultiplier.classList.replace('text-error', 'text-primary');
+                ui.liveMultiplier.innerText = "1.00x";
+                ui.gameStatusText.innerText = `NEXT ROUND IN: ${state.timer}s`;
+                
+                if (!myBetPlaced) {
+                    ui.actionBtn.disabled = false;
+                    ui.actionBtn.classList.replace('bg-error', 'bg-primary');
+                    ui.actionBtn.innerHTML = 'BET';
+                }
+
+            } else if (state.status === 'flying') {
+                clockTicking.pause();
+                clockTicking.currentTime = 0;
+
+                document.getElementById('feed-live-icon').style.display = 'block';
+                processFakeCashouts(parseFloat(state.multiplier));
+
+                if (flyingAviator.paused) {
+                    flyingAviator.currentTime = 0;
+                    flyingAviator.play().catch(e => console.log("Audio blocked:", e));
+                }
+
+                updateFlightAnimation(state.multiplier);
+                ui.liveMultiplier.innerText = state.multiplier + 'x';
+                ui.gameStatusText.innerText = "Plane is flying!";
+                ui.gameStatusText.classList.remove('animate-pulse');
+
+                const currentMult = parseFloat(state.multiplier);
+                if (myBetPlaced && isAutoCashoutActive && currentMult >= targetAutoMultiplier && !isCashingOut) {
+                    performCashout();
+                }
+
+                if (myBetPlaced) {
+                   ui.actionBtn.disabled = false;
+                    ui.actionBtn.classList.remove('bg-primary', 'bg-error', 'hover:bg-primary-hover');
+                    ui.actionBtn.classList.add('bg-success'); 
+                    ui.actionBtn.style.boxShadow = "0 0 20px rgba(40,167,69,0.6)";
+                    const liveWin = (currentBet * currentMult).toFixed(2);
+                    ui.actionBtn.innerHTML = `CASH OUT<br><span class="text-sm shadow-black drop-shadow-md">₹${liveWin}</span>`;
+                } else {
+                    ui.actionBtn.disabled = true;
+                    ui.actionBtn.innerHTML = 'WAIT FOR NEXT ROUND';
+                }
+
+            } else if (state.status === 'crashed') {
+                hasStartedFakeBets = false; 
+
+                freezeFakeBets();
+
+                flyingAviator.pause();
+                flyingAviator.currentTime = 0;
+                flewAway.currentTime = 0;
+                flewAway.play().catch(e => console.log("Audio blocked:", e));
+
+                setTimeout(() => { flewAway.pause(); flewAway.currentTime = 0; }, 3000);
+
+                triggerCrashAnimation();
+                ui.liveMultiplier.classList.replace('text-primary', 'text-error');
+                ui.liveMultiplier.innerText = state.multiplier + 'x';
+                ui.gameStatusText.innerText = "FLEW AWAY!";
+                
+                if (myBetPlaced) {
+                    myBetPlaced = false;
+                    showToast("BET LOST", `Plane flew away at ${state.multiplier}x`, "error");
+                }
+
+                ui.actionBtn.classList.remove('bg-success');
+                ui.actionBtn.classList.add('bg-primary', 'hover:bg-primary-hover');
+                ui.actionBtn.style.boxShadow = "0 0 20px rgba(255,77,77,0.3)";
+                ui.actionBtn.disabled = true;
+                ui.actionBtn.innerHTML = 'WAIT FOR NEXT ROUND';
+
+                const num = parseFloat(state.multiplier);
+                let colorClass = 'text-on-surface-variant';
+                if (num >= 10.0) colorClass = 'text-success';
+                else if (num >= 2.0) colorClass = 'text-primary';
+
+                const newBadge = document.createElement('span');
+                newBadge.className = `bg-surface-high px-2 py-1 rounded-md ${colorClass} flex-shrink-0 history-badge animate-pulse`;
+                newBadge.innerText = `${num.toFixed(2)}x`;
+
+                const ticker = document.getElementById('history-ticker');
+                ticker.insertBefore(newBadge, ticker.children[1]);
+
+                const badges = ticker.querySelectorAll('.history-badge');
+                if (badges.length > 10) badges[badges.length - 1].remove();
+
+                setTimeout(() => newBadge.classList.remove('animate-pulse'), 1000);
+            }
+        });
+
+        socket.on('aviator_cashout_feed', (data) => {
+            console.log(`${data.player} just won ₹${data.amountWon} at ${data.multiplier}x!`);
+        });
+
+        let currentPlayers = Math.floor(Math.random() * (10000 - 1000 + 1)) + 1000;
+        const playerDisplay = document.getElementById('live-players');
+
+        function simulateLivePlayers() {
+            const change = Math.floor(Math.random() * 41) - 15; 
+            currentPlayers += change;
+
+            if (currentPlayers < 1000) currentPlayers = 1000;
+            if (currentPlayers > 10000) currentPlayers = 10000;
+
+            playerDisplay.innerText = currentPlayers.toLocaleString();
+
+            const nextUpdate = Math.floor(Math.random() * 3000) + 2000;
+            setTimeout(simulateLivePlayers, nextUpdate);
+        }
+
+        simulateLivePlayers();
+    </script>
+</body>
+</html>

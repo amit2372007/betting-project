@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>User Profile & Betting History | WagerAdmin</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; vertical-align: middle; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #131313; }
+        ::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #353534; }
+    </style>
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#00f2ff",
+                        "secondary": "#4edea3",
+                        "error": "#ffb4ab",
+                        "surface-container": "#201f1f",
+                        "surface-container-low": "#1c1b1b",
+                        "surface-container-highest": "#353534",
+                        "on-surface": "#e5e2e1",
+                        "on-surface-variant": "#b9cacb",
+                        "outline-variant": "#3a494b",
+                        "background": "#131313"
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+
+<body class="bg-background text-on-surface antialiased">
+    <main class="p-10 min-h-screen max-w-[1600px] mx-auto">
+        
+        <div class="mb-6">
+            <a class="inline-flex items-center gap-2 text-on-surface-variant hover:text-primary transition-colors text-sm font-medium group" href="/admin?tab=UserManagement">
+                <span class="material-symbols-outlined text-lg transition-transform group-hover:-translate-x-1">arrow_back</span>
+                Back to Users
+            </a>
+        </div>
+
+        <section class="mb-8 bg-surface-container rounded-xl p-6 border-none flex flex-col lg:flex-row justify-between items-center gap-8 shadow-sm">
+            <div class="flex items-center gap-6 w-full lg:w-auto">
+                <div class="relative">
+                    <div class="w-20 h-20 rounded-full bg-surface-container-highest flex items-center justify-center text-primary text-3xl font-bold border-2 border-primary/20 uppercase">
+                        <%= user.username.charAt(0) %>
+                    </div>
+                    <div class="absolute bottom-0 right-0 w-6 h-6 <%= user.isBlocked ? 'bg-error' : 'bg-secondary' %> border-4 border-surface-container rounded-full"></div>
+                </div>
+                <div>
+                    <div class="flex items-center gap-3 mb-1">
+                        <h1 class="text-2xl font-bold text-on-surface"><%= user.username %></h1>
+                        <span class="px-2 py-0.5 rounded-full bg-surface-container-highest text-[10px] font-bold uppercase tracking-widest border border-outline-variant/30">
+                            <%= user.role || 'Player' %>
+                        </span>
+                    </div>
+                    <p class="text-on-surface-variant text-sm">ID: <%= user._id %></p>
+                    <div class="flex gap-4 mt-3 text-[11px] font-semibold text-on-surface-variant/70 uppercase tracking-tighter">
+                        <span>Joined: <%= new Date(user.createdAt).toLocaleDateString() %></span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-10 w-full lg:w-auto justify-between lg:justify-end">
+                <div class="text-center lg:text-right">
+                    <p class="text-on-surface-variant text-[10px] uppercase tracking-widest font-bold mb-1">Current Balance</p>
+                    <p class="text-2xl font-black text-primary tracking-tight">₹<%= user.balance.toFixed(2) %></p>
+                </div>
+                <div class="w-px h-12 bg-outline-variant/30 hidden sm:block"></div>
+                <div class="text-center lg:text-right">
+                    <p class="text-on-surface-variant text-[10px] uppercase tracking-widest font-bold mb-1 text-secondary">Total Deposits</p>
+                    <p class="text-2xl font-black text-on-surface tracking-tight">₹<%= stats.totalDeposits.toLocaleString() %></p>
+                </div>
+                <div class="w-px h-12 bg-outline-variant/30 hidden sm:block"></div>
+                <div class="text-center lg:text-right">
+                    <p class="text-on-surface-variant text-[10px] uppercase tracking-widest font-bold mb-1 text-error">Withdrawals</p>
+                    <p class="text-2xl font-black text-on-surface tracking-tight">₹<%= stats.totalWithdrawals.toLocaleString() %></p>
+                </div>
+            </div>
+        </section>
+
+        <section class="bg-surface-container rounded-xl overflow-hidden border-none shadow-sm">
+            <div class="p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <h2 class="text-xl font-bold text-on-surface flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary">history</span>
+                    Account Ledger
+                </h2>
+                
+                <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                    <div class="relative w-full sm:w-auto">
+                        <select id="history-filter" onchange="filterLedger()" class="appearance-none w-full sm:w-48 bg-surface-container-highest border border-outline-variant/30 rounded-xl py-2 px-4 pr-10 text-sm focus:outline-none focus:border-primary/50 cursor-pointer text-white">
+                            <option value="all">All Activity</option>
+                            <option value="won">Won Bets</option>
+                            <option value="lost">Lost Bets</option>
+                            <option value="deposit">Deposits</option>
+                            <option value="withdrawal">Withdrawals</option>
+                        </select>
+                        <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-sm">filter_list</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-surface-container-low/50">
+                            <th class="px-6 py-4 text-[11px] font-bold text-on-surface-variant uppercase tracking-widest">Trx ID</th>
+                            <th class="px-6 py-4 text-[11px] font-bold text-on-surface-variant uppercase tracking-widest">Date / Time</th>
+                            <th class="px-6 py-4 text-[11px] font-bold text-on-surface-variant uppercase tracking-widest">Event Type</th>
+                            <th class="px-6 py-4 text-[11px] font-bold text-on-surface-variant uppercase tracking-widest">Details</th>
+                            <th class="px-6 py-4 text-[11px] font-bold text-on-surface-variant uppercase tracking-widest">Amount</th>
+                            <th class="px-6 py-4 text-[11px] font-bold text-on-surface-variant uppercase tracking-widest">Status</th>
+                            <th class="px-6 py-4 text-[11px] font-bold text-on-surface-variant uppercase tracking-widest">Net Effect</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ledger-body" class="divide-y divide-outline-variant/20">
+                        
+                        <% if (ledger && ledger.length > 0) { %>
+                            <% ledger.forEach(item => { %>
+                                <tr class="ledger-row hover:bg-surface-container-highest transition-colors group" data-category="<%= item.category.toLowerCase() %>">
+                                    
+                                    <td class="px-6 py-4 font-mono text-xs text-primary/80">
+                                        #<%= item._id.toString().substring(0, 8).toUpperCase() %>
+                                    </td>
+                                    
+                                    <td class="px-6 py-4 text-xs text-on-surface-variant">
+                                        <%= new Date(item.createdAt).toLocaleDateString() %><br />
+                                        <%= new Date(item.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) %>
+                                    </td>
+                                    
+                                    <td class="px-6 py-4">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-8 h-8 rounded-lg bg-surface-container-highest flex items-center justify-center border border-outline-variant/30 
+                                                <%= item.type === 'deposit' ? 'text-secondary' : (item.type === 'withdrawal' ? 'text-error' : 'text-primary') %>">
+                                                <span class="material-symbols-outlined text-lg">
+                                                    <%= item.type === 'deposit' ? 'payments' : (item.type === 'withdrawal' ? 'account_balance_wallet' : 'casino') %>
+                                                </span>
+                                            </div>
+                                            <div>
+                                                <p class="text-sm font-bold text-on-surface"><%= item.title %></p>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    
+                                    <td class="px-6 py-4">
+                                        <p class="text-xs text-primary font-bold"><%= item.details %></p>
+                                        <p class="text-[10px] text-on-surface-variant uppercase">Odds/Info: <%= item.odds %></p>
+                                    </td>
+                                    
+                                    <td class="px-6 py-4 text-sm font-bold">₹<%= item.amount.toFixed(2) %></td>
+                                    
+                                    <td class="px-6 py-4">
+                                        <% if (item.status === 'won' || item.status === 'approved') { %>
+                                            <span class="px-2 py-1 rounded-lg bg-secondary/10 text-secondary text-[10px] font-bold uppercase tracking-widest border border-secondary/20"><%= item.status %></span>
+                                        <% } else if (item.status === 'lost' || item.status === 'rejected') { %>
+                                            <span class="px-2 py-1 rounded-lg bg-error/10 text-error text-[10px] font-bold uppercase tracking-widest border border-error/20"><%= item.status %></span>
+                                        <% } else { %>
+                                            <span class="px-2 py-1 rounded-lg bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-widest border border-primary/20"><%= item.status %></span>
+                                        <% } %>
+                                    </td>
+                                    
+                                    <td class="px-6 py-4 text-sm font-black <%= (item.type === 'deposit' || item.status === 'won') ? 'text-secondary' : (item.status === 'pending' ? 'text-on-surface-variant/40' : 'text-error') %>">
+                                        <% if (item.type === 'bet') { %>
+                                            <%= item.status === 'won' ? '+₹' + item.payout.toFixed(2) : (item.status === 'lost' ? '-₹' + item.amount.toFixed(2) : '--') %>
+                                        <% } else if (item.type === 'deposit') { %>
+                                            +₹<%= item.amount.toFixed(2) %>
+                                        <% } else if (item.type === 'withdrawal') { %>
+                                            -₹<%= item.amount.toFixed(2) %>
+                                        <% } %>
+                                    </td>
+                                </tr>
+                            <% }) %>
+                        <% } else { %>
+                            <tr id="empty-state">
+                                <td colspan="7" class="px-6 py-12 text-center text-on-surface-variant">
+                                    <span class="material-symbols-outlined text-4xl mb-2 opacity-50">receipt_long</span>
+                                    <p>No financial history found for this user.</p>
+                                </td>
+                            </tr>
+                        <% } %>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="md:col-span-2 bg-surface-container rounded-xl p-6 relative overflow-hidden group shadow-sm">
+                <div class="absolute top-0 right-0 p-8 opacity-5 transform group-hover:scale-110 transition-transform">
+                    <span class="material-symbols-outlined text-[120px]">analytics</span>
+                </div>
+                <h3 class="text-sm font-bold text-on-surface uppercase tracking-widest mb-4">Risk Profile & Metrics</h3>
+                <div class="flex flex-wrap gap-8">
+                    <div>
+                        <p class="text-[10px] text-on-surface-variant uppercase mb-1">Win Rate</p>
+                        <p class="text-xl font-black text-secondary"><%= stats.winRate %>%</p>
+                    </div>
+                    <div>
+                        <p class="text-[10px] text-on-surface-variant uppercase mb-1">Avg. Stake</p>
+                        <p class="text-xl font-black text-on-surface">₹<%= stats.avgStake %></p>
+                    </div>
+                    <div>
+                        <p class="text-[10px] text-on-surface-variant uppercase mb-1">Max Win</p>
+                        <p class="text-xl font-black text-primary">₹<%= stats.maxWin.toLocaleString() %></p>
+                    </div>
+                    <div>
+                        <p class="text-[10px] text-on-surface-variant uppercase mb-1">Account Status</p>
+                        <p class="text-xl font-black <%= user.isBlocked ? 'text-error' : 'text-secondary' %>">
+                            <%= user.isBlocked ? 'Blocked' : 'Active' %>
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-surface-container-high rounded-xl p-6 flex flex-col justify-center items-center text-center shadow-sm">
+                <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4 border border-primary/20">
+                    <span class="material-symbols-outlined text-primary">security</span>
+                </div>
+                <h4 class="text-sm font-bold mb-2">Admin Actions</h4>
+                <p class="text-xs text-on-surface-variant leading-relaxed mb-4">Manage this user's access, adjust balance, or apply restrictions.</p>
+                <a href="/admin/user/<%= user._id %>/edit" class="px-4 py-2 w-full bg-surface-container text-primary border border-primary/30 rounded-lg text-[11px] font-bold uppercase tracking-wider hover:bg-primary hover:text-black transition-all">
+                    Edit User Profile
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        function filterLedger() {
+            const filterValue = document.getElementById('history-filter').value.toLowerCase();
+            const rows = document.querySelectorAll('.ledger-row');
+            let visibleCount = 0;
+
+            rows.forEach(row => {
+                const category = row.getAttribute('data-category'); // e.g., 'won', 'deposit', 'withdrawal'
+
+                if (filterValue === 'all' || filterValue === category) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+
+            // Optional: Handle empty state if filter returns no results
+            let emptyState = document.getElementById('filter-empty-state');
+            const tbody = document.getElementById('ledger-body');
+            
+            if (visibleCount === 0 && rows.length > 0) {
+                if (!emptyState) {
+                    emptyState = document.createElement('tr');
+                    emptyState.id = 'filter-empty-state';
+                    emptyState.innerHTML = `
+                        <td colspan="7" class="px-6 py-8 text-center text-on-surface-variant">
+                            <span class="material-symbols-outlined text-2xl mb-1 opacity-50">search_off</span>
+                            <p class="text-xs font-bold uppercase tracking-widest">No matching records found.</p>
+                        </td>`;
+                    tbody.appendChild(emptyState);
+                }
+                emptyState.style.display = '';
+            } else if (emptyState) {
+                emptyState.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>

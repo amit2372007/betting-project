@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Manage Payment Methods | Admin</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ff9f4a",
+                        "primary-dim": "#ed8200",
+                        "surface-container": "#1a1919",
+                        "surface-container-high": "#201f1f",
+                        "surface-container-highest": "#262626",
+                        "surface-container-low": "#131313",
+                        "background": "#0e0e0e",
+                        "tertiary-fixed": "#86ff90",
+                        "outline": "#777575",
+                        "error": "#ff7351"
+                    },
+                    fontFamily: {
+                        "headline": ["Manrope", "sans-serif"],
+                        "body": ["Inter", "sans-serif"]
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #0e0e0e; color: #ffffff; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .glass-glow { box-shadow: 0 0 20px rgba(255, 159, 74, 0.15); }
+        input:focus, select:focus { outline: none; border-color: #ff9f4a !important; box-shadow: 0 0 0 2px rgba(255, 159, 74, 0.2); }
+        .ios-toggle:checked + .ios-slider { background-color: #86ff90; }
+        .ios-toggle:checked + .ios-slider::before { transform: translateX(1.25rem); }
+        
+        /* Toast Animations */
+        @keyframes toastEnter { 0% { opacity: 0; transform: translateY(-100%); } 100% { opacity: 1; transform: translateY(0); } }
+        @keyframes toastLeave { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-100%); } }
+        .toast-enter { animation: toastEnter 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        .toast-leave { animation: toastLeave 0.3s ease-in forwards; }
+    </style>
+</head>
+<body class="bg-background min-h-screen selection:bg-primary/30">
+
+    <div id="toast-container" class="fixed top-24 right-8 z-[100] flex flex-col gap-3 pointer-events-none w-80"></div>
+
+    <nav class="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-8 h-20 bg-[#131313] shadow-[0_24px_48px_-12px_rgba(0,0,0,0.5)] border-t border-[#494847]/15">
+        <div class="flex items-center gap-8">
+            <span class="text-xl font-bold tracking-[0.02em] text-orange-500 font-headline uppercase">DEPOSIT ACCOUNTS</span>
+            <div class="hidden md:flex gap-6 items-center">
+                <a class="text-white/70 hover:text-white transition-all px-3 py-1 text-sm font-medium" href="/admin?tab=Dashboard">Dashboard</a>
+                <a class="text-orange-500 border-b-2 border-orange-500 pb-1 font-bold text-sm" href="/admin/manage-payments">Accounts</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="pt-28 pb-12 px-8 max-w-[1600px] mx-auto">
+        <header class="mb-12">
+            <h1 class="text-4xl font-extrabold font-headline tracking-tight text-white mb-2">Payment Infrastructure</h1>
+            <p class="text-gray-400 max-w-2xl">Configure secure payment gateways, bank transfers, and digital wallets for real-time player deposits.</p>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
+            
+            <section class="lg:col-span-5">
+                <div class="bg-surface-container rounded-3xl p-8 glass-glow border border-white/5">
+                    <div class="flex items-center gap-3 mb-8">
+                        <span class="material-symbols-outlined text-primary p-2 bg-primary/10 rounded-xl">add_card</span>
+                        <h2 class="text-2xl font-bold font-headline text-white">Add New Method</h2>
+                    </div>
+
+                    <form action="/admin/manage-payments/add" method="POST" class="space-y-6">
+                        <div class="space-y-2">
+                            <label class="text-xs font-bold uppercase tracking-widest text-gray-400 ml-1">Method Type</label>
+                            <select name="methodType" id="methodType" onchange="toggleFormSections()" class="w-full bg-surface-container-highest border-none text-white rounded-xl px-4 py-3.5 focus:ring-2 focus:ring-primary/40 appearance-none cursor-pointer">
+                                <option value="bank_transfer">Bank Transfer (IMPS/NEFT)</option>
+                                <option value="upi">UPI / Digital Wallet</option>
+                                <option value="qr_scanner">Static QR Code</option>
+                            </select>
+                        </div>
+
+                        <div class="space-y-2">
+                            <label class="text-xs font-bold uppercase tracking-widest text-gray-400 ml-1">Display Name</label>
+                            <input name="displayName" required class="w-full bg-surface-container-highest border-none text-white rounded-xl px-4 py-3.5" placeholder="e.g. HDFC VIP Priority" type="text"/>
+                        </div>
+
+                        <div id="bank-section" class="p-6 bg-surface-container-low rounded-2xl space-y-4 border border-white/5">
+                            <h3 class="text-sm font-bold text-primary-dim uppercase tracking-wider mb-2">Bank Particulars</h3>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="space-y-2">
+                                    <label class="text-[10px] font-bold uppercase text-gray-500">Account Name</label>
+                                    <input name="accountName" class="w-full bg-surface-container-highest border-none text-sm rounded-xl px-4 py-3 text-white" placeholder="John Doe" type="text"/>
+                                </div>
+                                <div class="space-y-2">
+                                    <label class="text-[10px] font-bold uppercase text-gray-500">IFSC Code</label>
+                                    <input name="ifscCode" class="w-full bg-surface-container-highest border-none text-sm rounded-xl px-4 py-3 text-white" placeholder="HDFC0001234" type="text"/>
+                                </div>
+                            </div>
+                            <div class="space-y-2">
+                                <label class="text-[10px] font-bold uppercase text-gray-500">Account Number</label>
+                                <input name="accountNumber" class="w-full bg-surface-container-highest border-none text-sm rounded-xl px-4 py-3 text-white" placeholder="5010029384756" type="text"/>
+                            </div>
+                            <div class="space-y-2">
+                                <label class="text-[10px] font-bold uppercase text-gray-500">Bank Name</label>
+                                <input name="bankName" class="w-full bg-surface-container-highest border-none text-sm rounded-xl px-4 py-3 text-white" placeholder="HDFC Bank Ltd." type="text"/>
+                            </div>
+                        </div>
+
+                        <div id="digital-section" class="hidden p-6 bg-surface-container-low rounded-2xl space-y-4 border border-white/5">
+                            <h3 class="text-sm font-bold text-primary-dim uppercase tracking-wider mb-2">Digital Config</h3>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="space-y-2">
+                                    <label class="text-[10px] font-bold uppercase text-gray-500">UPI ID</label>
+                                    <input name="upiId" class="w-full bg-surface-container-highest border-none text-sm rounded-xl px-4 py-3 text-white" placeholder="merchant@okhdfc" type="text"/>
+                                </div>
+                                <div class="space-y-2">
+                                    <label class="text-[10px] font-bold uppercase text-gray-500">Merchant Name</label>
+                                    <input name="merchantName" class="w-full bg-surface-container-highest border-none text-sm rounded-xl px-4 py-3 text-white" placeholder="Vault Payments" type="text"/>
+                                </div>
+                            </div>
+                            <div id="qr-url-input" class="space-y-2 hidden">
+                                <label class="text-[10px] font-bold uppercase text-gray-500">QR Code Image URL</label>
+                                <input name="qrCodeUrl" class="w-full bg-surface-container-highest border-none text-sm rounded-xl px-4 py-3 text-white" placeholder="https://..." type="url"/>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="space-y-2">
+                                <label class="text-xs font-bold uppercase tracking-widest text-gray-400 ml-1">Min Deposit</label>
+                                <div class="relative">
+                                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-primary font-bold">₹</span>
+                                    <input name="minDeposit" value="100" class="w-full bg-surface-container-highest border-none text-white rounded-xl pl-8 pr-4 py-3.5" type="number"/>
+                                </div>
+                            </div>
+                            <div class="space-y-2">
+                                <label class="text-xs font-bold uppercase tracking-widest text-gray-400 ml-1">Max Deposit</label>
+                                <div class="relative">
+                                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-primary font-bold">₹</span>
+                                    <input name="maxDeposit" value="50000" class="w-full bg-surface-container-highest border-none text-white rounded-xl pl-8 pr-4 py-3.5" type="number"/>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="w-full bg-gradient-to-br from-primary to-primary-dim text-black font-black py-4 rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-primary/20 active:scale-[0.98] transition-all">
+                            <span class="material-symbols-outlined">add</span> ADD PAYMENT METHOD
+                        </button>
+                    </form>
+                </div>
+            </section>
+
+            <section class="lg:col-span-7 space-y-4">
+                <div class="flex justify-between items-end mb-6">
+                    <div>
+                        <h2 class="text-2xl font-bold font-headline text-white">Manage Methods</h2>
+                    </div>
+                </div>
+
+                <% if (accountDetails && accountDetails.length > 0) { %>
+                    <% accountDetails.forEach(acc => { %>
+                        
+                        <div id="card-<%= acc._id %>" class="group relative bg-surface-container rounded-3xl p-[1px] transition-all hover:bg-gradient-to-br <%= acc.isActive ? 'from-primary/50' : 'from-gray-600/50' %> to-transparent">
+                            <div class="bg-surface-container rounded-[calc(1.5rem-1px)] p-6 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                                
+                                <div class="flex items-center gap-5">
+                                    <div class="w-16 h-16 rounded-2xl bg-surface-container-highest flex items-center justify-center border border-white/5 overflow-hidden">
+                                        <% if (acc.methodType === 'qr_scanner' && acc.qrCodeUrl) { %>
+                                            <img src="<%= acc.qrCodeUrl %>" class="w-full h-full object-cover <%= !acc.isActive ? 'grayscale opacity-50' : '' %>" />
+                                        <% } else { %>
+                                            <span class="material-symbols-outlined text-3xl <%= acc.isActive ? 'text-primary' : 'text-gray-500' %>">
+                                                <%= acc.methodType === 'bank_transfer' ? 'account_balance' : 'qr_code_scanner' %>
+                                            </span>
+                                        <% } %>
+                                    </div>
+                                    <div>
+                                        <h3 class="text-lg font-bold font-headline text-white"><%= acc.displayName %></h3>
+                                        <div class="flex flex-col text-sm text-gray-400 mt-1">
+                                            <% if (acc.methodType === 'bank_transfer' && acc.bankDetails) { %>
+                                                <span>Acc: <%= acc.bankDetails.accountNumber %></span>
+                                                <span class="text-[10px] font-mono uppercase tracking-tighter opacity-60">IFSC: <%= acc.bankDetails.ifscCode %></span>
+                                            <% } else if (acc.upiDetails) { %>
+                                                <span><%= acc.upiDetails.upiId %></span>
+                                                <span class="text-[10px] font-mono uppercase tracking-tighter opacity-60">Merchant: <%= acc.upiDetails.merchantName %></span>
+                                            <% } %>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center gap-6 justify-between md:justify-end flex-1">
+                                    <div class="flex items-center gap-6">
+                                        <label class="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" class="sr-only ios-toggle" <%= acc.isActive ? 'checked' : '' %> onchange="toggleStatus('<%= acc._id %>', this.checked)">
+                                            <div class="w-11 h-6 bg-surface-container-highest rounded-full ios-slider transition-colors duration-200 before:content-[''] before:absolute before:top-[2px] before:left-[2px] before:bg-white before:rounded-full before:h-5 before:w-5 before:transition-transform before:duration-200"></div>
+                                        </label>
+                                        
+                                        <div class="flex gap-2">
+                                            <button onclick="deleteAccount('<%= acc._id %>')" class="p-2.5 rounded-xl bg-surface-container-highest text-gray-400 hover:text-error hover:bg-error/10 transition-all">
+                                                <span class="material-symbols-outlined text-xl">delete</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+
+                    <% }) %>
+                <% } else { %>
+                    <div class="p-10 text-center bg-surface-container rounded-3xl border border-white/5">
+                        <span class="material-symbols-outlined text-5xl text-gray-600 mb-2">account_balance_wallet</span>
+                        <p class="text-gray-400">No payment methods configured yet.</p>
+                    </div>
+                <% } %>
+            </section>
+        </div>
+    </main>
+
+    <script>
+        // Form Toggle Logic
+        function toggleFormSections() {
+            const type = document.getElementById('methodType').value;
+            const bankSec = document.getElementById('bank-section');
+            const digitalSec = document.getElementById('digital-section');
+            const qrInput = document.getElementById('qr-url-input');
+
+            if (type === 'bank_transfer') {
+                bankSec.classList.remove('hidden');
+                digitalSec.classList.add('hidden');
+            } else if (type === 'upi') {
+                bankSec.classList.add('hidden');
+                digitalSec.classList.remove('hidden');
+                qrInput.classList.add('hidden');
+            } else { // qr_scanner
+                bankSec.classList.add('hidden');
+                digitalSec.classList.remove('hidden');
+                qrInput.classList.remove('hidden');
+            }
+        }
+        
+        // Initialize form state on load
+        toggleFormSections();
+
+        // Premium Toasts
+        function showToast(title, message, isError = false) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            const bgColor = isError ? 'bg-[#ff3b30]/10 border-[#ff3b30]/30 text-[#ff3b30]' : 'bg-[#28a745]/10 border-[#28a745]/30 text-[#28a745]';
+            const icon = isError ? 'error' : 'check_circle';
+
+            toast.className = `toast-enter flex items-center gap-3 p-4 rounded-xl ${bgColor} border backdrop-blur-md shadow-xl`;
+            toast.innerHTML = `
+                <span class="material-symbols-outlined">${icon}</span>
+                <div class="flex flex-col">
+                    <span class="font-bold text-xs uppercase text-white">${title}</span>
+                    <span class="text-[10px] text-white/70">${message}</span>
+                </div>
+            `;
+            container.appendChild(toast);
+            setTimeout(() => { toast.classList.replace('toast-enter', 'toast-leave'); setTimeout(() => toast.remove(), 300); }, 3000);
+        }
+
+        // AJAX: Toggle Status
+        async function toggleStatus(id, isActive) {
+            try {
+                const res = await fetch(`/admin/manage-payments/toggle/${id}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ isActive })
+                });
+                const data = await res.json();
+                if(data.success) {
+                    showToast("UPDATED", `Account is now ${isActive ? 'ACTIVE' : 'INACTIVE'}`);
+                    // Visually update card styling
+                    const card = document.getElementById(`card-${id}`);
+                    const icon = card.querySelector('.material-symbols-outlined');
+                    if(isActive) {
+                        card.classList.replace('hover:from-gray-600/50', 'hover:from-primary/50');
+                        if(icon) icon.classList.replace('text-gray-500', 'text-primary');
+                    } else {
+                        card.classList.replace('hover:from-primary/50', 'hover:from-gray-600/50');
+                        if(icon) icon.classList.replace('text-primary', 'text-gray-500');
+                    }
+                } else throw new Error();
+            } catch (err) {
+                showToast("ERROR", "Failed to update status", true);
+            }
+        }
+
+        // AJAX: Delete Account
+        async function deleteAccount(id) {
+            if(!confirm("Are you sure you want to permanently delete this payment method?")) return;
+            
+            try {
+                const res = await fetch(`/admin/manage-payments/delete/${id}`, { method: 'DELETE' });
+                const data = await res.json();
+                
+                if(data.success) {
+                    showToast("DELETED", "Payment method removed successfully.");
+                    const card = document.getElementById(`card-${id}`);
+                    card.style.opacity = '0';
+                    setTimeout(() => card.remove(), 300);
+                } else throw new Error();
+            } catch (err) {
+                showToast("ERROR", "Failed to delete account", true);
+            }
+        }
+    </script>
+</body>
+</html>

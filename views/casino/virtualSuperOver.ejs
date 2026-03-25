@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Virtual Super Over | Premium Casino</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+    
+    <script src="/socket.io/socket.io.js"></script>
+    
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary-container": "#00f2ff", "primary": "#e1fdff", "background": "#131313",
+                        "on-primary": "#00363a", "surface-container": "#201f1f", "surface-container-low": "#1c1b1b",
+                        "secondary": "#4edea3", "secondary-container": "#00a572",
+                        "on-surface": "#e5e2e1", "surface": "#131313",
+                        "error-container": "#93000a", "error": "#ffb4ab", "surface-container-high": "#2a2a2a",
+                        "on-surface-variant": "#b9cacb"
+                    },
+                    fontFamily: { "body": ["Inter", "sans-serif"] },
+                    borderRadius: { "2xl": "1.5rem" },
+                }
+            }
+        }
+    </script>
+    <style>
+        .glass-panel { background: rgba(32, 31, 31, 0.6); backdrop-filter: blur(16px); border: 1px solid rgba(58, 73, 75, 0.15); transition: all 0.3s ease; }
+        .neon-glow-primary { box-shadow: 0 0 20px rgba(0, 242, 255, 0.2); }
+        .text-glow { text-shadow: 0 0 12px rgba(0, 242, 255, 0.5); }
+        .text-glow-error { text-shadow: 0 0 15px rgba(255, 180, 171, 0.7); }
+        .text-glow-success { text-shadow: 0 0 15px rgba(78, 222, 163, 0.7); }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        
+        /* Smooth Animations */
+        .status-pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
+        
+        .score-pulse-up { animation: scorePopUp 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        @keyframes scorePopUp { 0% { transform: scale(1); } 50% { transform: scale(1.2); color: #4edea3; } 100% { transform: scale(1); } }
+        
+        .score-pulse-down { animation: scorePopDown 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        @keyframes scorePopDown { 0% { transform: scale(1); } 50% { transform: scale(1.2); color: #ffb4ab; } 100% { transform: scale(1); } }
+
+        /* UI States */
+        .bet-selected { border-color: #00f2ff !important; background-color: rgba(0, 242, 255, 0.1) !important; box-shadow: 0 0 15px rgba(0, 242, 255, 0.2); transform: scale(0.95); }
+        .disabled-btn { opacity: 0.4; pointer-events: none; filter: grayscale(100%); transition: all 0.3s; }
+        .flash-bg-error { background: rgba(147, 0, 10, 0.3) !important; }
+        .flash-bg-success { background: rgba(0, 165, 114, 0.3) !important; }
+        
+        /* --- Suspended Betting Animations --- */
+        .bets-closed .bet-option {
+            pointer-events: none;
+            border-color: rgba(255, 180, 171, 0.15) !important;
+            transform: scale(0.98);
+        }
+        .bets-closed .bet-option .suspended-overlay {
+            opacity: 1 !important;
+        }
+        .stripes-anim {
+            background-image: repeating-linear-gradient(
+                -45deg,
+                rgba(0, 0, 0, 0.6),
+                rgba(0, 0, 0, 0.6) 10px,
+                rgba(255, 180, 171, 0.08) 10px,
+                rgba(255, 180, 171, 0.08) 20px
+            );
+            background-size: 28px 28px;
+            animation: moveStripes 1s linear infinite;
+        }
+        @keyframes moveStripes {
+            0% { background-position: 0 0; }
+            100% { background-position: 28px 0; }
+        }
+
+        /* Toast Animations */
+        .toast-enter { transform: translateY(-150%); opacity: 0; }
+        .toast-active { transform: translateY(0); opacity: 1; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+
+        /* Hide arrows on number input */
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=number] { -moz-appearance: textfield; background: transparent; }
+    </style>
+</head>
+
+<body class="bg-background text-on-surface font-body min-h-screen flex flex-col pb-16">
+    
+    <div id="toast-container" class="fixed top-4 left-0 w-full z-[100] flex flex-col items-center gap-2 pointer-events-none px-4"></div>
+
+    <header class="fixed top-0 w-full z-50 bg-[#131313] shadow-[0_20px_40px_rgba(0,219,231,0.04)]">
+        <div class="flex items-center px-5 h-16 w-full">
+            <a href="/home" class="text-[#00f2ff] active:scale-95 transition-transform mr-4">
+                <span class="material-symbols-outlined">arrow_back</span>
+            </a>
+            <h1 class="font-bold text-lg tracking-tight text-[#e1fdff]">Super Over Live</h1>
+            
+            <div class="ml-auto flex items-center space-x-2 sm:space-x-4">
+                
+                <div class="flex items-center space-x-1 bg-surface-container-high px-3 py-1 rounded-full border border-white/10">
+                    <span class="material-symbols-outlined text-[14px] text-[#00f2ff] animate-pulse">stadium</span>
+                    <span id="vso-live-players" class="text-[10px] font-bold tracking-wider text-[#e1fdff]">3,452</span>
+                </div>
+
+                <div id="phase-container" class="flex items-center space-x-1 bg-surface-container-high px-3 py-1 rounded-full border border-white/10 transition-colors">
+                    <span class="w-2 h-2 rounded-full bg-secondary status-pulse"></span>
+                    <span id="phase-badge" class="text-[10px] font-bold uppercase tracking-wider text-secondary">CONNECTING</span>
+                </div>
+            </div>
+        </div>
+        <div class="bg-[#1c1b1b] h-[2.5px] w-full"></div>
+    </header>
+
+    <main class="mt-16 px-4 flex-grow flex flex-col gap-6 max-w-2xl mx-auto w-full">
+        <section class="mt-4">
+            <div id="scoreboard-panel" class="glass-panel rounded-2xl p-5 relative overflow-hidden bg-gradient-to-br from-surface-container to-surface-container-low shadow-lg">
+                <div class="relative z-10">
+                    <div class="flex justify-between items-start mb-4 border-b border-white/5 pb-3">
+                        <div class="flex flex-col">
+                            <p id="match-id-text" class="text-[10px] uppercase tracking-widest text-on-surface-variant font-mono mb-1">VSO-LOADING...</p>
+                            <p id="toss-info" class="text-[10px] font-black tracking-widest text-primary uppercase">Waiting for toss...</p>
+                        </div>
+                        <div id="innings-badge" class="bg-primary/10 text-primary border border-primary/20 px-2 py-1 rounded text-[10px] font-black uppercase tracking-widest shadow-sm">
+                            1ST INNINGS
+                        </div>
+                    </div>
+
+                    <div class="flex justify-between items-center my-3">
+                        <div id="home-team-container" class="flex flex-col items-center flex-1 transition-opacity duration-300">
+                            <div id="home-team-badge" class="w-12 h-12 rounded-full overflow-hidden border-2 border-white/20 shadow-[0_0_15px_rgba(37,99,235,0.3)] mb-2 relative flex items-center justify-center">
+                                <img src="https://ik.imagekit.io/xcrdwi6be/Batting_assets/Flag-India.webp" alt="India Flag" class="w-full h-full object-cover">
+                                <span class="absolute inset-0 flex items-center justify-center font-black text-[10px] uppercase text-white bg-black/20"></span>
+                            </div>
+                            <h2 id="home-score" class="text-3xl font-black text-on-surface tracking-tighter transition-colors">0/0</h2>
+                            <p id="home-overs" class="text-on-surface-variant font-bold text-[10px] tracking-widest mt-1 bg-black/30 px-2 py-0.5 rounded">0.0 OV</p>
+                        </div>
+
+                        <div class="flex flex-col items-center justify-center px-3">
+                            <span class="text-[10px] font-black text-on-surface-variant bg-surface-container-highest px-2 py-1 rounded-md shadow-inner">VS</span>
+                        </div>
+
+                        <div id="away-team-container" class="flex flex-col items-center flex-1 transition-opacity duration-300 opacity-50">
+                            <div id="away-team-badge" class="w-12 h-12 rounded-full overflow-hidden border-2 border-white/20 shadow-[0_0_15px_rgba(21,128,61,0.3)] mb-2 relative flex items-center justify-center">
+                                <img src="https://ik.imagekit.io/xcrdwi6be/Batting_assets/national-flag-of-pakistan-vector.jpg?updatedAt=1773944548813" alt="Pakistan Flag" class="w-full h-full object-cover">
+                                <span class="absolute inset-0 flex items-center justify-center font-black text-[10px] uppercase text-white bg-black/30"></span>
+                            </div>
+                            <h2 id="away-score" class="text-3xl font-black text-on-surface tracking-tighter transition-colors">0/0</h2>
+                            <p id="away-overs" class="text-on-surface-variant font-bold text-[10px] tracking-widest mt-1 bg-black/30 px-2 py-0.5 rounded">0.0 OV</p>
+                        </div>
+                    </div>
+
+                    <div id="equation-container" class="hidden flex-col items-center justify-center bg-secondary-container/10 border border-secondary/20 rounded-xl p-2.5 mt-4 mb-2 shadow-inner">
+                        <p class="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-0.5">Target: <span id="target-score" class="text-secondary font-black">0</span></p>
+                        <p id="equation-text" class="text-sm font-black text-secondary uppercase tracking-widest text-glow-success">NEED 0 RUNS IN 0 BALLS</p>
+                    </div>
+
+                    <div class="mt-4 flex items-center bg-surface-container-lowest/80 rounded-lg px-3 py-2 border border-white/5">
+                        <span class="material-symbols-outlined text-primary text-sm mr-2 animate-pulse">campaign</span>
+                        <div class="overflow-hidden w-full">
+                            <p id="live-commentary" class="text-[11px] font-bold tracking-wide whitespace-nowrap text-secondary transition-colors">Waiting for match to begin...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="flex items-center justify-between gap-4 px-2 py-2">
+            <div class="relative w-24 h-24 flex-shrink-0 flex items-center justify-center">
+                <svg class="absolute inset-0 w-full h-full transform -rotate-90 drop-shadow-lg" viewBox="0 0 96 96">
+                    <circle class="text-surface-container-high" cx="48" cy="48" fill="transparent" r="42" stroke="currentColor" stroke-width="4"></circle>
+                    <circle id="timer-ring" class="text-primary neon-glow-primary transition-all duration-1000 ease-linear" cx="48" cy="48" fill="transparent" r="42" stroke="currentColor" stroke-dasharray="264" stroke-dashoffset="0" stroke-width="4" stroke-linecap="round"></circle>
+                </svg>
+                <div class="text-center z-10 flex flex-col items-center justify-center mt-0.5">
+                    <span id="timer-text" class="text-3xl font-black text-primary leading-none">--</span>
+                    <span id="timer-label" class="text-[9px] uppercase tracking-widest text-on-surface-variant font-bold mt-1">SEC</span>
+                </div>
+            </div>
+
+            <div class="flex-grow flex flex-col justify-center">
+                <div class="flex justify-between items-end mb-1.5 px-1">
+                    <span class="text-[10px] uppercase font-bold text-on-surface-variant tracking-widest">Over Timeline</span>
+                </div>
+                <div id="ball-timeline" class="grid grid-cols-3 gap-2.5 p-2.5 bg-surface-container-low/50 rounded-xl border border-white/5 shadow-inner place-items-center">
+                </div>
+            </div>
+        </section>
+
+        <section class="space-y-3">
+            <div class="flex items-center justify-between px-1">
+                <h3 class="text-sm font-bold uppercase tracking-widest text-on-surface-variant flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary text-[18px]">sports_esports</span>
+                    Match Winner
+                </h3>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-2.5" id="match-odds-grid">
+                <button data-outcome="IND_WIN" class="bet-option relative overflow-hidden bg-surface-container hover:bg-surface-container-high border border-white/5 rounded-xl py-3 flex flex-col items-center transition-all">
+                    <div class="suspended-overlay absolute inset-0 backdrop-blur-[2px] opacity-0 flex items-center justify-center transition-opacity duration-300 z-10 stripes-anim">
+                        <span class="material-symbols-outlined text-error/90 text-[20px] drop-shadow-md">lock</span>
+                    </div>
+                    <span class="text-on-surface font-black text-lg relative z-0">India</span>
+                    <span id="ind-odds-text" class="text-primary font-bold text-[10px] mt-1 tracking-widest relative z-0">1.85x</span>
+                </button>
+
+                <button data-outcome="PAK_WIN" class="bet-option relative overflow-hidden bg-surface-container hover:bg-surface-container-high border border-white/5 rounded-xl py-3 flex flex-col items-center transition-all">
+                    <div class="suspended-overlay absolute inset-0 backdrop-blur-[2px] opacity-0 flex items-center justify-center transition-opacity duration-300 z-10 stripes-anim">
+                        <span class="material-symbols-outlined text-error/90 text-[20px] drop-shadow-md">lock</span>
+                    </div>
+                    <span class="text-on-surface font-black text-lg relative z-0">Pakistan</span>
+                    <span id="pak-odds-text" class="text-primary font-bold text-[10px] mt-1 tracking-widest relative z-0">2.10x</span>
+                </button>
+            </div>
+        </section>
+
+        <section class="space-y-3 pb-20">
+            <div class="flex items-center justify-between px-1">
+                <h3 class="text-sm font-bold uppercase tracking-widest text-on-surface-variant flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary text-[18px]">ads_click</span>
+                    Predict Next Ball
+                </h3>
+            </div>
+            <div class="grid grid-cols-4 gap-2.5" id="betting-grid">
+                <button data-outcome="0" class="bet-option relative overflow-hidden bg-surface-container hover:bg-surface-container-high border border-white/5 rounded-xl py-3 flex flex-col items-center transition-all">
+                    <div class="suspended-overlay absolute inset-0 backdrop-blur-[2px] opacity-0 flex items-center justify-center transition-opacity duration-300 z-10 stripes-anim"><span class="material-symbols-outlined text-error/90 text-[20px] drop-shadow-md">lock</span></div>
+                    <span class="text-on-surface font-black text-xl relative z-0">0</span>
+                    <span class="text-primary font-bold text-[10px] mt-1 tracking-widest relative z-0">6.0x</span>
+                </button>
+                <button data-outcome="1" class="bet-option relative overflow-hidden bg-surface-container hover:bg-surface-container-high border border-white/5 rounded-xl py-3 flex flex-col items-center transition-all">
+                    <div class="suspended-overlay absolute inset-0 backdrop-blur-[2px] opacity-0 flex items-center justify-center transition-opacity duration-300 z-10 stripes-anim"><span class="material-symbols-outlined text-error/90 text-[20px] drop-shadow-md">lock</span></div>
+                    <span class="text-on-surface font-black text-xl relative z-0">1</span>
+                    <span class="text-primary font-bold text-[10px] mt-1 tracking-widest relative z-0">3.7x</span>
+                </button>
+                <button data-outcome="2" class="bet-option relative overflow-hidden bg-surface-container hover:bg-surface-container-high border border-white/5 rounded-xl py-3 flex flex-col items-center transition-all">
+                    <div class="suspended-overlay absolute inset-0 backdrop-blur-[2px] opacity-0 flex items-center justify-center transition-opacity duration-300 z-10 stripes-anim"><span class="material-symbols-outlined text-error/90 text-[20px] drop-shadow-md">lock</span></div>
+                    <span class="text-on-surface font-black text-xl relative z-0">2</span>
+                    <span class="text-primary font-bold text-[10px] mt-1 tracking-widest relative z-0">6.0x</span>
+                </button>
+                <button data-outcome="3" class="bet-option relative overflow-hidden bg-surface-container hover:bg-surface-container-high border border-white/5 rounded-xl py-3 flex flex-col items-center transition-all">
+                    <div class="suspended-overlay absolute inset-0 backdrop-blur-[2px] opacity-0 flex items-center justify-center transition-opacity duration-300 z-10 stripes-anim"><span class="material-symbols-outlined text-error/90 text-[20px] drop-shadow-md">lock</span></div>
+                    <span class="text-on-surface font-black text-xl relative z-0">3</span>
+                    <span class="text-primary font-bold text-[10px] mt-1 tracking-widest relative z-0">45x</span>
+                </button>
+                
+                <button data-outcome="4" class="bet-option relative overflow-hidden col-span-2 bg-secondary-container/10 border border-secondary/20 rounded-xl py-3 flex flex-col items-center transition-all">
+                    <div class="suspended-overlay absolute inset-0 backdrop-blur-[2px] opacity-0 flex items-center justify-center transition-opacity duration-300 z-10 stripes-anim"><span class="material-symbols-outlined text-error/90 text-[22px] drop-shadow-md">lock</span></div>
+                    <span class="text-secondary font-black text-xl uppercase relative z-0">4 Runs</span>
+                    <span class="text-secondary font-bold text-[10px] mt-1 tracking-widest relative z-0">5.1x</span>
+                </button>
+                <button data-outcome="6" class="bet-option relative overflow-hidden col-span-2 bg-secondary-container/20 border border-secondary/40 shadow-[0_0_15px_rgba(78,222,163,0.1)] rounded-xl py-3 flex flex-col items-center transition-all">
+                    <div class="suspended-overlay absolute inset-0 backdrop-blur-[2px] opacity-0 flex items-center justify-center transition-opacity duration-300 z-10 stripes-anim"><span class="material-symbols-outlined text-error/90 text-[22px] drop-shadow-md">lock</span></div>
+                    <span class="text-secondary font-black text-xl uppercase relative z-0">6 Runs</span>
+                    <span class="text-secondary font-bold text-[10px] mt-1 tracking-widest relative z-0">6.0x</span>
+                </button>
+                <button data-outcome="W" class="bet-option relative overflow-hidden col-span-4 bg-error-container/20 border border-error/30 shadow-[0_0_15px_rgba(255,180,171,0.1)] rounded-xl py-3 flex flex-col items-center transition-all">
+                    <div class="suspended-overlay absolute inset-0 backdrop-blur-[2px] opacity-0 flex items-center justify-center transition-opacity duration-300 z-10 stripes-anim">
+                        <div class="flex items-center gap-2"><span class="material-symbols-outlined text-error/90 text-[24px] drop-shadow-md">lock</span><span class="text-error/90 font-black tracking-widest uppercase text-sm drop-shadow-md">Suspended</span></div>
+                    </div>
+                    <span class="text-error font-black text-xl tracking-widest uppercase relative z-0">Wicket</span>
+                    <span class="text-error font-bold text-[10px] mt-1 tracking-widest relative z-0">11.5x</span>
+                </button>
+            </div>
+        </section>
+    </main>
+
+    <footer id="bet-slip-container" class="fixed bottom-0 left-0 w-full bg-[#131313]/95 backdrop-blur-xl border-t border-white/10 z-50 pb-safe rounded-t-[2rem] shadow-[0_-15px_40px_rgba(0,0,0,0.6)] transform translate-y-full transition-transform duration-300 ease-in-out">
+        <button onclick="deselectBet()" class="absolute top-4 right-5 text-on-surface-variant hover:text-white">
+            <span class="material-symbols-outlined text-[20px]">close</span>
+        </button>
+        
+        <div class="w-12 h-1.5 bg-white/10 rounded-full mx-auto mt-3 mb-1"></div>
+
+        <div class="px-5 py-4">
+            <div class="flex items-end justify-between mb-4 px-1">
+                <div class="flex flex-col">
+                    <span class="text-[10px] uppercase font-bold text-on-surface-variant tracking-widest mb-1 flex items-center gap-1">
+                        <span class="material-symbols-outlined text-[12px]">account_balance_wallet</span> Wallet
+                    </span>
+                    <span id="wallet-balance" class="text-on-surface font-bold text-sm tracking-wide" data-balance="<%= typeof user !== 'undefined' ? user.balance : 0 %>">
+                        ₹<%= typeof user !== 'undefined' ? Math.floor(user.balance).toLocaleString('en-IN') : '0' %>
+                    </span>
+                </div>
+                <div class="flex flex-col items-end text-right">
+                    <span class="text-[10px] uppercase font-bold text-primary tracking-widest mb-1 flex items-center gap-1">
+                        Potential Return <span class="material-symbols-outlined text-[12px]">payments</span>
+                    </span>
+                    <span id="potential-win" class="text-primary font-black text-xl tracking-tight text-glow">₹0</span>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3 mb-5">
+                <div class="bg-surface-container-highest border border-white/10 rounded-xl px-3 py-2 flex flex-col items-start justify-center w-28 relative overflow-hidden group shadow-inner focus-within:border-primary/50 transition-colors">
+                    <span class="text-[8px] uppercase font-bold text-on-surface-variant tracking-widest">Stake Amount</span>
+                    <div class="flex items-center gap-0.5 mt-0.5 w-full">
+                        <span class="text-primary/70 font-medium text-sm">₹</span>
+                        <input type="number" id="stake-input" value="10" min="10" oninput="customStake(this.value)" class="bg-transparent border-none outline-none text-on-surface font-black text-xl tracking-tighter p-0 w-full focus:ring-0 appearance-none h-7">
+                    </div>
+                    <div class="absolute bottom-0 left-0 w-full h-[2px] bg-primary shadow-[0_0_10px_rgba(0,242,255,0.5)]"></div>
+                </div>
+
+                <div class="flex-grow flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1">
+                    <button onclick="addStake(50)" class="flex-shrink-0 px-3 py-2 rounded-xl bg-surface-container hover:bg-surface-container-high text-xs font-black text-on-surface border border-white/5 active:bg-primary/20 transition-all">+50</button>
+                    <button onclick="addStake(100)" class="flex-shrink-0 px-3 py-2 rounded-xl bg-surface-container hover:bg-surface-container-high text-xs font-black text-on-surface border border-white/5 active:bg-primary/20 transition-all">+100</button>
+                    <button onclick="addStake(500)" class="flex-shrink-0 px-3 py-2 rounded-xl bg-surface-container hover:bg-surface-container-high text-xs font-black text-on-surface border border-white/5 active:bg-primary/20 transition-all">+500</button>
+                    <button onclick="maxStake()" class="flex-shrink-0 px-3 py-2 rounded-xl bg-primary/10 text-xs font-black text-primary border border-primary/20 active:bg-primary/30 transition-all uppercase shadow-[0_0_10px_rgba(0,242,255,0.1)]">Max</button>
+                </div>
+            </div>
+            
+            <button id="submit-bet-btn" onclick="submitBet()" disabled class="w-full bg-surface-container text-on-surface-variant font-black py-4 rounded-2xl transition-all flex items-center justify-center gap-2 disabled-btn uppercase tracking-widest text-lg border border-white/5">
+                <span class="material-symbols-outlined text-[20px]">sports_cricket</span>
+                <span id="submit-btn-text">WAITING FOR MATCH</span>
+            </button>
+        </div>
+    </footer>
+
+    <script>
+        // --- 1. GAME STATE ---
+        let currentStake = 10;
+        let selectedOutcome = null;
+        let currentEventId = null;
+        let isBettingOpen = false;
+        let showDeliveryResult = false; 
+        let previousRuns = -1;
+        let previousWickets = -1;
+        let myActiveBets = []; // Tracks bets for toast notifications
+        
+        // Multipliers map (Added Match Odds sample data)
+        const multipliersMap = { 
+            '0': 6.00, '1': 3.70, '2': 6.00, '3': 45.0, '4': 5.10, '6': 6.00, 'W': 11.50,
+            'IND_WIN': 1.85, 'PAK_WIN': 2.10
+        };
+        
+        // --- 2. DOM ELEMENTS ---
+        const ui = {
+            timerText: document.getElementById('timer-text'),
+            timerLabel: document.getElementById('timer-label'),
+            timerRing: document.getElementById('timer-ring'),
+            liveCommentary: document.getElementById('live-commentary'),
+            submitBtn: document.getElementById('submit-bet-btn'),
+            submitBtnText: document.getElementById('submit-btn-text'),
+            ballTimeline: document.getElementById('ball-timeline'),
+            phaseBadge: document.getElementById('phase-badge'),
+            phaseContainer: document.getElementById('phase-container'),
+            scoreboardPanel: document.getElementById('scoreboard-panel'),
+            
+            matchIdText: document.getElementById('match-id-text'),
+            tossInfo: document.getElementById('toss-info'),
+            inningsBadge: document.getElementById('innings-badge'),
+            homeContainer: document.getElementById('home-team-container'),
+            homeScore: document.getElementById('home-score'),
+            homeOvers: document.getElementById('home-overs'),
+            awayContainer: document.getElementById('away-team-container'),
+            awayScore: document.getElementById('away-score'),
+            awayOvers: document.getElementById('away-overs'),
+            
+            equationContainer: document.getElementById('equation-container'),
+            equationText: document.getElementById('equation-text'),
+            targetScore: document.getElementById('target-score')
+        };
+
+        const betSlipContainer = document.getElementById('bet-slip-container');
+        const stakeInput = document.getElementById('stake-input');
+        const potentialWinDisplay = document.getElementById('potential-win');
+        const walletEl = document.getElementById('wallet-balance');
+        const userBal = parseFloat(walletEl.getAttribute('data-balance'));
+        
+        // --- TOAST SYSTEM ---
+        function showToast(title, amount, type) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            let bgClass = "bg-surface-container-high border-white/10 text-primary";
+            let icon = "info";
+            
+            if (type === 'success') {
+                bgClass = "bg-secondary-container/90 border-secondary text-secondary shadow-[0_0_20px_rgba(78,222,163,0.3)] backdrop-blur-md";
+                icon = "check_circle";
+            } else if (type === 'error') {
+                bgClass = "bg-error-container/90 border-error text-error shadow-[0_0_20px_rgba(255,180,171,0.3)] backdrop-blur-md";
+                icon = "cancel";
+            }
+
+            toast.className = `toast-enter flex items-center justify-between w-full max-w-sm rounded-xl p-3 border border-t-[1px] ${bgClass}`;
+            toast.innerHTML = `
+                <div class="flex items-center gap-3">
+                    <span class="material-symbols-outlined text-[24px]">${icon}</span>
+                    <span class="font-black tracking-widest uppercase text-sm">${title}</span>
+                </div>
+                <span class="font-black text-lg">${amount}</span>
+            `;
+
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.classList.remove('toast-enter');
+                toast.classList.add('toast-active');
+            }, 10);
+            setTimeout(() => {
+                toast.classList.remove('toast-active');
+                toast.classList.add('toast-enter');
+                setTimeout(() => toast.remove(), 400); 
+            }, 3000);
+        }
+
+        // --- 3. SOCKET CONNECTION ---
+        const socket = io();
+
+        socket.on('vso_sync', (state) => {
+
+            if (state.matchOdds) {
+                const indOdds = state.matchOdds.home.toFixed(2);
+                const pakOdds = state.matchOdds.away.toFixed(2);
+                
+                // Update the UI text
+                document.getElementById('ind-odds-text').innerText = indOdds + 'x';
+                document.getElementById('pak-odds-text').innerText = pakOdds + 'x';
+
+                // 🔥 CRITICAL: Update the JavaScript multipliers map so the Bet Slip calculates the correct potential payout based on the LIVE odds!
+                multipliersMap['IND_WIN'] = parseFloat(indOdds);
+                multipliersMap['PAK_WIN'] = parseFloat(pakOdds);
+
+                // If the user currently has a Match Winner bet selected in their bet slip, recalculate their potential win instantly!
+                if (selectedOutcome === 'IND_WIN' || selectedOutcome === 'PAK_WIN') {
+                    updateStakeUI();
+                }
+            } 
+
+            currentEventId = state.eventId;
+            ui.matchIdText.innerText = state.eventId;
+
+            if (state.toss && state.toss.winner) {
+                const tossWinner = state.toss.winner === 'home' ? state.homeTeam : state.awayTeam;
+                ui.tossInfo.innerText = `${tossWinner} WON TOSS, ELECTED TO ${state.toss.decision}`;
+            }
+            ui.inningsBadge.innerText = state.currentInnings === 1 ? '1ST INNINGS' : '2ND INNINGS';
+
+            const homeIsInn1 = state.innings1.battingTeam === 'home';
+            const homeScoreData = homeIsInn1 ? state.innings1 : state.innings2;
+            const awayScoreData = homeIsInn1 ? state.innings2 : state.innings1;
+
+            ui.homeScore.innerText = `${homeScoreData.runs}/${homeScoreData.wickets}`;
+            ui.homeOvers.innerText = `${Math.floor(homeScoreData.balls / 6)}.${homeScoreData.balls % 6} OV`;
+            
+            ui.awayScore.innerText = `${awayScoreData.runs}/${awayScoreData.wickets}`;
+            ui.awayOvers.innerText = `${Math.floor(awayScoreData.balls / 6)}.${awayScoreData.balls % 6} OV`;
+
+            if (state.battingTeam === 'home') {
+                ui.homeContainer.classList.remove('opacity-50');
+                ui.homeScore.classList.add('text-primary', 'text-glow');
+                ui.awayContainer.classList.add('opacity-50');
+                ui.awayScore.classList.remove('text-primary', 'text-glow');
+            } else {
+                ui.awayContainer.classList.remove('opacity-50');
+                ui.awayScore.classList.add('text-primary', 'text-glow');
+                ui.homeContainer.classList.add('opacity-50');
+                ui.homeScore.classList.remove('text-primary', 'text-glow');
+            }
+
+            ui.equationContainer.classList.remove('hidden');
+            ui.equationContainer.classList.add('flex');
+
+            if (state.currentInnings === 1) {
+                ui.targetScore.parentElement.style.display = 'none'; 
+                ui.equationText.innerText = `${state.innings1.runs} RUNS SCORED IN ${state.innings1.balls} BALLS`;
+                ui.equationText.className = 'text-sm font-black text-primary uppercase tracking-widest text-glow';
+            } else {
+                ui.targetScore.parentElement.style.display = 'block'; 
+                ui.targetScore.innerText = state.targetScore;
+                
+                const runsNeeded = state.targetScore - state.innings2.runs;
+                const ballsLeft = 6 - state.innings2.balls;
+                
+                if (runsNeeded <= 0) {
+                    ui.equationText.innerText = "TARGET CHASED! 🎉";
+                    ui.equationText.className = 'text-sm font-black text-secondary uppercase tracking-widest text-glow-success';
+                } else if (state.innings2.wickets >= 2 || ballsLeft <= 0) {
+                    ui.equationText.innerText = "INNINGS OVER";
+                    ui.equationText.className = 'text-sm font-black text-error uppercase tracking-widest text-glow-error';
+                } else {
+                    ui.equationText.innerText = `NEED ${runsNeeded} RUNS IN ${ballsLeft} BALLS`;
+                    ui.equationText.className = 'text-sm font-black text-secondary uppercase tracking-widest text-glow-success';
+                }
+            }
+            
+            const activeInnings = state.currentInnings === 1 ? state.innings1 : state.innings2;
+            
+            const activeScoreEl = state.battingTeam === 'home' ? ui.homeScore : ui.awayScore;
+            if (activeInnings.runs !== previousRuns || activeInnings.wickets !== previousWickets) {
+                activeScoreEl.classList.remove('score-pulse-up', 'score-pulse-down');
+                void activeScoreEl.offsetWidth; 
+                if (activeInnings.wickets > previousWickets && previousWickets !== -1) {
+                    activeScoreEl.classList.add('score-pulse-down');
+                } else {
+                    activeScoreEl.classList.add('score-pulse-up');
+                }
+                previousRuns = activeInnings.runs;
+                previousWickets = activeInnings.wickets;
+            }
+
+            renderTimeline(activeInnings.timeline);
+            updatePhaseUI(state);
+        });
+
+        socket.on('vso_event', (data) => {
+            ui.liveCommentary.innerText = data.message;
+            ui.liveCommentary.className = 'text-[11px] font-black tracking-wide whitespace-nowrap text-primary transition-colors';
+        });
+
+        socket.on('vso_delivery', (result) => {
+            showDeliveryResult = true; 
+            
+            isBettingOpen = false;
+            updateSubmitButton();
+
+            ui.timerText.innerText = result.outcome === '0' ? 'DOT' : result.outcome;
+            ui.timerText.classList.add('scale-150', 'text-glow');
+            ui.timerLabel.innerText = result.outcome === 'W' ? 'OUT' : 'RUNS';
+
+            ui.scoreboardPanel.classList.remove('flash-bg-error', 'flash-bg-success');
+            ui.liveCommentary.className = 'text-[12px] font-black tracking-wide whitespace-nowrap uppercase transition-colors';
+            
+            if (result.outcome === 'W') {
+                ui.timerText.classList.replace('text-primary', 'text-error');
+                ui.timerText.classList.add('text-glow-error');
+                ui.liveCommentary.classList.add('text-error');
+                ui.scoreboardPanel.classList.add('flash-bg-error');
+                ui.liveCommentary.innerText = "🚨 CLEAN BOWLED! WICKET FALLS!";
+            } else if (['4', '6'].includes(result.outcome)) {
+                ui.timerText.classList.replace('text-primary', 'text-secondary');
+                ui.timerText.classList.add('text-glow-success');
+                ui.liveCommentary.classList.add('text-secondary');
+                ui.scoreboardPanel.classList.add('flash-bg-success');
+                ui.liveCommentary.innerText = `🔥 MASSIVE HIT! IT'S A ${result.outcome}!`;
+            } else {
+                ui.liveCommentary.classList.add('text-primary');
+                ui.liveCommentary.innerText = result.outcome === '0' ? "Solid defense. Dot ball." : `Pushed into the gap for ${result.outcome}.`;
+            }
+            
+            setTimeout(() => {
+                showDeliveryResult = false;
+                ui.timerText.classList.remove('scale-150', 'text-glow', 'text-glow-error', 'text-glow-success');
+                ui.timerText.classList.replace('text-error', 'text-primary');
+                ui.timerText.classList.replace('text-secondary', 'text-primary');
+                ui.scoreboardPanel.classList.remove('flash-bg-error', 'flash-bg-success');
+            }, 4000);
+
+            // FLASH TOASTS FOR WINS AND LOSSES
+            if (myActiveBets.length > 0) {
+                let totalWon = 0;
+                let totalLost = 0;
+                
+                myActiveBets.forEach(bet => {
+                    if (bet.selection === result.outcome) {
+                        totalWon += bet.potentialWin;
+                    } else if (['0','1','2','3','4','6','W'].includes(bet.selection)) { 
+                        // Only calculate Next Ball bets here, ignore Match Odds for now
+                        totalLost += bet.stake;
+                    }
+                });
+
+                setTimeout(() => {
+                    if (totalWon > 0) {
+                        showToast("YOU WON! 🎉", `+₹${Math.floor(totalWon).toLocaleString('en-IN')}`, "success");
+                        let currentBal = parseFloat(walletEl.getAttribute('data-balance'));
+                        currentBal += totalWon;
+                        walletEl.innerText = '₹' + Math.floor(currentBal).toLocaleString('en-IN');
+                        walletEl.setAttribute('data-balance', currentBal);
+                    } else if (totalLost > 0) {
+                        showToast("BET LOST", `-₹${Math.floor(totalLost).toLocaleString('en-IN')}`, "error");
+                    }
+                }, 1500); 
+
+                // Note: In a real system, keep 'IND_WIN'/'PAK_WIN' bets until 'match_end' phase
+                myActiveBets = myActiveBets.filter(b => !['0','1','2','3','4','6','W'].includes(b.selection)); 
+            }
+        });
+
+        socket.on('vso_match_result', (data) => {
+            if (myActiveBets.length > 0) {
+                let totalWon = 0;
+                let totalLost = 0;
+                
+                // Map 'home'/'away' back to the UI selection strings
+                let winningSelection = null;
+                if (data.winner === 'home') winningSelection = 'IND_WIN';
+                if (data.winner === 'away') winningSelection = 'PAK_WIN';
+
+                myActiveBets.forEach(bet => {
+                    if (data.winner === 'tie') {
+                        // 🤝 TIE = REFUND
+                        let currentBal = parseFloat(walletEl.getAttribute('data-balance'));
+                        currentBal += bet.stake; // Refund stake
+                        walletEl.innerText = '₹' + Math.floor(currentBal).toLocaleString('en-IN');
+                        walletEl.setAttribute('data-balance', currentBal);
+                        showToast("MATCH TIED", `₹${bet.stake} Refunded`, "info");
+                    } else if (bet.selection === winningSelection) {
+                        totalWon += bet.potentialWin; // potentialWin in UI actually holds total payout
+                    } else {
+                        totalLost += bet.stake;
+                    }
+                });
+
+                // Show massive toast for Match Results
+                setTimeout(() => {
+                    if (totalWon > 0) {
+                        showToast("MATCH WON! 🏆", `+₹${Math.floor(totalWon).toLocaleString('en-IN')}`, "success");
+                        let currentBal = parseFloat(walletEl.getAttribute('data-balance'));
+                        currentBal += totalWon;
+                        walletEl.innerText = '₹' + Math.floor(currentBal).toLocaleString('en-IN');
+                        walletEl.setAttribute('data-balance', currentBal);
+                    } else if (totalLost > 0) {
+                        showToast("MATCH LOST", `-₹${Math.floor(totalLost).toLocaleString('en-IN')}`, "error");
+                    }
+                }, 1000); 
+
+                // Clear out the match bets
+                myActiveBets = [];
+            }
+        });
+
+        // --- HELPER FUNCTIONS ---
+        function updatePhaseUI(state) {
+            const updateRing = (sec, max) => ui.timerRing.style.strokeDashoffset = 264 - ((sec / max) * 264);
+
+            if (state.phase === 'betting') {
+                isBettingOpen = true;
+                ui.phaseBadge.innerText = 'BETS OPEN';
+                ui.phaseContainer.className = 'flex items-center space-x-1 bg-secondary-container/20 px-3 py-1 rounded-full border border-secondary/30';
+                ui.phaseBadge.className = 'text-[10px] font-black uppercase tracking-wider text-secondary';
+                
+                if(!showDeliveryResult) {
+                    ui.timerText.innerText = state.timer;
+                    ui.timerLabel.innerText = 'SEC TO BET';
+                    updateRing(state.timer, 10);
+                }
+                updateSubmitButton();
+
+            } else if (state.phase === 'delivery') {
+                isBettingOpen = false;
+                ui.phaseBadge.innerText = 'BOWLING';
+                ui.phaseContainer.className = 'flex items-center space-x-1 bg-error-container/20 px-3 py-1 rounded-full border border-error/30';
+                ui.phaseBadge.className = 'text-[10px] font-black uppercase tracking-wider text-error';
+                
+                if(!showDeliveryResult) {
+                    ui.timerText.innerText = 'BOWL';
+                    ui.timerLabel.innerText = 'ACTION';
+                    ui.timerRing.style.strokeDashoffset = 0; 
+                }
+                updateSubmitButton();
+
+            } else {
+                isBettingOpen = false;
+                ui.phaseBadge.innerText = state.phase.toUpperCase();
+                ui.phaseContainer.className = 'flex items-center space-x-1 bg-surface-container-high px-3 py-1 rounded-full border border-white/10';
+                ui.phaseBadge.className = 'text-[10px] font-black uppercase tracking-wider text-on-surface-variant';
+                
+                if(!showDeliveryResult) {
+                    ui.timerText.innerText = state.timer;
+                    ui.timerLabel.innerText = state.phase === 'toss' ? 'TOSS' : 'BREAK';
+                    updateRing(state.timer, 15);
+                }
+                updateSubmitButton();
+            }
+        }
+        
+        function renderTimeline(timelineArray) {
+            ui.ballTimeline.innerHTML = ''; 
+            
+            timelineArray.forEach(ball => {
+                let colorClass = "bg-surface-container-high border-white/10 text-on-surface";
+                if (ball.outcome === 'W') colorClass = "bg-error-container border-error/30 text-error shadow-[0_0_8px_rgba(255,180,171,0.2)]";
+                if (ball.outcome === '4' || ball.outcome === '6') colorClass = "bg-secondary-container border-secondary/30 text-secondary shadow-[0_0_8px_rgba(78,222,163,0.2)]";
+                
+                ui.ballTimeline.innerHTML += `
+                    <div class="w-9 h-9 rounded-full flex items-center justify-center border font-black text-xs ${colorClass}">
+                        ${ball.outcome}
+                    </div>
+                `;
+            });
+
+            const remaining = 6 - timelineArray.filter(b => b.isLegal).length;
+            for(let i=0; i<remaining; i++) {
+                ui.ballTimeline.innerHTML += `<div class="w-9 h-9 rounded-full border border-dashed border-white/20 flex items-center justify-center"></div>`;
+            }
+        }
+        
+        // --- BETTING & STAKE LOGIC ---
+        const betOptions = document.querySelectorAll('.bet-option');
+        betOptions.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                if(!isBettingOpen) return;
+                betOptions.forEach(b => b.classList.remove('bet-selected'));
+                const target = e.currentTarget;
+                target.classList.add('bet-selected');
+                selectedOutcome = target.getAttribute('data-outcome');
+                updateSubmitButton();
+            });
+        });
+
+        function deselectBet() {
+            selectedOutcome = null;
+            betOptions.forEach(b => b.classList.remove('bet-selected'));
+            updateSubmitButton();
+        }
+
+        function customStake(val) {
+            let num = parseInt(val);
+            if(isNaN(num) || num < 0) num = 0;
+            if(num > userBal) num = userBal; 
+            currentStake = num;
+            updateStakeUI();
+        }
+
+        function addStake(amount) { 
+            currentStake += amount; 
+            if (currentStake > userBal) currentStake = userBal; 
+            stakeInput.value = currentStake;
+            updateStakeUI(); 
+        }
+        function clearStake() { 
+            currentStake = 10; 
+            stakeInput.value = currentStake;
+            updateStakeUI(); 
+        }
+        function maxStake() {
+            currentStake = userBal;
+            if (currentStake < 10) currentStake = 10; 
+            stakeInput.value = currentStake;
+            updateStakeUI();
+        }
+
+        function updateStakeUI() {
+            if (selectedOutcome && multipliersMap[selectedOutcome]) {
+                const potentialReturn = currentStake * multipliersMap[selectedOutcome];
+                potentialWinDisplay.innerText = '₹' + Math.floor(potentialReturn).toLocaleString('en-IN');
+            } else {
+                potentialWinDisplay.innerText = '₹0';
+            }
+            
+            if (isBettingOpen && selectedOutcome) {
+                ui.submitBtnText.innerText = `PLACE ₹${Math.floor(currentStake).toLocaleString('en-IN')} BET`;
+            }
+        }
+
+        function updateSubmitButton() {
+            // Show or Hide Bet Slip
+            if (selectedOutcome) {
+                betSlipContainer.classList.remove('translate-y-full');
+            } else {
+                betSlipContainer.classList.add('translate-y-full');
+            }
+
+            updateStakeUI();
+
+            // Toggle Suspended State on ALL grids
+            const bettingGrid = document.getElementById('betting-grid');
+            const matchOddsGrid = document.getElementById('match-odds-grid');
+            
+            if (!isBettingOpen) {
+                bettingGrid.classList.add('bets-closed');
+                matchOddsGrid.classList.add('bets-closed');
+                
+                ui.submitBtn.className = 'w-full bg-surface-container text-on-surface-variant font-black py-4 rounded-2xl flex items-center justify-center disabled-btn uppercase tracking-widest text-lg border border-white/5';
+                ui.submitBtn.disabled = true;
+                ui.submitBtnText.innerText = "BETS CLOSED";
+                return;
+            } else {
+                bettingGrid.classList.remove('bets-closed');
+                matchOddsGrid.classList.remove('bets-closed');
+            }
+
+            if (!selectedOutcome) {
+                ui.submitBtn.className = 'w-full bg-surface-container-high text-primary/50 font-black py-4 rounded-2xl flex items-center justify-center disabled-btn uppercase tracking-widest text-lg border border-primary/20';
+                ui.submitBtn.disabled = true;
+                ui.submitBtnText.innerText = "SELECT OUTCOME";
+                return;
+            }
+            ui.submitBtn.className = 'w-full bg-primary-container text-on-primary font-black py-4 rounded-2xl shadow-[0_0_30px_rgba(0,242,255,0.3)] transition-all flex items-center justify-center uppercase tracking-widest text-lg active:scale-[0.98]';
+            ui.submitBtn.disabled = false;
+        }
+
+        function submitBet() {
+            if(!isBettingOpen || !selectedOutcome || currentStake < 10) return;
+            
+            ui.submitBtn.className = 'w-full bg-secondary-container text-on-secondary font-black py-4 rounded-2xl shadow-[0_0_30px_rgba(0,165,114,0.3)] flex items-center justify-center uppercase tracking-widest text-lg disabled-btn';
+            ui.submitBtnText.innerText = "LOCKING BET...";
+
+            fetch('/vso/place-bet', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ eventId: currentEventId, selection: selectedOutcome, stake: currentStake })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.success) {
+                    walletEl.innerText = '₹' + Math.floor(data.newBalance).toLocaleString('en-IN');
+                    walletEl.setAttribute('data-balance', data.newBalance);
+                    ui.submitBtnText.innerText = "BET PLACED!";
+                    
+                    const pWin = currentStake * multipliersMap[selectedOutcome];
+                    myActiveBets.push({ selection: selectedOutcome, stake: currentStake, potentialWin: pWin });
+                    
+                    showToast("BET PLACED", `₹${currentStake}`, "info");
+
+                    setTimeout(() => { deselectBet(); }, 1500);
+                } else {
+                    showToast("ERROR", data.error, "error");
+                    updateSubmitButton();
+                }
+            }).catch(err => {
+                showToast("ERROR", "Network failure.", "error");
+                updateSubmitButton();
+            });
+        }
+
+        // --- 🏟️ VSO LIVE STADIUM ATTENDANCE (FIXED) ---
+        let currentVSOPlayers = Math.floor(Math.random() * (10000 - 5000 + 1)) + 5000;
+        const vsoPlayerDisplay = document.getElementById('vso-live-players');
+
+        function simulateVSOLivePlayers() {
+            if (!vsoPlayerDisplay) return;
+
+            const change = Math.floor(Math.random() * 56) - 20; 
+            currentVSOPlayers += change;
+
+            if (currentVSOPlayers < 5000) currentVSOPlayers = 5000;
+            if (currentVSOPlayers > 10000) currentVSOPlayers = 10000;
+
+            vsoPlayerDisplay.innerText = currentVSOPlayers.toLocaleString();
+
+            const nextUpdate = Math.floor(Math.random() * 2000) + 2000;
+            setTimeout(simulateVSOLivePlayers, nextUpdate);
+        }
+
+        // Boot it up immediately on load
+        simulateVSOLivePlayers();
+    </script>
+</body>
+</html>

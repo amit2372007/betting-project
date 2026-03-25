@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport" />
+    <title>Fruit Bonanza | Premium Slots</title>
+    
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Epilogue:ital,wght@1,800;1,900&amp;family=Manrope:wght@400;500;600&amp;family=Space+Grotesk:wght@500;700&amp;display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet" />
+    
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ff007a",
+                        "primary-dim": "#cc0062",
+                        "secondary": "#ffd700",
+                        "secondary-container": "#b39700",
+                        "background": "#0a0a0a",
+                        "surface": "#131313",
+                        "surface-container-low": "#1c1b1b",
+                        "surface-container-highest": "#2a2a2a",
+                        "on-surface": "#ffffff",
+                        "on-surface-variant": "#9cabba",
+                    },
+                    fontFamily: {
+                        "headline": ["Epilogue", "sans-serif"],
+                        "body": ["Manrope", "sans-serif"],
+                        "label": ["Space Grotesk", "sans-serif"]
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        body { 
+            font-family: 'Manrope', sans-serif;
+            background-color: #0a0a0a;
+            -webkit-tap-highlight-color: transparent;
+            overflow-x: hidden;
+        }
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        .neon-glow-pink { filter: drop-shadow(0 0 10px rgba(255, 0, 122, 0.6)); }
+        .neon-glow-gold { filter: drop-shadow(0 0 12px rgba(255, 215, 0, 0.4)); }
+
+        .glass-panel { background: rgba(28, 27, 27, 0.6); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+        
+        /* Slot Machine Blur Effect */
+        .spinning { animation: slotSpin 0.1s linear infinite; filter: blur(3px); }
+        @keyframes slotSpin {
+            0% { transform: translateY(-30%); }
+            100% { transform: translateY(30%); }
+        }
+
+        /* Toast Notifications */
+        @keyframes toastEnter { 0% { opacity: 0; transform: translateX(100%) scale(0.9); } 100% { opacity: 1; transform: translateX(0) scale(1); } }
+        @keyframes toastLeave { 0% { opacity: 1; transform: translateX(0) scale(1); } 100% { opacity: 0; transform: translateX(100%) scale(0.9); } }
+        .toast-enter { animation: toastEnter 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        .toast-leave { animation: toastLeave 0.3s ease-in forwards; }
+    </style>
+</head>
+
+<body class="bg-background text-on-surface select-none pb-[320px]">
+    
+    <div id="toast-container" class="fixed top-20 right-4 z-[100] flex flex-col gap-3 pointer-events-none w-full max-w-[280px]"></div>
+
+    <header class="fixed top-0 w-full z-50 bg-[#0a0a0a]/80 backdrop-blur-xl flex justify-between items-center px-4 sm:px-6 h-16 border-b border-white/5">
+        <div class="flex items-center gap-2">
+            <a href="/home"><span class="material-symbols-outlined text-on-surface-variant cursor-pointer active:scale-95 duration-150">arrow_back_ios</span></a>
+            <h1 class="font-headline italic font-black uppercase tracking-tighter text-xl sm:text-2xl text-primary drop-shadow-[0_0_10px_rgba(255,0,122,0.8)]">FRUIT BONANZA</h1>
+        </div>
+        <div class="flex items-center gap-2 bg-surface-container-highest px-3 py-1.5 rounded-full border border-white/10 shadow-inner">
+            <span class="text-secondary font-bold text-sm">₹</span>
+            <span id="wallet-balance" class="font-label font-bold text-on-surface text-sm tabular-nums"><%= typeof user !== 'undefined' ? user.balance.toFixed(2) : '5000.00' %></span>
+        </div>
+    </header>
+
+    <main class="pt-20 px-4 min-h-screen flex flex-col items-center">
+        <div class="w-full max-w-md mb-2">
+            <div class="bg-gradient-to-r from-secondary-container via-secondary to-secondary-container p-[1px] rounded-2xl neon-glow-gold">
+                <div class="bg-surface rounded-xl py-3 px-4 flex flex-col items-center justify-center text-center shadow-inner">
+                    <span class="font-label text-[10px] tracking-[0.2em] text-secondary uppercase animate-pulse">MEGA JACKPOT</span>
+                    <span class="font-headline italic font-extrabold text-3xl text-secondary drop-shadow-md">₹1,250,430</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="w-full max-w-md relative group">
+            <div class="absolute -inset-1 bg-gradient-to-r from-primary via-[#ff007a] to-primary rounded-[28px] blur-xl opacity-20 group-hover:opacity-40 transition duration-1000"></div>
+            
+            <div id="slot-machine" class="relative bg-surface-container-low border-[3px] sm:border-4 border-primary rounded-[24px] overflow-hidden shadow-[0_0_30px_rgba(255,0,122,0.4)] transition-all duration-300">
+                <div class="absolute top-1/3 left-0 right-0 h-1/3 bg-secondary/10 pointer-events-none z-10 border-y border-secondary/40 flex items-center justify-between shadow-[inset_0_0_20px_rgba(255,215,0,0.1)]">
+                    <div class="w-0 h-0 border-t-[10px] border-t-transparent border-l-[15px] border-l-secondary border-b-[10px] border-b-transparent neon-glow-gold"></div>
+                    <div class="w-0 h-0 border-t-[10px] border-t-transparent border-r-[15px] border-r-secondary border-b-[10px] border-b-transparent neon-glow-gold"></div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-1 p-1 bg-[#0a0a0a]">
+                    <div class="flex flex-col gap-1 overflow-hidden" id="col1">
+                        <div id="c1r1" class="h-24 sm:h-28 bg-surface-container-highest flex items-center justify-center text-5xl rounded-lg shadow-inner">🍒</div>
+                        <div id="c1r2" class="h-24 sm:h-28 bg-surface-container-highest flex items-center justify-center text-5xl rounded-lg shadow-inner relative z-0">7️⃣</div>
+                        <div id="c1r3" class="h-24 sm:h-28 bg-surface-container-highest flex items-center justify-center text-5xl rounded-lg shadow-inner">🍋</div>
+                    </div>
+                    <div class="flex flex-col gap-1 overflow-hidden" id="col2">
+                        <div id="c2r1" class="h-24 sm:h-28 bg-surface-container-highest flex items-center justify-center text-5xl rounded-lg shadow-inner">🍇</div>
+                        <div id="c2r2" class="h-24 sm:h-28 bg-surface-container-highest flex items-center justify-center text-5xl rounded-lg shadow-inner relative z-0">💎</div>
+                        <div id="c2r3" class="h-24 sm:h-28 bg-surface-container-highest flex items-center justify-center text-5xl rounded-lg shadow-inner">🔔</div>
+                    </div>
+                    <div class="flex flex-col gap-1 overflow-hidden" id="col3">
+                        <div id="c3r1" class="h-24 sm:h-28 bg-surface-container-highest flex items-center justify-center text-5xl rounded-lg shadow-inner">🍉</div>
+                        <div id="c3r2" class="h-24 sm:h-28 bg-surface-container-highest flex items-center justify-center text-5xl rounded-lg shadow-inner relative z-0">🍒</div>
+                        <div id="c3r3" class="h-24 sm:h-28 bg-surface-container-highest flex items-center justify-center text-5xl rounded-lg shadow-inner">7️⃣</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-6 text-center">
+                <p id="game-status" class="font-headline italic font-black text-xl text-primary uppercase tracking-[0.2em] drop-shadow-[0_0_8px_rgba(255,0,122,0.8)]">SPIN TO WIN!</p>
+            </div>
+        </div>
+    </main>
+
+    <footer class="fixed bottom-0 w-full z-50 bg-[#0a0a0a]/95 backdrop-blur-2xl rounded-t-[2.5rem] shadow-[0_-10px_40px_rgba(255,0,122,0.2)] px-4 sm:px-6 pt-5 pb-safe border-t border-white/10">
+        <div class="max-w-md mx-auto flex flex-col gap-4">
+            
+            <div class="flex items-center gap-3">
+                <div class="flex-1 flex items-center bg-surface-container-low rounded-xl p-1 border border-white/10 shadow-inner">
+                    <button onclick="modifyStake('half')" class="w-12 h-12 flex items-center justify-center font-label font-bold text-lg text-on-surface-variant hover:text-white bg-white/5 rounded-lg active:scale-95 transition-all">/2</button>
+                    <div class="flex-1 relative flex items-center justify-center">
+                        <span class="absolute left-2 text-white/50 font-bold">₹</span>
+                        <input id="bet-amount" class="w-full bg-transparent border-none text-center font-label font-black text-2xl focus:ring-0 text-white p-0" type="number" value="100" min="10" />
+                    </div>
+                    <button onclick="modifyStake('double')" class="w-12 h-12 flex items-center justify-center font-label font-bold text-lg text-on-surface-variant hover:text-white bg-white/5 rounded-lg active:scale-95 transition-all">x2</button>
+                </div>
+                
+                <button id="auto-btn" onclick="toggleAutoSpin()" class="flex flex-col items-center justify-center bg-surface-container-low border border-white/10 rounded-xl px-4 h-[56px] active:scale-95 transition-all group">
+                    <span class="material-symbols-outlined text-on-surface-variant group-hover:text-white text-[20px]" id="auto-icon">autorenew</span>
+                    <span class="font-label text-[9px] font-bold text-on-surface-variant uppercase mt-0.5" id="auto-text">AUTO</span>
+                </button>
+            </div>
+            
+            <div class="flex justify-between gap-2 overflow-x-auto no-scrollbar pb-1">
+                <button onclick="modifyStake(100)" class="flex-1 py-2.5 rounded-xl bg-surface-container-highest border border-white/5 hover:bg-white/10 text-xs font-label font-bold text-on-surface-variant transition active:scale-95">+100</button>
+                <button onclick="modifyStake(500)" class="flex-1 py-2.5 rounded-xl bg-surface-container-highest border border-white/5 hover:bg-white/10 text-xs font-label font-bold text-on-surface-variant transition active:scale-95">+500</button>
+                <button onclick="modifyStake(1000)" class="flex-1 py-2.5 rounded-xl bg-surface-container-highest border border-white/5 hover:bg-white/10 text-xs font-label font-bold text-on-surface-variant transition active:scale-95">+1K</button>
+                <button onclick="modifyStake('max')" class="flex-1 py-2.5 rounded-xl bg-primary/10 border border-primary/30 text-primary text-xs font-label font-black uppercase transition active:scale-95 tracking-widest">MAX</button>
+            </div>
+            
+            <button id="spin-btn" onclick="playSpin()" class="relative w-full group active:scale-[0.98] transition-transform duration-150 border border-white/10 rounded-2xl overflow-hidden">
+                <div class="absolute inset-0 bg-gradient-to-r from-primary to-primary-dim opacity-80 group-hover:opacity-100 transition duration-300"></div>
+                <div class="relative h-16 sm:h-20 flex flex-col items-center justify-center shadow-[inset_0_0_20px_rgba(255,255,255,0.2)]">
+                    <span class="font-headline italic font-black text-2xl sm:text-3xl text-white uppercase tracking-[0.2em] drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">SPIN</span>
+                </div>
+            </button>
+        </div>
+    </footer>
+
+    <script>
+        // --- AUDIO ASSETS ---
+        const btnSound = new Audio('/sounds/buttonTouch.mp3');
+        const spinSound = new Audio('/sounds/slotMachine.mp3'); // A looping mechanical spin sound
+        const stopSound = new Audio('/sounds/machineResult.mp3'); // A heavy "thud"
+        const winSound = new Audio('/sounds/winBig.mp3');    // Casino coins sound
+        
+        spinSound.loop = true;
+
+        function playAudio(audio) {
+            if(!audio) return;
+            audio.currentTime = 0;
+            audio.play().catch(e => console.log("Audio blocked", e));
+        }
+
+        // --- STATE ---
+        let currentBalance = <%= typeof user !== 'undefined' ? user.balance : 5000 %>;
+        let isSpinning = false;
+        let autoSpinActive = false;
+        let spinIntervals = [null, null, null];
+        const symbols = ['🍒', '🍋', '🍉', '🍇', '🔔', '💎', '7️⃣'];
+
+        // DOM Map
+        const ui = {
+            betInput: document.getElementById('bet-amount'),
+            balance: document.getElementById('wallet-balance'),
+            spinBtn: document.getElementById('spin-btn'),
+            status: document.getElementById('game-status'),
+            machine: document.getElementById('slot-machine'),
+            autoIcon: document.getElementById('auto-icon'),
+            autoText: document.getElementById('auto-text'),
+            cols: [document.getElementById('col1'), document.getElementById('col2'), document.getElementById('col3')],
+            cells: [
+                [document.getElementById('c1r1'), document.getElementById('c1r2'), document.getElementById('c1r3')],
+                [document.getElementById('c2r1'), document.getElementById('c2r2'), document.getElementById('c2r3')],
+                [document.getElementById('c3r1'), document.getElementById('c3r2'), document.getElementById('c3r3')]
+            ]
+        };
+
+        // --- TOAST NOTIFICATIONS ---
+        function showToast(title, message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+            const toast = document.createElement('div');
+            let bgClass = "bg-surface-container-highest border-white/10";
+            let icon = "info"; let iconColor = "text-on-surface-variant"; let glow = "shadow-lg";
+
+            if (type === 'success') {
+                bgClass = "bg-[#28a745]/10 border-[#28a745]/30 backdrop-blur-md";
+                icon = "payments"; iconColor = "text-[#28a745]"; glow = "shadow-[0_0_20px_rgba(40,167,69,0.3)]";
+            } else if (type === 'error') {
+                bgClass = "bg-[#ff007a]/10 border-[#ff007a]/30 backdrop-blur-md";
+                icon = "cancel"; iconColor = "text-primary"; glow = "shadow-[0_0_20px_rgba(255,0,122,0.3)]";
+            }
+
+            toast.className = `toast-enter flex items-center justify-between w-full rounded-xl p-3 border ${bgClass} ${glow} pointer-events-auto`;
+            toast.innerHTML = `<div class="flex items-center gap-3"><span class="material-symbols-outlined text-[28px] ${iconColor}">${icon}</span><div class="flex flex-col"><span class="font-black tracking-widest uppercase text-[11px] text-white">${title}</span><span class="font-bold text-[10px] text-white/60 tracking-wide">${message}</span></div></div>`;
+            container.appendChild(toast);
+            setTimeout(() => { toast.classList.replace('toast-enter', 'toast-leave'); setTimeout(() => toast.remove(), 300); }, 3000);
+        }
+
+        // --- BET CONTROLS ---
+        function modifyStake(action) {
+            if (isSpinning) return;
+            playAudio(btnSound);
+            let val = parseFloat(ui.betInput.value) || 0;
+            if (action === 'half') val = Math.floor(val / 2);
+            else if (action === 'double') val *= 2;
+            else if (action === 'max') val = currentBalance;
+            else val += action;
+            if (val < 10) val = 10;
+            if (val > currentBalance) val = currentBalance;
+            ui.betInput.value = val;
+        }
+        
+        ui.betInput.addEventListener('input', (e) => {
+            let val = parseInt(e.target.value);
+            if (val > currentBalance) e.target.value = currentBalance;
+        });
+
+        function toggleAutoSpin() {
+            if(isSpinning && !autoSpinActive) return; // Prevent turning ON during a spin
+            playAudio(btnSound);
+            autoSpinActive = !autoSpinActive;
+            
+            if(autoSpinActive) {
+                ui.autoIcon.classList.add('text-primary', 'animate-spin');
+                ui.autoText.classList.add('text-primary');
+                showToast("AUTO SPIN ON", "Reels will spin automatically.", "info");
+                if(!isSpinning) playSpin();
+            } else {
+                ui.autoIcon.classList.remove('text-primary', 'animate-spin');
+                ui.autoText.classList.remove('text-primary');
+                showToast("AUTO SPIN OFF", "Manual control restored.", "info");
+            }
+        }
+
+        // --- CORE GAME ENGINE ---
+        const getRandomSymbol = () => symbols[Math.floor(Math.random() * symbols.length)];
+
+        async function playSpin() {
+            if (isSpinning) return;
+            const stake = parseFloat(ui.betInput.value);
+            if (stake < 10 || stake > currentBalance) {
+                showToast("INVALID BET", "Check your balance.", "error");
+                autoSpinActive = false; toggleAutoSpin();
+                return;
+            }
+
+            // 1. Lock UI
+            isSpinning = true;
+            ui.spinBtn.classList.add('opacity-50', 'pointer-events-none');
+            ui.status.innerText = "SPINNING...";
+            ui.status.classList.remove('animate-pulse');
+            ui.machine.classList.remove('shadow-[0_0_30px_rgba(255,215,0,0.8)]', 'border-secondary');
+            ui.machine.classList.add('border-primary');
+            
+            // Remove previous win highlights
+            for(let c=0; c<3; c++) ui.cells[c][1].classList.remove('bg-secondary/20', 'shadow-[inset_0_0_20px_rgba(255,215,0,0.5)]', 'scale-110', 'z-20');
+
+            // 2. Start Frontend Visual Spin
+            playAudio(spinSound);
+            for (let c = 0; c < 3; c++) {
+                ui.cols[c].classList.add('spinning');
+                spinIntervals[c] = setInterval(() => {
+                    ui.cells[c][0].innerText = getRandomSymbol();
+                    ui.cells[c][1].innerText = getRandomSymbol();
+                    ui.cells[c][2].innerText = getRandomSymbol();
+                }, 50);
+            }
+
+            // 3. API Call to Backend
+            try {
+                const res = await fetch('/game/slots/spin', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ stake })
+                });
+                const data = await res.json();
+
+                if(!data.success) throw new Error(data.error);
+
+                // 4. Sequential Stopping Animation
+                const resultReels = [data.reel1, data.reel2, data.reel3];
+                
+                for (let c = 0; c < 3; c++) {
+                    await new Promise(resolve => setTimeout(resolve, 500 + (c * 400))); // Delay each stop
+                    
+                    clearInterval(spinIntervals[c]);
+                    ui.cols[c].classList.remove('spinning');
+                    playAudio(stopSound); // THUD!
+
+                    // Set final correct symbols. Center is the real result. Top/Bottom are random.
+                    ui.cells[c][0].innerText = getRandomSymbol();
+                    ui.cells[c][1].innerText = resultReels[c];
+                    ui.cells[c][2].innerText = getRandomSymbol();
+                }
+
+                spinSound.pause(); // Stop looping sound
+
+                // 5. Evaluate UI Result
+                currentBalance = data.newBalance;
+                ui.balance.innerText = currentBalance.toFixed(2);
+
+                if (data.isWin) {
+                    playAudio(winSound);
+                    ui.status.innerText = `BIG WIN! +₹${data.payout.toFixed(2)}`;
+                    ui.status.classList.add('text-secondary', 'drop-shadow-[0_0_15px_rgba(255,215,0,0.8)]', 'animate-pulse');
+                    ui.status.classList.remove('text-primary', 'drop-shadow-[0_0_8px_rgba(255,0,122,0.8)]');
+                    
+                    ui.machine.classList.replace('border-primary', 'border-secondary');
+                    ui.machine.classList.add('shadow-[0_0_30px_rgba(255,215,0,0.8)]');
+
+                    // Highlight winning payline
+                    for(let c=0; c<3; c++) {
+                        ui.cells[c][1].classList.add('bg-secondary/20', 'shadow-[inset_0_0_20px_rgba(255,215,0,0.5)]', 'scale-110', 'z-20', 'transition-all');
+                    }
+                    
+                    showToast(`${data.multiplier}x PAYOUT!`, `Won ₹${data.payout.toFixed(2)}`, "success");
+                } else {
+                    ui.status.innerText = "SPIN TO WIN!";
+                    ui.status.classList.add('text-primary', 'drop-shadow-[0_0_8px_rgba(255,0,122,0.8)]');
+                    ui.status.classList.remove('text-secondary', 'drop-shadow-[0_0_15px_rgba(255,215,0,0.8)]', 'animate-pulse');
+                }
+
+                // 6. Cleanup
+                isSpinning = false;
+                ui.spinBtn.classList.remove('opacity-50', 'pointer-events-none');
+
+                // Handle Auto Spin Loop
+                if(autoSpinActive) {
+                    setTimeout(playSpin, 1200); // Wait 1.2s then spin again
+                }
+
+            } catch(err) {
+                // Cleanup on Error
+                spinSound.pause();
+                for (let c = 0; c < 3; c++) { clearInterval(spinIntervals[c]); ui.cols[c].classList.remove('spinning'); }
+                showToast("ERROR", err.message || "Failed to spin.", "error");
+                isSpinning = false;
+                ui.spinBtn.classList.remove('opacity-50', 'pointer-events-none');
+                autoSpinActive = false;
+                ui.autoIcon.classList.remove('text-primary', 'animate-spin');
+                ui.autoText.classList.remove('text-primary');
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Expanded Betting Homepage</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&amp;family=Noto+Sans:wght@100..900&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ff8c00",
+                        "background-light": "#f8f7f5",
+                        "background-dark": "#0a0a0a",
+                        "surface-dark": "#1a1a1a",
+                        "odds-blue": "#d1e9ff",
+                        "back-blue": "#2b87d6",    // Professional Back Blue
+                        "lay-pink": "#d44a7e",     // Professional Lay Pink
+                        "surface-dark": "#1a1a1a",
+                        "session-no": "#ffb2b2",  // Light Pink for 'NO'
+                "session-yes": "#a5d8ff"
+                    },
+                    fontFamily: {
+                        "display": ["Lexend", "sans-serif"]
+                    },
+                    borderRadius: { "DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Lexend', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+    <style>
+        body {
+            min-height: max(884px, 100dvh);
+        }
+        /* Add this to your main CSS file if it isn't there already */
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+.no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+    </style>
+</head>
+<body class="bg-background-dark text-white">
+    <%- include('../includes/flash.ejs') %>
+    <% 
+  // List of pages where the navbar should be HIDDEN
+         const hiddenPages = ['/casino/diamond-and-mines' , '/casino/aviator']; 
+     %>
+     <% if (!hiddenPages.includes(currPath)) { %>
+    <%- include('../includes/navbar') %>
+     <% } %>
+    <main class="min-h-screen pb-20"> 
+        <%- body %>
+        <% if (!hiddenPages.includes(currPath)) { %>
+        <%- include('../includes/footer.ejs') %>
+        <% } %>
+    </main>
+    
+</body>
+
+<script>
+    document.querySelectorAll('.local-time').forEach(el => {
+        const utcDate = new Date(el.getAttribute('data-utc'));
+        el.innerText = utcDate.toLocaleString(undefined, {
+            day: 'numeric',
+            month: 'short',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    });
+</script>

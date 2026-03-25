@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aviator Game</title>
+
+<script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
+
+<style>
+body{font-family:'Space Grotesk',sans-serif;background:#0a0a0a;color:white;}
+.radar-grid{
+  background-size:40px 40px;
+  background-image:
+    linear-gradient(to right,#ffffff05 1px,transparent 1px),
+    linear-gradient(to bottom,#ffffff05 1px,transparent 1px);
+}
+.hidden{display:none;}
+#plane { transform-origin: center center; transition: transform 0.05s linear; }
+</style>
+</head>
+<body class="max-w-md mx-auto min-h-screen flex flex-col border-x border-white/5">
+
+<!-- TOP BAR -->
+<nav class="flex justify-between p-4 sticky top-0 bg-[#0a0a0a]/80 backdrop-blur z-50">
+  <div class="flex gap-2 items-center">
+    <span class="material-symbols-outlined text-red-600">menu</span>
+    <span class="font-bold tracking-widest text-red-600 italic uppercase">Aviator</span>
+  </div>
+  <div class="bg-[#1a1a1a] px-3 py-1 rounded-full font-bold">
+    ₹ <span id="balance">12450.00</span>
+  </div>
+</nav>
+
+<!-- GAME AREA -->
+<div class="relative aspect-[4/3] radar-grid bg-[#0a0a0a] border-b border-white/5 overflow-hidden">
+
+  <!-- COUNTDOWN -->
+  <div id="state-waiting" class="absolute inset-0 flex flex-col items-center justify-center hidden">
+    <h2 class="text-xl font-black uppercase">Next Round In</h2>
+    <h1 id="countdown" class="text-6xl font-black mt-2">10s</h1>
+  </div>
+
+  <!-- FLYING -->
+  <div id="state-flying" class="absolute inset-0 flex flex-col items-center justify-center hidden">
+    <svg width="50" height="50">
+      <polygon id="plane" points="25,0 30,10 25,7 20,10" fill="red"/>
+    </svg>
+    <h1 id="multiplier" class="text-7xl font-black mt-4">1.00x</h1>
+  </div>
+
+  <!-- CRASHED -->
+  <div id="state-crashed" class="absolute inset-0 flex flex-col items-center justify-center hidden">
+    <h1 id="crash-multiplier" class="text-7xl font-black text-red-600">0.00x</h1>
+    <p class="text-red-600 font-black uppercase tracking-widest mt-2">Flew Away</p>
+  </div>
+
+</div>
+
+<!-- BET PANELS -->
+<div class="p-4 bg-[#0a0a0a]">
+  <div class="grid grid-cols-2 gap-3">
+    <!-- Bet Panel -->
+    <div class="bg-[#1a1a1a] p-3 rounded-xl">
+      <input id="bet-amount" type="number" value="100"
+        class="w-full bg-[#0a0a0a] text-center text-xl font-bold py-2 rounded mb-2">
+      <button id="bet-btn" class="w-full bg-green-600 py-3 rounded-lg font-black uppercase">Bet</button>
+    </div>
+    <div class="bg-[#1a1a1a] p-3 rounded-xl">
+      <div class="text-sm font-bold opacity-50 mb-2">Auto Cashout</div>
+      <input id="auto-cashout" type="number" value="2.00"
+        class="w-full bg-[#0a0a0a] text-center text-lg font-bold py-2 rounded">
+    </div>
+  </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const socket = io({
+  auth: { userId: "<%= currUser ? currUser._id : '' %>" }
+}); // Replace with actual user id
+
+const waiting = document.getElementById("state-waiting");
+const flying = document.getElementById("state-flying");
+const crashed = document.getElementById("state-crashed");
+const countdownEl = document.getElementById("countdown");
+const multiplierEl = document.getElementById("multiplier");
+const crashMultiplierEl = document.getElementById("crash-multiplier");
+const betBtn = document.getElementById("bet-btn");
+const plane = document.getElementById("plane");
+
+let flightMultiplier = 1;
+let betPlaced = false;
+
+function show(state){
+  waiting.classList.add("hidden");
+  flying.classList.add("hidden");
+  crashed.classList.add("hidden");
+  state.classList.remove("hidden");
+}
+
+socket.on("gameUpdate", data => {
+  const status = data.status.toUpperCase();
+  flightMultiplier = parseFloat(data.multiplier);
+
+  if(status === "WAITING"){
+    show(waiting);
+    countdownEl.innerText = data.timer + "s";
+    betBtn.innerText = "BET";
+    betBtn.disabled = false;
+    betPlaced = false;
+    plane.setAttribute("transform", "translate(0,0)");
+  }
+
+  if(status === "FLYING"){
+    show(flying);
+    multiplierEl.innerText = flightMultiplier.toFixed(2) + "x";
+    if(betPlaced){
+      betBtn.innerText = "CASH OUT";
+      betBtn.disabled = false;
+    } else {
+      betBtn.innerText = "WAIT";
+      betBtn.disabled = true;
+    }
+    updatePlane(flightMultiplier);
+  }
+
+  if(status === "CRASHED"){
+    show(crashed);
+    crashMultiplierEl.innerText = flightMultiplier.toFixed(2) + "x";
+    betBtn.innerText = "WAIT";
+    betBtn.disabled = true;
+    plane.setAttribute("transform", "translate(0,0)");
+  }
+});
+
+
+function updatePlane(multiplier){
+  const y = Math.min(multiplier * 25, 250);
+  plane.setAttribute("transform", `translate(0,${-y}) rotate(${multiplier*5})`);
+}
+
+// Bet Button
+betBtn.onclick = () => {
+  const amount = Number(document.getElementById("bet-amount").value);
+  if(!betPlaced && amount > 0){
+    socket.emit("placeBet", { amount });
+    betPlaced = true;
+    betBtn.innerText = "CASH OUT";
+  } else if(betPlaced){
+    socket.emit("cashOut");
+    betBtn.disabled = true;
+  }
+};
+</script>
+
+</body>
+</html>
