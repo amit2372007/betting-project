@@ -47,9 +47,9 @@ const AviatorEngine = require("./services/aviator/aviatorEngine.js");
 app.locals.io = io;
 
 // --- 1. Database Connection ---
-const dbUrl = "mongodb://localhost:27017/betting";
+const dbUrl = process.env.DB_URL;
 main()
-  .then(() => console.log("Connection successful"))
+  .then(() => console.log("Connected to MongoDB Atlas!"))
   .catch((err) => console.log(err));
 
 async function main() {
@@ -122,6 +122,8 @@ app.use("/transaction", transaction);
 app.use("/admin", admin);
 app.use("/casino", casino);
 app.use("/game", game);
+
+
 
 // 1. The Webhook Endpoint
 // Add this to your main index.js
