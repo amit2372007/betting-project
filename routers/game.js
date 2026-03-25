@@ -13,5 +13,8 @@ router.post("/aviator/cashout", isLoggedIn, gameController.aviatorCashout);
 router.post("/mines/cashout", isLoggedIn, gameController.cashoutMinesGame);
 router.post("/mines/start", isLoggedIn, gameController.startMinesGame);
 router.post("/mines/reveal", isLoggedIn , gameController.revealMinesCell);
+router.post('/chicken-road/start', gameController.startGame);
+router.post('/chicken-road/step', gameController.takeStep);
+router.post('/chicken-road/cashout', gameController.cashOut);
 
 module.exports = router;

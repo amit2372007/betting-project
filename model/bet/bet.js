@@ -12,7 +12,7 @@ const BetSchema = new mongoose.Schema({
     ref: "Event",
     required: function() { 
       // Bypass eventId requirement for Casino and Virtual games
-      const noEventGames = ['casino_mines', 'vso_next_ball', 'vso_match_winner', 'aviator_crash'];
+      const noEventGames = ['casino_mines', 'vso_next_ball', 'vso_match_winner', 'aviator_crash' , 'chicken_road'];
       return !noEventGames.includes(this.marketType); 
     }
   },
@@ -46,7 +46,7 @@ const BetSchema = new mongoose.Schema({
     type: Number, 
     // Odds are decided dynamically at cashout in Aviator, so bypass upfront validation
     required: function() { 
-      const noOddsGames = ['casino_mines', 'vso_next_ball', 'vso_match_winner', 'aviator_crash'];
+      const noOddsGames = ['casino_mines', 'vso_next_ball', 'vso_match_winner', 'aviator_crash' , 'chicken_road'];
       return !noOddsGames.includes(this.marketType); 
     }
   }, 
@@ -57,7 +57,7 @@ const BetSchema = new mongoose.Schema({
     type: Number, 
     // Potential win is unknown until the plane crashes or user cashes out
     required: function() { 
-      const noWinGames = ['casino_mines', 'vso_next_ball', 'vso_match_winner', 'aviator_crash'];
+      const noWinGames = ['casino_mines', 'vso_next_ball', 'vso_match_winner', 'aviator_crash' , 'chicken_road'];
       return !noWinGames.includes(this.marketType); 
     }
   },

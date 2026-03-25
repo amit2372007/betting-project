@@ -58,3 +58,13 @@ module.exports.renderDiamondMines = async (req, res) => {
     return res.redirect("/home");
   }
 }; 
+
+module.exports.renderChickenRoad = async (req, res) => {
+    try {
+        res.render("./casino/chickenRoad.ejs", { user: req.user });
+    } catch (err) {
+        req.flash("error", "Error loading Chicken Road");
+        res.redirect("/home");
+    }
+};
+

@@ -48,14 +48,29 @@ app.locals.io = io;
 
 // --- 1. Database Connection ---
 const dbUrl = process.env.DB_URL;
-main()
-  .then(() => console.log("Connected to MongoDB Atlas!"))
-  .catch((err) => console.log(err));
+const connectDB = async () => {
+    try {
+        await mongoose.connect(dbUrl, {
+            serverSelectionTimeoutMS: 5000, // Keep trying to send operations for 5 seconds
+            socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
+            family: 4 // Use IPv4, skip trying IPv6
+        });
+        console.log('MongoDB Connected');
+    } catch (err) {
+        console.error('Initial MongoDB connection error:', err);
+    }
+};
 
-async function main() {
-  await mongoose.connect(dbUrl);
-}
 
+mongoose.connection.on('error', (err) => {
+    console.error('MongoDB runtime error:', err);
+});
+
+mongoose.connection.on('disconnected', () => {
+    console.warn('MongoDB disconnected. Mongoose will automatically try to reconnect.');
+});
+
+connectDB();
 // --- 2. View Engine & Basic Settings ---
 app.set("views", path.join(__dirname, "views"));
 app.set("view engine", "ejs");
@@ -100,13 +115,27 @@ app.use((req, res, next) => {
 });
 
 const redis = new Redis({
-  password: "4xVlBFGyDNwfv5jP9cu5nByT6NAnCmlI",
+  password: process.env.REDIS_URL,
   host: "redis-13705.crce206.ap-south-1-1.ec2.cloud.redislabs.com",
   port: 13705,
+  
+  // 1. Automatically retry connecting if the network drops (fixes ECONNRESET)
+  retryStrategy(times) {
+    // Wait between 50ms and 2000ms (2 seconds) before trying again
+    const delay = Math.min(times * 50, 2000);
+    return delay; 
+  },
+  // Recommended setting when using retryStrategy
+  maxRetriesPerRequest: null 
 });
 
 redis.on("connect", () => {
   console.log("Connected to redis server!");
+});
+
+// 2. CRITICAL: Catch the error so it doesn't crash your entire application
+redis.on("error", (err) => {
+  console.error("Redis connection error:", err.message);
 });
 
 //all routes 

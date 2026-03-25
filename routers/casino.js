@@ -9,6 +9,8 @@ router.get("/7up-7down" , isLoggedIn, casinoController.render7Up7Down);
 router.get("/vso", isLoggedIn, casinoController.renderVirtualSuperOver);
 router.get("/aviator",isLoggedIn, casinoController.renderAviator);
 router.get("/diamond-and-mines", isLoggedIn, casinoController.renderDiamondMines);
+router.get("/chicken-road" , isLoggedIn , casinoController.renderChickenRoad);
+
 
 
 
