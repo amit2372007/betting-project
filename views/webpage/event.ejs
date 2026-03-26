@@ -1,3 +1,4 @@
+
 <% layout('layouts/boilerplate.ejs') -%>
 
 <style>
@@ -125,7 +126,7 @@
 
                                         if (bet.type === 'back') {
                                             if (bet.selection === runner.name) {
-                                                totalExposure += pWin;     // If this team wins, you win the profit
+                                                totalExposure += pWin;    // If this team wins, you win the profit
                                             } else {
                                                 totalExposure -= bStake;  // If this team wins, you lose the stake from your other bet
                                             }
@@ -171,6 +172,7 @@
             </div>
         </section>
 
+        <% if (!event.tossMarket || event.tossMarket.status !== 'settled') { %>
         <section id="toss-market" class="pt-2">
             <div class="flex justify-between items-center mb-3 px-1">
                 <h3 class="text-white/80 text-[11px] font-black uppercase tracking-widest flex items-center gap-1.5">
@@ -211,6 +213,7 @@
                 <% }) %>
             </div>
         </section>
+        <% } %>
 
         <section id="fancy-market" class="pt-2">
             <div class="flex justify-between items-center mb-3 px-1">
@@ -225,10 +228,14 @@
             </div>
 
             <div class="bg-[#141414] rounded-2xl border border-white/5 overflow-hidden">
-    <% if (event.sessions && event.sessions.length > 0) { 
+    <% 
+        // ONLY GRAB SESSIONS THAT ARE NOT SETTLED
+        const activeSessions = event.sessions ? event.sessions.filter(s => s.status !== 'settled') : [];
+        
+        if (activeSessions.length > 0) { 
         // 1. Group sessions by category dynamically
         const groupedSessions = {};
-        event.sessions.forEach(session => {
+        activeSessions.forEach(session => {
             const cat = session.category || 'other'; 
             if (!groupedSessions[cat]) {
                 groupedSessions[cat] = [];
@@ -337,6 +344,7 @@
         Place Bet
     </button>
 </form>
+
     </div>
 
     <script src="/socket.io/socket.io.js"></script>

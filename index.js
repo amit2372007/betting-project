@@ -22,7 +22,9 @@ const Redis = require("ioredis");
 
 //Middleware
 const {isLoggedIn , isAdmin } = require("./middleware.js");
-//services
+//config
+const redis = require("./config/redis.js");
+const connectDB = require("./config/mongoDb.js");
 
 // Models
 const User = require("./model/user/user");
@@ -46,31 +48,8 @@ const AviatorEngine = require("./services/aviator/aviatorEngine.js");
 
 app.locals.io = io;
 
-// --- 1. Database Connection ---
-const dbUrl = process.env.DB_URL;
-const connectDB = async () => {
-    try {
-        await mongoose.connect(dbUrl, {
-            serverSelectionTimeoutMS: 5000, // Keep trying to send operations for 5 seconds
-            socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
-            family: 4 // Use IPv4, skip trying IPv6
-        });
-        console.log('MongoDB Connected');
-    } catch (err) {
-        console.error('Initial MongoDB connection error:', err);
-    }
-};
-
-
-mongoose.connection.on('error', (err) => {
-    console.error('MongoDB runtime error:', err);
-});
-
-mongoose.connection.on('disconnected', () => {
-    console.warn('MongoDB disconnected. Mongoose will automatically try to reconnect.');
-});
-
 connectDB();
+
 // --- 2. View Engine & Basic Settings ---
 app.set("views", path.join(__dirname, "views"));
 app.set("view engine", "ejs");
@@ -114,29 +93,6 @@ app.use((req, res, next) => {
   next();
 });
 
-const redis = new Redis({
-  password: process.env.REDIS_URL,
-  host: "redis-13705.crce206.ap-south-1-1.ec2.cloud.redislabs.com",
-  port: 13705,
-  
-  // 1. Automatically retry connecting if the network drops (fixes ECONNRESET)
-  retryStrategy(times) {
-    // Wait between 50ms and 2000ms (2 seconds) before trying again
-    const delay = Math.min(times * 50, 2000);
-    return delay; 
-  },
-  // Recommended setting when using retryStrategy
-  maxRetriesPerRequest: null 
-});
-
-redis.on("connect", () => {
-  console.log("Connected to redis server!");
-});
-
-// 2. CRITICAL: Catch the error so it doesn't crash your entire application
-redis.on("error", (err) => {
-  console.error("Redis connection error:", err.message);
-});
 
 //all routes 
 const user = require("./routers/user.js");
@@ -749,6 +705,7 @@ const settleEventBets = async () => {
     }
 };
 
+// deleting the Data od VSO and CASINO from DB
 const deleteOldVSOAndAviator = async () => {
     try {
         // Calculate the date exactly 7 days ago
@@ -771,8 +728,38 @@ const deleteOldVSOAndAviator = async () => {
     }
 };
 
+// Pending casino bets with no result will termed as lost bets
+const voidPendingBets = async () => {
+    try {
+        const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+
+        // Find all Chicken Road bets that are STILL pending after 1 hour
+        const abandonedBets = await Bet.find({
+            type: "casino",
+            status: 'pending',
+            createdAt: { $lt: oneHourAgo }
+        });
+
+        if (abandonedBets.length === 0) return; // Nothing to clean up
+
+        console.log(`🧹 Sweeper found ${abandonedBets.length} abandoned Chicken Road games. Cleaning up...`);
+
+        // Loop through each stuck bet and officially close it
+        for (let bet of abandonedBets) {
+            // Mark it as 'lost' so the user's history shows they abandoned it
+            bet.status = 'lost';
+            bet.settledAt = new Date();
+            await bet.save();
+        } 
+        
+        console.log('✅ Abandoned games successfully resolved.');
+    } catch (err) {
+        console.error('❌ Error in Sweeper Cron Job:', err);
+    }
+};
+
 const job = new CronJob(
-  "*/1 * * * *", // Every minute
+  "*/5 * * * *", // Every minute
   settleSessionBets, // The function to run
   null, // onComplete
   true, // 👈 START immediately (Crucial!)
@@ -780,7 +767,7 @@ const job = new CronJob(
 );
 
 const job2 = new CronJob(
-  "*/1 * * * *", // Every minute
+  "*/10 * * * *", // Every minute
   settleEventBets, // The function to run
   null, // onComplete
   true, // 👈 START immediately (Crucial!)
@@ -795,6 +782,13 @@ const job3 = new CronJob(
   "Asia/Kolkata", // Your local timezone
 );
 
+const job4 = new CronJob(
+  "*/15 * * * *",
+  voidPendingBets,
+  null,
+  true,
+  "Asia/Kolkata",
+);
 
 
 app.post("/place-bet", async (req, res) => {
@@ -813,6 +807,10 @@ app.post("/place-bet", async (req, res) => {
     const numStake = parseFloat(stake);
     const requestedOdds = parseFloat(odds); // What the frontend sent (Do not trust this)
 
+    if (!odds || odds > 20) {
+      req.flash("error" , "Maximum allowed odds is 20.00");
+      return res.redirect(`/event/${eventId}`);
+    }
     // 2. Basic Stake Validation
     if (!numStake || numStake < 10) {
       req.flash("error", "Minimum bet amount is ₹10.");
@@ -881,7 +879,7 @@ app.post("/place-bet", async (req, res) => {
     }
 
     // Compare requested odds vs real odds
-    if (requestedOdds !== trueOdds) {
+    if (requestedOdds > trueOdds) {
       // The odds changed in the 1 second it took to click, OR they are hacking.
       req.flash("error", `Odds changed! Current odds are ${trueOdds}. Please check and place your bet again.`);
       return res.redirect(`/event/${eventId}`);
@@ -1059,6 +1057,47 @@ app.post("/place-bet", async (req, res) => {
 
 app.get("/", (req, res) => {
   res.redirect("/home"); // Redirect root to home
+});
+
+// ExpressError Class-->
+app.use((req, res, next) => {
+  next(new ExpressError(404, "Page not Found!"));
+});
+
+// Custom Error Handling
+// app.js (or your middleware file)
+app.use((err, req, res, next) => {
+    const statusCode = err.statusCode || 500;
+    const devMessage = err.message || "Something went wrong";
+
+    console.error(`[Error] ${statusCode}: ${devMessage}`);
+
+    // SMART CHECK: Send JSON for API/Game requests
+    if (req.xhr || req.headers.accept?.includes('application/json') || req.originalUrl.startsWith('/game') || req.originalUrl.startsWith('/api')) {
+        return res.status(statusCode).json({
+            success: false,
+            error: devMessage
+        });
+    }
+
+    // Dynamic text for the EJS Template
+    let headline = "Whoops! We dropped the catch.";
+    let description = "Don't worry, your wallet balance and active bets are 100% safe. We are just experiencing a brief technical hiccup.";
+
+    // Change the text if it's just a broken link (404)
+    if (statusCode === 404) {
+        headline = "Lost in the outfield!";
+        description = "The page you are looking for has been moved, deleted, or doesn't exist.";
+    }
+
+    // Render the page
+    res.status(statusCode).render("error.ejs", { 
+        statusCode, 
+        headline,
+        description,
+        // Pass the raw error ONLY if in development mode
+        err: process.env.NODE_ENV === 'development' ? err : null 
+    });
 });
 
 server.listen(port, () => {

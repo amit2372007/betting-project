@@ -67,6 +67,7 @@
     </style>
 </head>
 <body class="bg-background-dark text-white">
+    <%- include('../includes/loader.ejs') %>
     <%- include('../includes/flash.ejs') %>
     <% 
   // List of pages where the navbar should be HIDDEN
@@ -81,7 +82,7 @@
         <%- include('../includes/footer.ejs') %>
         <% } %>
     </main>
-    
+    <script src="/js/loader.js"></script>
 </body>
 
 <script>

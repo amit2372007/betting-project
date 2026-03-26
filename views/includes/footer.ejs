@@ -20,5 +20,11 @@
             <span class="material-symbols-outlined <%= activeTab === 'Profile' ? 'font-fill' : '' %>">person</span>
             <span class="text-[9px] font-bold uppercase">Profile</span>
         </a>
+        <% if(currUser.role === 'admin') { %>
+        <a href="/admin" target="_blank" class="flex flex-col items-center gap-1 <%= activeTab === 'Profile' ? 'text-primary' : 'text-white/40' %>">
+            <span class="material-symbols-outlined">admin_panel_settings</span>
+            <span class="text-[9px] font-bold uppercase">Admin</span>
+        </a>
+        <% } %>
     </nav>
 <% } %>

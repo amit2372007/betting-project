@@ -9,7 +9,7 @@ const VirtualSuperOver = require("../model/virtualSuperOver/VirtualSuperOver.js"
 const AviatorRound = require("../model/aviator/aviator.js");
 const SevenUpBet = require("../model/7up7Down/7up7down.js");
 const FruitBonanzaBet = require("../model/fruitBonanza/fruitBonanza.js");
-
+ const redis = require('../config/redis.js');
 
 const REEL_STRIP = [
     '🍒','🍒','🍒','🍒','🍒', // Cherry (Very Common)
@@ -563,52 +563,43 @@ const MULTIPLIERS = {
 };
 
 const RISK = {
-    // EASY: ~35% chance to crash immediately on Step 1.
-    // If they try to reach Step 3, the cumulative crash chance is over 80%.
     easy:  [35, 45, 55, 65, 75, 82, 88, 92, 95, 98],
-
-    // MEDIUM: 45% chance to crash on Step 1. 
     mod:   [45, 55, 65, 75, 85, 90, 94, 97, 98, 99],
-
-    // HARD: Casino wins more than half the time (55%) on the very first step.
     hard:  [55, 65, 75, 85, 92, 96, 98, 99, 99, 99.5],
-
-    // PRO: Casino wins exactly 70% of the time on STEP 1.
-    // Extremely brutal. Surviving past Step 2 is rare.
     pro:   [70, 80, 88, 94, 97, 98, 99, 99.5, 99.8, 99.9]
 };
-
-// Temporary in-memory store for active games. 
-const activeGames = new Map(); 
 
 module.exports.startGame = async (req, res) => {
     try {
         const { betAmount, difficulty } = req.body;
-        const userId = req.user._id;
+        const userId = req.user._id.toString();
 
         if (!betAmount || betAmount < 10) return res.status(400).json({ error: "Minimum bet is ₹10" });
         if (!RISK[difficulty]) return res.status(400).json({ error: "Invalid difficulty" });
 
+        // ANTI-SPAM: Check if game already exists in Redis
+        const existingGame = await redis.get(`chickenRoad:${userId}`);
+        if (existingGame) return res.status(400).json({ error: "A game is already in progress" });
+
         const user = await User.findById(userId);
         if (user.balance < betAmount) return res.status(400).json({ error: "Insufficient balance" });
+        
         const balanceBefore = user.balance;
         const balanceAfter = balanceBefore - betAmount;
-        // 1. Deduct balance
+        
         user.balance -= betAmount;
         await user.save();
 
-        // 2. CREATE THE BET RECORD (Status: playing)
         const newBet = await Bet.create({
-             marketType: `Chicken Road ${difficulty}`,
             userId: user._id,
-            type: 'casino',           // Required by your schema
+            type: 'casino',           
             eventName: "Chicken Road",
-            marketType: 'chicken_road', // Triggers the validation bypass
-            selection: difficulty,    // Store the difficulty as the selection
-            stake: betAmount,         // Your schema uses 'stake'
-            odds: 0,                  // Your schema uses 'odds' for multiplier
-            payout: 0,                // Your schema uses 'payout' for winnings
-            status: 'pending'         // Your schema's default active state
+            marketType: 'chicken_road', // Do NOT change this later, or the schema validation fails!
+            selection: difficulty,    
+            stake: betAmount,         
+            odds: 0,                  
+            payout: 0,                
+            status: 'pending'         
         });
 
         await Ledger.create({
@@ -621,14 +612,17 @@ module.exports.startGame = async (req, res) => {
             remarks: `Placed bet on Chicken Road (${difficulty.toUpperCase()})`
         });
         
-        // 3. Save active game state, INCLUDING the Bet ID so we can update it later
-        activeGames.set(userId.toString(), {
+        const gameState = {
             betId: newBet._id,
             betAmount,
             difficulty,
             currentStep: -1,
             active: true
-        });
+        };
+
+        // REDIS FIX: Save state to Redis with a 1-hour expiration (3600 seconds)
+        // This automatically handles "ghost games" if a user closes their browser
+        await redis.set(`chickenRoad:${userId}`, JSON.stringify(gameState), 'EX', 3600);
 
         res.json({ success: true, newBalance: user.balance });
     } catch (err) {
@@ -640,9 +634,11 @@ module.exports.startGame = async (req, res) => {
 module.exports.takeStep = async (req, res) => {
     try {
         const userId = req.user._id.toString();
-        const game = activeGames.get(userId);
-
-        if (!game || !game.active) return res.status(400).json({ error: "No active game found" });
+        
+        // Fetch from Redis
+        const gameStr = await redis.get(`chickenRoad:${userId}`);
+        if (!gameStr) return res.status(400).json({ error: "No active game found" });
+        const game = JSON.parse(gameStr);
 
         const nextStep = game.currentStep + 1;
         if (nextStep >= STEPS) return res.status(400).json({ error: "Game already finished" });
@@ -651,24 +647,22 @@ module.exports.takeStep = async (req, res) => {
         const roll = Math.random() * 100;
 
         if (roll < crashChance) {
-            // ======================================
-            // CRASHED: UPDATE BET RECORD TO LOST
-            // ======================================
-           await Bet.findByIdAndUpdate(game.betId, {
-                marketType: `Chicken Road ${game.difficulty}`,
-                eventName: "Chicken Road",
+            // RACE CONDITION LOCK: Delete from Redis BEFORE database updates
+            await redis.del(`chickenRoad:${userId}`);
+
+            await Bet.findByIdAndUpdate(game.betId, {
                 status: 'lost',
                 odds: 0,
                 payout: 0,
-                settledAt: new Date() // Good practice for your history queries
+                settledAt: new Date() 
             });
 
-            activeGames.delete(userId); // Clear session
             return res.json({ status: "crashed", step: nextStep });
         } else {
-            // SAFE: Update server state and wait for next step or cashout
             game.currentStep = nextStep;
-            activeGames.set(userId, game);
+            
+            // Update Redis state and reset the 1-hour expiration timer
+            await redis.set(`chickenRoad:${userId}`, JSON.stringify(game), 'EX', 3600);
             
             return res.json({ 
                 status: "safe", 
@@ -685,27 +679,33 @@ module.exports.takeStep = async (req, res) => {
 module.exports.cashOut = async (req, res) => {
     try {
         const userId = req.user._id.toString();
-        const game = activeGames.get(userId);
+        
+        const gameStr = await redis.get(`chickenRoad:${userId}`);
+        if (!gameStr) return res.status(400).json({ error: "Invalid cashout request" });
+        const game = JSON.parse(gameStr);
 
-        if (!game || !game.active || game.currentStep < 0) {
-            return res.status(400).json({ error: "Invalid cashout request" });
+        if (game.currentStep < 0) {
+            return res.status(400).json({ error: "Cannot cash out before taking a step" });
         }
 
-        const multiplier = MULTIPLIERS[game.difficulty][game.currentStep];
-        const winAmount = game.betAmount * multiplier;
+        // RACE CONDITION LOCK: Delete game IMMEDIATELY to prevent double-click API spam
+        await redis.del(`chickenRoad:${userId}`);
 
-        // 1. Fetch user and record the EXACT balance before adding winnings
+        const multiplier = MULTIPLIERS[game.difficulty][game.currentStep];
+        
+        // FLOATING POINT FIX: Round the final win amount exactly to 2 decimal places
+        const rawWin = game.betAmount * multiplier;
+        const winAmount = Math.round(rawWin * 100) / 100; 
+
         const user = await User.findById(userId);
         const balanceBefore = user.balance;
 
-        // 2. Add winnings to user balance and save
         user.balance += winAmount;
+        // Fix JS floating point drift on the main balance as well
+        user.balance = Math.round(user.balance * 100) / 100; 
         const balanceAfter = user.balance;
         await user.save();
 
-        // 3. ======================================
-        // CREATE LEDGER ENTRY (The Passbook Record)
-        // ======================================
         await Ledger.create({
             userId: user._id,
             type: 'bet_won',
@@ -716,18 +716,12 @@ module.exports.cashOut = async (req, res) => {
             remarks: `Won Chicken Road (${game.difficulty.toUpperCase()}) at ${multiplier}x`
         });
 
-        // 4. ======================================
-        // CASH OUT: UPDATE BET RECORD TO WON
-        // ======================================
         await Bet.findByIdAndUpdate(game.betId, {
-            marketType: `Chicken Road ${game.difficulty}`,
             status: 'won',
-            odds: multiplier,       // Save the final multiplier
-            payout: winAmount,      // Save the final win amount
+            odds: multiplier,       
+            payout: winAmount,      
             settledAt: new Date()
         });
-
-        activeGames.delete(userId); // Game over, clear session
 
         res.json({ success: true, winAmount, newBalance: user.balance, multiplier });
     } catch (err) {

@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>System Error | WicketAdda</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Inter:wght@300;400;500;600;700&amp;family=Rajdhani:wght@300;400;500;600;700&amp;family=Orbitron:wght@400;700&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "on-surface-variant": "#a8aab7",
+                        "primary-container": "#00fd87",
+                        "primary-fixed-dim": "#00ed7e",
+                        "primary-fixed": "#00fd87",
+                        "surface-container": "#161924",
+                        "primary": "#a4ffb9",
+                        "on-background": "#e9eaf8",
+                        "on-primary": "#006532",
+                        "surface-container-lowest": "#000000",
+                        "outline": "#727581",
+                        "error-container": "#9f0519",
+                        "error-dim": "#d7383b",
+                        "background": "#0b0e17",
+                        "surface-container-low": "#10131d",
+                        "tertiary": "#ff7162",
+                        "surface": "#0b0e17",
+                        "on-surface": "#e9eaf8",
+                        "error": "#ff716c",
+                        "surface-variant": "#212533",
+                        "surface-container-high": "#1b1f2c",
+                        "surface-container-highest": "#212533",
+                        "tertiary-container": "#f9362c",
+                        "outline-variant": "#454852",
+                    },
+                    fontFamily: {
+                        "headline": ["Space Grotesk"],
+                        "body": ["Inter"],
+                        "technical": ["Orbitron"],
+                        "hud": ["Rajdhani"]
+                    },
+                    borderRadius: { "DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem" },
+                },
+            },
+        }
+    </script>
+    <style>
+        .neon-grid {
+            background-image:
+                linear-gradient(to right, rgba(0, 255, 136, 0.05) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(0, 255, 136, 0.05) 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+
+        .radial-glow {
+            background: radial-gradient(circle at center, rgba(0, 102, 255, 0.15) 0%, rgba(8, 11, 20, 1) 70%);
+        }
+
+        .glitch-chip {
+            filter: drop-shadow(0 0 15px rgba(0, 253, 135, 0.4));
+        }
+
+        /* Cricket Batting Animation */
+        @keyframes bat-swing {
+            0% { transform: rotate(0deg); }
+            20% { transform: rotate(-25deg); }
+            50% { transform: rotate(45deg); }
+            80% { transform: rotate(-10deg); }
+            100% { transform: rotate(0deg); }
+        }
+        .animate-bat-swing {
+            animation: bat-swing 2.5s ease-in-out infinite;
+            transform-origin: bottom left; /* Swings from the handle */
+            display: inline-block;
+        }
+
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+</head>
+
+<body
+    class="bg-[#080b14] text-on-background font-body selection:bg-primary-container selection:text-on-primary-container overflow-hidden">
+    <div class="fixed inset-0 z-0">
+        <div class="absolute inset-0 radial-glow"></div>
+        <div class="absolute inset-0 neon-grid opacity-40"></div>
+    </div>
+    
+    <header class="fixed top-0 w-full z-50 flex justify-between items-center px-6 h-16 bg-transparent">
+        <div class="text-xl font-bold tracking-widest text-primary-fixed font-headline uppercase">
+            WICKETADDA
+        </div>
+    </header>
+    
+    <main class="relative z-10 min-h-screen flex flex-col items-center justify-center px-4 text-center">
+        <div class="relative mb-12 flex flex-col items-center">
+            
+            <div class="relative w-32 h-32 flex items-center justify-center mb-8 glitch-chip">
+                <div class="absolute inset-0 bg-primary/20 rounded-full blur-2xl animate-pulse"></div>
+                <span class="material-symbols-outlined text-7xl text-primary-fixed-dim animate-bat-swing"
+                    style="font-variation-settings: 'FILL' 1;">
+                    sports_cricket
+                </span>
+                <div class="absolute -top-2 -right-2 w-4 h-4 bg-tertiary-container blur-[1px]"></div>
+                <div class="absolute -bottom-1 -left-4 w-8 h-1 bg-primary blur-[1px]"></div>
+            </div>
+            
+            <div class="mb-4">
+                <span class="font-technical text-3xl md:text-5xl font-bold text-tertiary-container tracking-tighter drop-shadow-[0_0_12px_rgba(249,54,44,0.6)]">
+                    ERROR <%= typeof statusCode !== 'undefined' ? statusCode : '500' %>
+                </span>
+            </div>
+            
+            <h1 class="text-2xl md:text-4xl font-headline font-bold text-on-surface mb-6 max-w-2xl leading-tight">
+                <%= typeof headline !== 'undefined' ? headline : 'Whoops! We dropped the catch.' %>
+            </h1>
+            
+            <p class="text-on-surface-variant font-body text-sm md:text-base max-w-md leading-relaxed mb-10">
+                <%= typeof description !== 'undefined' ? description : "Don't worry, your wallet balance and active bets are 100% safe." %>
+            </p>
+
+            <% if (typeof err !== 'undefined' && err) { %>
+                <div class="mb-10 w-full max-w-2xl bg-red-900/20 border border-red-500/50 rounded-lg p-4 text-left overflow-hidden">
+                    <p class="text-red-400 font-bold text-sm mb-2">Developer Error Log:</p>
+                    <p class="text-red-200 text-xs font-mono break-words"><%= err.message %></p>
+                    <% if (err.stack) { %>
+                        <pre class="text-red-200/60 text-[10px] font-mono mt-2 whitespace-pre-wrap"><%= err.stack %></pre>
+                    <% } %>
+                </div>
+            <% } %>
+            
+            <div class="flex flex-col sm:flex-row gap-4 w-full max-w-md justify-center">
+                <a class="group relative inline-flex items-center justify-center px-8 py-4 font-headline font-bold tracking-wide text-on-primary-container bg-gradient-to-br from-primary-fixed to-primary-container rounded-lg overflow-hidden transition-all duration-300 hover:scale-105 active:scale-95 hover:shadow-[0_0_30px_rgba(0,253,135,0.4)]"
+                    href="/home">
+                    <span class="relative z-10 flex items-center gap-2">
+                        <span class="material-symbols-outlined text-[20px]">grid_view</span>
+                        RETURN TO LOBBY
+                    </span>
+                </a>
+                
+                <a class="group relative inline-flex items-center justify-center px-8 py-4 font-headline font-bold tracking-wide text-on-surface border border-outline-variant/40 rounded-lg transition-all duration-300 hover:bg-surface-container-high hover:border-on-surface/60 active:scale-95"
+                    target="_blank" rel="noopener noreferrer"
+                    href="https://wa.me/918102073403?text=Hi%20WicketAdda%20Support,%20I%20am%20facing%20an%20error%20(Code:%20<%= typeof statusCode !== 'undefined' ? statusCode : '500' %>).%20Please%20help!">
+                    <span class="relative z-10 flex items-center gap-2">
+                        <span class="material-symbols-outlined text-[20px]">support_agent</span>
+                        CONTACT SUPPORT
+                    </span>
+                </a>
+            </div>
+        </div>
+        
+        <div class="absolute top-1/4 left-10 hidden lg:block opacity-20 pointer-events-none">
+            <div class="font-hud text-[10px] space-y-2 uppercase tracking-[0.2em] text-primary">
+                <p>SYS_STATUS: OFFLINE</p>
+                <p>LATENCY: 0.0ms</p>
+                <p>RECOVERY: ACTIVE</p>
+            </div>
+        </div>
+        <div class="absolute bottom-1/4 right-10 hidden lg:block opacity-20 pointer-events-none">
+            <div class="font-hud text-[10px] space-y-2 uppercase tracking-[0.2em] text-on-surface-variant text-right">
+                <p>REGION: ASIA_SOUTH_1</p>
+                <p>NODE_ID: WICKET_B_09</p>
+                <p>VER: 2.4.0_ADDA</p>
+            </div>
+        </div>
+    </main>
+    
+    <footer class="fixed bottom-0 w-full py-8 mt-auto z-50 pointer-events-none">
+        <div class="flex flex-col items-center gap-4 opacity-50">
+            <div class="font-hud text-xs tracking-[0.05em] uppercase text-on-surface-variant">
+                SUPPORT ID: ERR-WICKET-<%= typeof statusCode !== 'undefined' ? statusCode : '500' %>
+            </div>
+            <div class="font-hud text-[10px] tracking-[0.05em] uppercase text-on-surface-variant/40">
+                &copy; 2026 WICKETADDA. ALL SYSTEMS OPERATIONAL.
+            </div>
+        </div>
+    </footer>
+    
+    <div class="fixed top-[-10%] left-[-5%] w-[40%] h-[40%] bg-primary/5 blur-[120px] rounded-full pointer-events-none">
+    </div>
+    <div class="fixed bottom-[-10%] right-[-5%] w-[40%] h-[40%] bg-tertiary-container/5 blur-[120px] rounded-full pointer-events-none">
+    </div>
+</body>
+
+</html>

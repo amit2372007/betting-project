@@ -1,5 +1,15 @@
 <% layout('layouts/boilerplate.ejs') -%>
 <main class="max-w-md mx-auto px-4">
+    <nav class="sticky top-0 z-50 bg-background-light dark:bg-background-dark border-b border-gray-200 dark:border-gray-800">
+    <div class="flex items-center p-4 justify-between max-lg mx-auto">
+        <div class="flex size-12 shrink-0 items-center cursor-pointer">
+            <a href="/home?tab=Profile"><span class="material-symbols-outlined text-gray-700 dark:text-white">arrow_back</span></a>
+        </div>
+        <h2 class="text-gray-900 dark:text-white text-lg font-bold leading-tight tracking-tight flex-1 text-center font-display">
+            Withdraw History</h2>
+        
+    </div>
+</nav>
     <% 
         let totalWithdrawn = 0;
         let pendingAmount = 0;

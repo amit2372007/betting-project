@@ -4,6 +4,7 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
 <title>CHICKEN ROAD</title>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@500;600;700&family=Orbitron:wght@700;900&display=swap" rel="stylesheet"/>
 <style>
   :root {
@@ -656,6 +657,9 @@
 <div id="toast-wrap"></div>
 
 <header class="header">
+  <a href="/home" aria-label="Go back" class="text-on-surface-variant hover:text-white transition-colors">
+                <span class="material-symbols-outlined">arrow_back_ios</span>
+            </a>
   <div style="display:flex;align-items:center;gap:6px;">
     <span class="logo-icon">🐔</span>
     <span class="logo">CHICKEN ROAD</span>
@@ -735,11 +739,19 @@
 </div>
 
 <script>
-    // --- 🎵 AUDIO ASSETS 🎵 ---
-        
-        const buttonTouch = new Audio('/sounds/buttonTouch.mp3');
-        const cashout = new Audio('/sounds/cashout.mp3');
-        const chickenJump = new Audio('/sounds/chickenJump.mp3');
+    // --- 🎵 AUDIO ASSETS & HELPER 🎵 ---
+const buttonTouch = new Audio('/sounds/buttonTouch.mp3');
+const cashout = new Audio('/sounds/cashout.mp3');
+const chickenJump = new Audio('/sounds/chickenJump.mp3');
+const levelUp = new Audio('/sounds/levelUp.mp3');
+const busted = new Audio('/sounds/busted.mp3');
+
+// This helper lets sounds overlap if you click quickly
+function playSound(audioElement) {
+  if (!audioElement) return;
+  audioElement.currentTime = 0; 
+  audioElement.play().catch(err => console.log('Audio blocked:', err));
+}
 // ===================== RESTORED CONFIG & STATE =====================
 const STEPS = 10;
 const MULTIPLIERS = {
@@ -997,6 +1009,7 @@ function resetIdleTimer() {
 
 // ===================== CORE GAME =====================
 async function startGame() {
+  playSound(buttonTouch);
   bet = parseFloat(elBetInp.value) || 0;
   if (isNaN(bet) || bet < 10) { showToast('Minimum bet is ₹10', 'error'); return; }
 
@@ -1041,6 +1054,7 @@ async function startGame() {
 }
 
 async function takeStep() {
+  
   if (!playing) return;
   clearTimeout(idleTimer);
   idleAlertFired = false;
@@ -1058,7 +1072,7 @@ async function takeStep() {
         elBtnGo.disabled = false;
         return; 
       }
-
+      playSound(chickenJump);
       // 2. Play Jump animation while we process server response
       elChkSvg.className = 'chicken-svg jumping';
       setTimeout(() => { if (playing) elChkSvg.className = 'chicken-svg idle'; }, 580);
@@ -1099,6 +1113,7 @@ async function takeStep() {
 
 async function cashOut() {
   if (!playing || step < 0) return;
+  playSound(buttonTouch);
   elBtnCo.disabled = true; // prevent double clicks
 
   try {
@@ -1151,6 +1166,7 @@ async function maxWin() {
 }
 
 function handleCrash() {
+  playSound(busted);
   clearTimeout(idleTimer);
   spawnFlames(step);
   elChkSvg.className = 'chicken-svg crashed';
@@ -1200,6 +1216,7 @@ function endReset() {
 
 // ===================== BUTTON EVENTS =====================
 elBtnGo.addEventListener('click', () => {
+  playSound(buttonTouch);
   if (!playing) startGame();
   else takeStep();
 });
@@ -1207,23 +1224,28 @@ elBtnGo.addEventListener('click', () => {
 elBtnCo.addEventListener('click', () => { if (playing && step >= 0) cashOut(); });
 
 document.getElementById('btn-half').addEventListener('click', () => {
+  playSound(buttonTouch);
   if (!playing) elBetInp.value = Math.max(10, Math.floor(parseFloat(elBetInp.value || 20) / 2));
 });
 document.getElementById('btn-dbl').addEventListener('click', () => {
+  playSound(buttonTouch);
   if (!playing) elBetInp.value = Math.min(balance, Math.floor(parseFloat(elBetInp.value || 50) * 2));
 });
 document.getElementById('btn-clr').addEventListener('click', () => {
+  playSound(buttonTouch);
   if (!playing) elBetInp.value = 10;
 });
 
 document.querySelectorAll('.qbet[data-v]').forEach(btn => {
   btn.addEventListener('click', () => {
+    playSound(buttonTouch);
     if (!playing) elBetInp.value = btn.dataset.v;
   });
 });
 
 // Difficulty
 document.getElementById('diff-tabs').addEventListener('click', e => {
+  playSound(buttonTouch);
   if (!e.target.dataset.d || playing) return;
   
   diff = e.target.dataset.d; // Update the current difficulty variable

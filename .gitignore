@@ -1,0 +1,9 @@
+# Dependency directories
+node_modules/
+
+# Environment variables and secrets (CRITICAL for security)
+.env
+
+api.js
+api2.js
+
