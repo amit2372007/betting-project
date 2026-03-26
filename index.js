@@ -26,6 +26,9 @@ const {isLoggedIn , isAdmin } = require("./middleware.js");
 const redis = require("./config/redis.js");
 const connectDB = require("./config/mongoDb.js");
 
+//utils
+const ExpressError = require('./utils/ExpressError.js')
+
 // Models
 const User = require("./model/user/user");
 const Event = require("./model/event/event.js");
@@ -497,7 +500,7 @@ const settleSessionBets = async () => {
     try {
         // 1. Find all active sessions that have a result declared ("yes", "no", or "void")
         const sessionsToSettle = await Session.find({ 
-            status: "suspended", 
+            status: "settled", 
             result: { $ne: null } 
         }).lean();
 
@@ -578,13 +581,6 @@ const settleSessionBets = async () => {
                     }
                 }
             }
-
-            // 6. Lock the session so it doesn't get processed again
-            await Session.findByIdAndUpdate(session._id, {
-                $set: { status: "settled" }
-            });
-
-            console.log(`Successfully settled session: ${session.name}`);
         }
 
     } catch (error) {
@@ -791,19 +787,18 @@ const job4 = new CronJob(
 );
 
 
-app.post("/place-bet", async (req, res) => {
+app.post("/place-bet",isLoggedIn, async (req, res) => {
   try {
-    // 1. Authentication Check
-    if (!req.user) {
-      req.flash("error", "Please login to place a bet.");
-      return res.redirect("/home");
-    }
 
     const { 
       selection, type, marketType, eventId, 
       eventName, sessionId, odds, stake 
     } = req.body;
 
+    if(type === 'lay' && marketType == 'match_odds') {
+      req.flash("error" , "Lay Bets are not accepted in Match odds!");
+      return res.redirect(`/event/${eventId}`);
+    }
     const numStake = parseFloat(stake);
     const requestedOdds = parseFloat(odds); // What the frontend sent (Do not trust this)
 
@@ -1061,7 +1056,7 @@ app.get("/", (req, res) => {
 
 // ExpressError Class-->
 app.use((req, res, next) => {
-  next(new ExpressError(404, "Page not Found!"));
+  next(new ExpressError("Page not Found!", 404));
 });
 
 // Custom Error Handling
@@ -1069,8 +1064,6 @@ app.use((req, res, next) => {
 app.use((err, req, res, next) => {
     const statusCode = err.statusCode || 500;
     const devMessage = err.message || "Something went wrong";
-
-    console.error(`[Error] ${statusCode}: ${devMessage}`);
 
     // SMART CHECK: Send JSON for API/Game requests
     if (req.xhr || req.headers.accept?.includes('application/json') || req.originalUrl.startsWith('/game') || req.originalUrl.startsWith('/api')) {

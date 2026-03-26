@@ -136,23 +136,35 @@
                     <label class="text-xs font-bold text-white/80 uppercase tracking-wider pl-1">Deposit Amount</label>
                     <div class="relative">
                         <span class="absolute left-5 top-1/2 -translate-y-1/2 text-primary font-black text-xl">₹</span>
-                        <input name="amount" required min="100" class="w-full bg-input-dark border border-white/5 rounded-xl h-14 pl-12 pr-4 text-lg font-black focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-all placeholder:text-white/20" placeholder="0.00" type="number" />
+                        <input name="amount" id="deposit-amount" required min="100" class="w-full bg-input-dark border border-white/5 rounded-xl h-14 pl-12 pr-4 text-lg font-black focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-all placeholder:text-white/20" placeholder="0.00" type="number" oninput="updateBonusDisplay()" />
                     </div>
                     <p class="text-[10px] text-primary/80 font-bold uppercase tracking-wider pl-1">* Minimum deposit: ₹100</p>
                 </div>
 
-                <!-- <div class="space-y-2 pt-2">
-                    <label class="text-xs font-bold text-white/80 uppercase tracking-wider pl-1">Upload Screenshot</label>
-                    <label class="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-white/20 hover:border-primary rounded-xl cursor-pointer bg-input-dark transition-colors group">
-                        <div class="flex flex-col items-center justify-center pt-5 pb-6">
-                            <span class="material-symbols-outlined text-white/40 group-hover:text-primary transition-colors mb-1">cloud_upload</span>
-                            <p id="file-name-display" class="text-xs text-white/50 group-hover:text-white font-medium">Click to upload image</p>
-                        </div>
-                        <input id="depositImage" name="depositImage" type="file" class="hidden" accept="image/*" onchange="updateFileName(this)" required />
+                <div class="space-y-2 pt-4 border-t border-white/5 mt-2">
+                    <label class="text-xs font-bold text-white/80 uppercase tracking-wider pl-1 flex items-center justify-between">
+                        <span>Promo Code (Optional)</span>
                     </label>
-                </div> -->
+                    
+                    <div class="flex items-center justify-between bg-primary/10 border border-primary/20 rounded-xl p-3 mb-2 cursor-pointer hover:bg-primary/20 transition-colors active:scale-[0.98]" onclick="document.getElementById('promo-input').value = 'WICKET5'">
+                        <div class="flex items-center gap-2">
+                            <span class="material-symbols-outlined text-primary text-lg">redeem</span>
+                            <span class="text-xs font-medium text-white/80">Use code <span class="text-primary font-bold tracking-widest">WICKET5</span> for 5% Bonus</span>
+                        </div>
+                        <span class="text-[9px] bg-primary text-black font-black px-2 py-0.5 rounded-sm uppercase tracking-widest">Tap</span>
+                    </div>
 
-            </div>
+                    <div class="flex gap-2 relative">
+                        <div class="relative flex-1">
+                            <input id="promo-input" class="w-full bg-input-dark border border-white/5 rounded-xl h-12 pl-10 pr-4 text-sm font-bold focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-all placeholder:text-white/20 uppercase" placeholder="ENTER CODE" type="text" />
+                            <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-white/40 text-[18px]">local_activity</span>
+                        </div>
+                        <button type="button" onclick="applyPromo()" id="promo-btn" class="bg-white/10 hover:bg-primary hover:text-black text-white px-5 rounded-xl font-bold text-xs uppercase tracking-widest transition-all active:scale-95 border border-white/10">Apply</button>
+                    </div>
+                    
+                    <p id="bonus-message" class="text-[11px] text-[#28a745] font-bold uppercase tracking-wider pl-1 hidden transition-all"></p>
+                </div>
+                </div>
         </section>
 
         <div class="px-4 mt-8">
@@ -197,15 +209,58 @@
             }, 2500);
         }
 
-        // File Name Display Logic
-        function updateFileName(input) {
-            const display = document.getElementById('file-name-display');
-            if (input.files && input.files.length > 0) {
-                display.innerText = input.files[0].name;
-                display.classList.replace('text-white/50', 'text-primary');
+        // ==============================================
+        // UI ONLY PROMO LOGIC
+        // ==============================================
+        let isPromoApplied = false;
+        const VALID_PROMO_CODE = "WICKET5";
+
+        function applyPromo() {
+            const inputEl = document.getElementById('promo-input');
+            const code = inputEl.value.trim().toUpperCase();
+
+            if (!code) {
+                showToast("ERROR", "Please enter a promo code", true);
+                return;
+            }
+
+            if (code !== VALID_PROMO_CODE) {
+                showToast("INVALID", "This code is invalid or expired", true);
+                inputEl.value = '';
+                return;
+            }
+
+            // Success UI State
+            isPromoApplied = true;
+            showToast("SUCCESS", "5% Bonus Coupon Applied!");
+            
+            // Lock the input
+            inputEl.disabled = true;
+            inputEl.classList.add('text-primary', 'border-primary/50', 'bg-primary/5');
+            
+            const btn = document.getElementById('promo-btn');
+            btn.innerText = "Applied";
+            btn.classList.replace('hover:bg-primary', 'bg-[#28a745]');
+            btn.classList.replace('hover:text-black', 'text-white');
+            btn.classList.remove('bg-white/10');
+            btn.disabled = true;
+
+            updateBonusDisplay();
+        }
+
+        function updateBonusDisplay() {
+            if (!isPromoApplied) return;
+            
+            const amountEl = document.getElementById('deposit-amount');
+            const amount = parseFloat(amountEl.value) || 0;
+            const msgEl = document.getElementById('bonus-message');
+            
+            if (amount >= 100) {
+                const bonus = (amount * 0.05).toFixed(2);
+                msgEl.innerHTML = `🎉 5% Bonus Active! Extra <span class="text-white bg-black/50 px-1 rounded">+₹${bonus}</span> credited on approval.`;
+                msgEl.classList.remove('hidden');
             } else {
-                display.innerText = "Click to upload image";
-                display.classList.replace('text-primary', 'text-white/50');
+                msgEl.classList.add('hidden');
             }
         }
     </script>

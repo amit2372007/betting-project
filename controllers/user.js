@@ -104,12 +104,10 @@ module.exports.changePassword = async (req, res) => {
                 }
                 console.error("Password Change Error:", err);
                 return res.status(500).json({ success: false, error: 'Failed to update password.' });
-            }
-            
-            req.flash("success", "Password changed successfully!");
-            res.redirect("/home?tab=Profile");
+            } 
         });
-
+     req.flash("success", "Password changed successfully!");
+    res.redirect("/home?tab=Profile");
     } catch (err) {
         console.error("Server Error Changing Password:", err);
         res.status(500).json({ success: false, error: 'Internal server error.' });

@@ -12,6 +12,18 @@ const SessionSchema = new mongoose.Schema({
   value: Number,            // The line being bet on (e.g., 45.5 runs)
   yesOdds: Number,          // Odds for Over/Yes
   noOdds: Number,           // Odds for Under/No
+  isCombo: {
+    type: Boolean,
+    default: false
+  },
+  comboLegs: [{
+    description: String,    // e.g., "V Kohli to score 20+ Runs"
+    status: {               // Track individual leg progress
+        type: String,
+        enum: ["pending", "won", "lost"],
+        default: "pending"
+    }
+  }],
   status: {
     type: String,
     enum: ["active", "suspended", "settled"],

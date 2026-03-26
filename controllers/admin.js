@@ -721,3 +721,45 @@ module.exports.replyToComplaint = async (req, res) => {
         res.redirect('/admin/complaints');
     }
 };
+
+exports.updateComboMarket = async (req, res) => {
+    try {
+        const { eventId, sessionId } = req.params;
+        const { status, result } = req.body;
+
+        // 1. Fetch the specific combo session
+        const session = await Session.findById(sessionId);
+        
+        if (!session || !session.isCombo) {
+            req.flash('error', 'Combo market not found.');
+            return res.redirect('back');
+        }
+
+        // 2. Update the primary market status and result
+        session.status = status;
+        
+        // If the admin selected "Open" (which sends an empty string), set it back to null
+        session.result = result === "" ? null : result;
+
+        // 3. Update the individual combo legs dynamically
+        // The form sends them as legStatus_0, legStatus_1, etc.
+        session.comboLegs.forEach((leg, index) => {
+            const submittedLegStatus = req.body[`legStatus_${index}`];
+            if (submittedLegStatus) {
+                leg.status = submittedLegStatus;
+            }
+        });
+
+        // 4. Save the updated document to the database
+        await session.save();
+
+        // 5. Provide feedback and redirect back to the management dashboard
+        req.flash('success', `${session.name} updated successfully.`);
+        res.redirect(`/admin/event/${eventId}/manage`);
+
+    } catch (err) {
+        console.error("Error updating combo market:", err);
+        req.flash('error', 'Something went wrong while updating the combo.');
+        res.redirect('back');
+    }
+};

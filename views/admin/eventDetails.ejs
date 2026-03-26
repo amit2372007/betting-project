@@ -6,9 +6,7 @@
     <meta charset="utf-8" />
     <meta content="width=device-width, initial-scale=1.0" name="viewport" />
     <title>Event Management Dashboard - India vs Australia</title>
-    <!-- Tailwind CSS v3 CDN -->
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-    <!-- Custom Tailwind Configuration -->
     <script>
         tailwind.config = {
             theme: {
@@ -81,10 +79,8 @@
 </head>
 
 <body class="bg-dark-bg text-gray-100 min-h-screen font-sans">
-    <!-- BEGIN: MainHeader -->
     <header class="p-6 border-b border-dark-border bg-dark-surface sticky top-0 z-50">
         <div class="max-w-7xl mx-auto">
-            <!-- Back Button -->
             <a href="/admin?tab=Dashboard" class="flex items-center text-sm text-gray-400 hover:text-neon-blue transition-colors mb-4"
                 data-purpose="back-navigation">
                 <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewbox="0 0 24 24"
@@ -112,11 +108,8 @@
             </div>
         </div>
     </header>
-    <!-- END: MainHeader -->
-    <!-- BEGIN: MainContent -->
     <main class="max-w-7xl mx-auto p-6">
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <!-- BEGIN: GeneralStatusCard -->
             <section class="bg-dark-surface border border-dark-border rounded-xl p-6 shadow-xl"
                 data-purpose="general-status">
                 <h2 class="text-lg font-semibold mb-6 flex items-center gap-2">
@@ -156,8 +149,6 @@
                 </form>
 </div>
             </section>
-            <!-- END: GeneralStatusCard -->
-            <!-- BEGIN: MatchOddsCard -->
             <section class="bg-dark-surface border border-dark-border rounded-xl p-6 shadow-xl"
                 data-purpose="match-odds">
                 <h2 class="text-lg font-semibold mb-6 flex items-center gap-2">
@@ -210,8 +201,6 @@
     </div>
 </form>
             </section>
-            <!-- END: MatchOddsCard -->
-            <!-- BEGIN: TossMarketCard -->
             <section class="bg-dark-surface border border-dark-border rounded-xl p-6 shadow-xl" data-purpose="toss-market">
     <h2 class="text-lg font-semibold mb-6 flex items-center gap-2">
         <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"
@@ -261,8 +250,6 @@
         </button>
     </form>
 </section>
-            <!-- END: TossMarketCard -->
-            <!-- BEGIN: SessionMarketsCard -->
             <section class="col-span-1 md:col-span-2 lg:col-span-3 bg-dark-surface border border-dark-border rounded-xl p-6 shadow-xl" data-purpose="session-management">
     <div class="flex items-center justify-between mb-8">
         <h2 class="text-xl font-bold flex items-center gap-2">
@@ -333,7 +320,7 @@
                 </tr>
             </thead>
             <tbody class="divide-y divide-dark-border">
-    <% (Event.sessions || []).forEach(session => { %>
+    <% (Event.sessions || []).filter(s => !s.isCombo).forEach(session => { %>
         <form id="update-form-<%= session._id %>" action="/admin/event/<%= Event._id %>/update-session/<%= session._id %>" method="POST" class="hidden"></form>
 
         <tr class="group hover:bg-white/5 transition-colors">
@@ -384,11 +371,95 @@
         </table>
     </div>
 </section>
-            <!-- END: SessionMarketsCard -->
-        </div>
+            <section class="col-span-1 md:col-span-2 lg:col-span-3 bg-dark-surface border border-dark-border rounded-xl p-6 shadow-xl" data-purpose="combo-management">
+                <div class="flex items-center justify-between mb-8">
+                    <h2 class="text-xl font-bold flex items-center gap-2">
+                        <svg class="h-6 w-6 text-neon-green" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                        </svg>
+                        Combo Markets (SGPs)
+                    </h2>
+                </div>
+
+                <form action="/admin/event/<%= Event._id %>/add-combo" method="POST" class="bg-dark-bg p-4 rounded-lg border border-dark-border mb-8">
+                    <p class="text-xs font-semibold text-gray-500 uppercase mb-4 tracking-widest">Create New Combo</p>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div class="md:col-span-2">
+                            <label class="block text-xs text-gray-400 mb-1">Combo Name</label>
+                            <input name="name" required class="w-full bg-dark-surface border-dark-border rounded-md text-sm text-white focus-neon-green" placeholder="e.g., Kohli 50+ & Siraj 2+ Wickets" type="text" />
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Yes Odds (Back)</label>
+                            <input name="yesOdds" required class="w-full bg-dark-surface border-dark-border rounded-md text-sm text-white focus-neon-green" placeholder="5.50" step="0.01" type="number" />
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">No Odds (Lay)</label>
+                            <input name="noOdds" required class="w-full bg-dark-surface border-dark-border rounded-md text-sm text-white focus-neon-green" placeholder="0.15" step="0.01" type="number" />
+                        </div>
+                        <div class="md:col-span-3">
+                            <label class="block text-xs text-gray-400 mb-1">Combo Legs (Enter one condition per line)</label>
+                            <textarea name="comboLegs" required rows="3" class="w-full bg-dark-surface border-dark-border rounded-md text-sm text-white focus-neon-green" placeholder="Kohli to score 50+ Runs&#10;Siraj to get 2+ Wickets"></textarea>
+                        </div>
+                        <div class="flex items-end">
+                            <button type="submit" class="w-full bg-neon-green hover:bg-opacity-90 text-black font-bold py-2 rounded-md text-sm transition-all h-[38px] md:h-[72px]">
+                                Add Combo
+                            </button>
+                        </div>
+                    </div>
+                </form>
+
+                <div class="space-y-6">
+                    <% (Event.sessions || []).filter(s => s.isCombo).forEach(session => { %>
+                        <div class="bg-dark-bg border border-dark-border rounded-lg p-4 relative overflow-hidden">
+                            <div class="absolute top-0 left-0 w-1 h-full bg-neon-green"></div>
+                            <form action="/admin/event/<%= Event._id %>/update-combo/<%= session._id %>" method="POST">
+                                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4 pb-4 border-b border-dark-border pl-3">
+                                    <div>
+                                        <h3 class="text-white font-bold text-lg"><%= session.name %></h3>
+                                        <p class="text-xs text-gray-500 uppercase tracking-widest mt-1">Odds: <span class="text-neon-blue font-bold"><%= session.yesOdds %></span> / <span class="text-neon-red font-bold"><%= session.noOdds %></span></p>
+                                    </div>
+                                    <div class="flex items-center gap-3">
+                                        <select name="status" class="bg-dark-surface border-dark-border rounded text-[10px] py-1 font-bold focus:ring-0 <%= session.status === 'active' ? 'text-green-500' : (session.status === 'suspended' ? 'text-yellow-500' : 'text-red-500') %>">
+                                            <option value="active" <%= session.status === 'active' ? 'selected' : '' %>>ACTIVE</option>
+                                            <option value="suspended" <%= session.status === 'suspended' ? 'selected' : '' %>>SUSPENDED</option>
+                                            <option value="settled" <%= session.status === 'settled' ? 'selected' : '' %>>SETTLED</option>
+                                        </select>
+                                        
+                                        <select name="result" class="bg-dark-surface border-dark-border rounded text-[10px] py-1 text-gray-300 focus:ring-0">
+                                            <option value="" <%= !session.result ? 'selected' : '' %>>Open</option>
+                                            <option value="yes" <%= session.result === 'yes' ? 'selected' : '' %>>YES (WON)</option>
+                                            <option value="no" <%= session.result === 'no' ? 'selected' : '' %>>NO (LOST)</option>
+                                            <option value="void" <%= session.result === 'void' ? 'selected' : '' %>>VOID</option>
+                                        </select>
+                                        
+                                        <button type="submit" class="px-4 py-1.5 bg-neon-green/10 hover:bg-neon-green/20 text-neon-green border border-neon-green/30 rounded text-xs font-bold transition-all">
+                                            Update Combo
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pl-3">
+                                    <% session.comboLegs.forEach((leg, index) => { %>
+                                        <div class="flex items-center justify-between bg-dark-surface p-2 rounded border border-dark-border">
+                                            <span class="text-sm text-gray-300 truncate pr-2 flex items-center gap-2">
+                                                <span class="w-1.5 h-1.5 rounded-full <%= leg.status === 'won' ? 'bg-green-500' : (leg.status === 'lost' ? 'bg-red-500' : 'bg-gray-500') %>"></span>
+                                                <%= leg.description %>
+                                            </span>
+                                            <select name="legStatus_<%= index %>" class="bg-dark-bg border-dark-border rounded text-[10px] py-1 focus:ring-0 <%= leg.status === 'won' ? 'text-green-500' : (leg.status === 'lost' ? 'text-red-500' : 'text-gray-400') %>">
+                                                <option value="pending" <%= leg.status === 'pending' ? 'selected' : '' %>>PENDING</option>
+                                                <option value="won" <%= leg.status === 'won' ? 'selected' : '' %>>WON</option>
+                                                <option value="lost" <%= leg.status === 'lost' ? 'selected' : '' %>>LOST</option>
+                                            </select>
+                                        </div>
+                                    <% }) %>
+                                </div>
+                            </form>
+                        </div>
+                    <% }) %>
+                </div>
+            </section>
+            </div>
     </main>
-    <!-- END: MainContent -->
-    <!-- BEGIN: FooterStatus -->
     <footer class="max-w-7xl mx-auto px-6 py-10 mt-10 border-t border-dark-border">
         <div class="flex flex-col md:flex-row justify-between items-center gap-4 text-gray-500 text-xs">
             <div class="flex items-center gap-4">
@@ -400,7 +471,6 @@
             <p>© 2023 Admin Gaming Dashboard. Protected by Enterprise Encryption.</p>
         </div>
     </footer>
-    <!-- END: FooterStatus -->
     <script data-purpose="table-interactivity">
         // Minimal interaction logic for status colors in session table
         document.querySelectorAll('#session-table select').forEach(select => {

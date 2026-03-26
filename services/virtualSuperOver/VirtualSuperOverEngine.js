@@ -44,7 +44,6 @@ class SuperOverEngine {
         this.calculateMatchOdds();
 
         const tossWinnerName = randomToss.winner === 'home' ? this.state.homeTeam : this.state.awayTeam;
-        console.log(`🏏 MATCH ${this.state.eventId}: ${tossWinnerName} won the toss and elected to ${randomToss.decision} first!`);
     }
 
     // 2. The Casino RNG (High-Action T20 Probabilities)

@@ -17,6 +17,7 @@ router.post("/addEvent", isAdmin, adminController.addEvent);
 router.post("/event/:id/update-status", isAdmin, adminController.updateEventStatus);
 router.post("/event/:id/update-match-odds", isAdmin, adminController.updateMatchOdds);
 router.post("/event/:id/update-toss", isAdmin, adminController.updateTossResult);
+router.post('/event/:eventId/update-combo/:sessionId', isAdmin, adminController.updateComboMarket);
 router.post("/event/:id/add-session", isAdmin, adminController.addSession);
 router.post("/event/:eventId/update-session/:sessionId", isAdmin, adminController.updateSession);
 router.post("/transaction/:id/process", isAdmin, adminController.processTransaction);

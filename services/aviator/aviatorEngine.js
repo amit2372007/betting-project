@@ -19,54 +19,63 @@ class AviatorEngine {
 
     // 1. Initialize a new betting window
     async startNewRound() {
-    // 1. FIXED ID GENERATION: Adds a random 4-digit number to prevent collisions
-    const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-    this.state.roundId = `AVI-${Date.now().toString().slice(-4)}${randomSuffix}`;
-    
-    this.state.status = 'starting';
-    this.state.multiplier = 1.00;
-    this.state.timer = 10; // 10 seconds to place bets
-
-    // -- THE CASINO MATH (House Edge: 3%) --
-    if (Math.random() < 0.03) {
-        this.crashPoint = 1.00;
-    } else {
-        const e = 100;
-        const h = Math.random(); 
-        this.crashPoint = Math.max(1.01, (0.97 / (1 - h))); 
-    }
-
-    console.log(`✈️ Aviator ${this.state.roundId} starting. Secret Crash Point: ${this.crashPoint.toFixed(2)}x`);
-
-    try {
-        // 2. Save the new round to MongoDB securely
-        await AviatorRound.create({ 
-            roundId: this.state.roundId, 
-            status: 'starting' 
-        });
-
-        // 3. START THE TIMER ONLY IF THE DATABASE INSERT SUCCEEDS
-        const betPhase = setInterval(() => {
-            this.state.timer--;
-            this.io.emit('aviator_sync', this.state);
-
-            if (this.state.timer <= 0) {
-                clearInterval(betPhase);
-                this.takeOff();
-            }
-        }, 1000);
-
-    } catch (error) {
-        // 4. THE SAFETY NET
-        if (error.code === 11000) {
-            console.warn(`Collision on ${this.state.roundId}. Generating a new one...`);
-            return this.startNewRound(); // Safely restart the function
-        } 
+        // FIXED ID GENERATION: Adds a random 4-digit number to prevent collisions
+        const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+        this.state.roundId = `AVI-${Date.now().toString().slice(-4)}${randomSuffix}`;
         
-        // Log other database errors (like lost connection) so you can debug
-        console.error("Failed to start round due to DB error:", error);
+        this.state.status = 'starting';
+        this.state.multiplier = 1.00;
+        this.state.timer = 10; // 10 seconds to place bets
+
+        // ==========================================
+        // 🔥 SECURE CASINO MATH (3% House Edge)
+        // ==========================================
+        const MAX_MULTIPLIER = 100.00; // Protects the casino from bankruptcy
+
+        // 3% chance to crash instantly at 1.00x (Casino eats all bets)
+        if (Math.random() < 0.03) {
+            this.crashPoint = 1.00;
+        } else {
+            // Standard Crash formula
+            const h = Math.random(); 
+            let calculatedCrash = (0.97 / (1 - h));
+            
+            // Hard Cap: Ensure it never drops below 1.01, and never exceeds 10,000x
+            this.crashPoint = Math.min(MAX_MULTIPLIER, Math.max(1.01, calculatedCrash)); 
+        }
+
+        // Clean up the decimal to 2 places to match the UI perfectly
+        this.crashPoint = Math.floor(this.crashPoint * 100) / 100;
+
+
+        try {
+            // Save the new round to MongoDB securely
+            await AviatorRound.create({ 
+                roundId: this.state.roundId, 
+                status: 'starting' 
+            });
+
+            // START THE TIMER ONLY IF THE DATABASE INSERT SUCCEEDS
+            const betPhase = setInterval(() => {
+                this.state.timer--;
+                this.io.emit('aviator_sync', this.state);
+
+                if (this.state.timer <= 0) {
+                    clearInterval(betPhase);
+                    this.takeOff();
+                }
+            }, 1000);
+
+        } catch (error) {
+            // THE SAFETY NET
+            if (error.code === 11000) {
+                console.warn(`Collision on ${this.state.roundId}. Generating a new one...`);
+                return this.startNewRound(); 
+            } 
+            
+            console.error("Failed to start round due to DB error:", error);
+        }
     }
-}
 
     // 2. The Flight (Smooth Exponential Growth)
     takeOff() {

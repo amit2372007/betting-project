@@ -1,39 +1,77 @@
+<style>
+    /* Premium Toast Animations */
+    @keyframes toastSlideIn {
+        0% { opacity: 0; transform: translate(-50%, -20px) scale(0.95); }
+        100% { opacity: 1; transform: translate(-50%, 0) scale(1); }
+    }
+    @keyframes toastSlideOut {
+        0% { opacity: 1; transform: translate(-50%, 0) scale(1); }
+        100% { opacity: 0; transform: translate(-50%, -20px) scale(0.95); }
+    }
+    .toast-enter { animation: toastSlideIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+    .toast-leave { animation: toastSlideOut 0.3s ease-in forwards; }
+</style>
+
 <% if(success && success.length > 0) { %>
-<div id="flash-banner" class="fixed top-0 left-0 right-0 z-[100] pointer-events-none">
-    <div class="animate-slide-down pointer-events-auto bg-gradient-to-r from-emerald-600 to-green-500 h-14 flex items-center px-4 shadow-2xl border-b border-white/20">
-        <div class="flex items-center justify-between w-full">
-            <div class="flex items-center gap-3">
-                <span class="material-symbols-outlined text-white text-2xl">check_circle</span>
-                <span class="text-white text-sm font-bold tracking-tight"><%= success %></span>
-            </div>
-            <button onclick="this.closest('#flash-banner').remove()" class="flex items-center justify-center">
-                <span class="material-symbols-outlined text-white text-xl">close</span>
-            </button>
+<div id="flash-banner" class="fixed top-6 left-1/2 -translate-x-1/2 z-[100] w-[90%] max-w-sm pointer-events-none toast-enter">
+    <div class="pointer-events-auto relative overflow-hidden rounded-2xl bg-[#0a0a0a]/80 backdrop-blur-xl border border-white/10 shadow-[0_15px_40px_rgba(0,0,0,0.5)] flex items-center p-3 pl-4 gap-3">
+        
+        <div class="absolute -left-6 top-1/2 -translate-y-1/2 w-16 h-16 bg-[#00fd87]/20 blur-2xl rounded-full"></div>
+        
+        <div class="shrink-0 flex items-center justify-center size-9 rounded-full bg-[#00fd87]/10 border border-[#00fd87]/30 text-[#00fd87] shadow-[0_0_15px_rgba(0,253,135,0.2)]">
+            <span class="material-symbols-outlined text-[20px]">check_circle</span>
         </div>
-        <div id="progress-bar" class="absolute bottom-0 left-0 h-1 bg-white/40" style="width: 100%; transition: width 5s linear;"></div>
+        
+        <div class="flex-1 pr-2">
+            <p class="text-white text-[13px] font-bold tracking-wide leading-tight"><%= success %></p>
+        </div>
+        
+        <button onclick="closeToast('flash-banner')" class="shrink-0 text-white/40 hover:text-white transition-colors active:scale-90 p-1">
+            <span class="material-symbols-outlined text-[18px]">close</span>
+        </button>
+
+        <div class="absolute bottom-0 left-0 right-0 h-[3px] bg-white/5">
+            <div id="progress-bar" class="h-full bg-gradient-to-r from-[#00fd87] to-[#00c466] shadow-[0_0_10px_rgba(0,253,135,0.6)] rounded-r-full" style="width: 100%; transition: width 5s linear;"></div>
+        </div>
     </div>
 </div>
 <% } %>
 
 <% if(error && error.length > 0) { %>
-<div id="error-banner" class="fixed top-0 left-0 right-0 z-[100] pointer-events-none">
-    <div class="animate-slide-down pointer-events-auto bg-gradient-to-r from-red-600 to-rose-500 h-14 flex items-center px-4 shadow-2xl border-b border-white/20">
-        <div class="flex items-center justify-between w-full">
-            <div class="flex items-center gap-3">
-                <span class="material-symbols-outlined text-white text-2xl">error</span>
-                <span class="text-white text-sm font-bold tracking-tight"><%= error %></span>
-            </div>
-            <button onclick="this.closest('#error-banner').remove()" class="flex items-center justify-center">
-                <span class="material-symbols-outlined text-white text-xl">close</span>
-            </button>
+<div id="error-banner" class="fixed top-6 left-1/2 -translate-x-1/2 z-[100] w-[90%] max-w-sm pointer-events-none toast-enter">
+    <div class="pointer-events-auto relative overflow-hidden rounded-2xl bg-[#0a0a0a]/80 backdrop-blur-xl border border-white/10 shadow-[0_15px_40px_rgba(0,0,0,0.5)] flex items-center p-3 pl-4 gap-3">
+        
+        <div class="absolute -left-6 top-1/2 -translate-y-1/2 w-16 h-16 bg-[#ff4757]/20 blur-2xl rounded-full"></div>
+        
+        <div class="shrink-0 flex items-center justify-center size-9 rounded-full bg-[#ff4757]/10 border border-[#ff4757]/30 text-[#ff4757] shadow-[0_0_15px_rgba(255,71,87,0.2)]">
+            <span class="material-symbols-outlined text-[20px]">error</span>
         </div>
-        <div id="error-progress-bar" class="absolute bottom-0 left-0 h-1 bg-white/40" style="width: 100%; transition: width 5s linear;"></div>
+        
+        <div class="flex-1 pr-2">
+            <p class="text-white text-[13px] font-bold tracking-wide leading-tight"><%= error %></p>
+        </div>
+        
+        <button onclick="closeToast('error-banner')" class="shrink-0 text-white/40 hover:text-white transition-colors active:scale-90 p-1">
+            <span class="material-symbols-outlined text-[18px]">close</span>
+        </button>
+
+        <div class="absolute bottom-0 left-0 right-0 h-[3px] bg-white/5">
+            <div id="error-progress-bar" class="h-full bg-gradient-to-r from-[#ff4757] to-[#ff6b81] shadow-[0_0_10px_rgba(255,71,87,0.6)] rounded-r-full" style="width: 100%; transition: width 5s linear;"></div>
+        </div>
     </div>
 </div>
 <% } %>
 
 <script>
-    // Handles progress bar and auto-removal without affecting body margins
+    // Handles smooth exit animation before removing from DOM
+    function closeToast(id) {
+        const el = document.getElementById(id);
+        if (el) {
+            el.classList.replace('toast-enter', 'toast-leave');
+            setTimeout(() => el.remove(), 300); // Wait for animation to finish
+        }
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
         const banners = [
             { id: 'flash-banner', bar: 'progress-bar' },
@@ -43,11 +81,13 @@
         banners.forEach(item => {
             const el = document.getElementById(item.id);
             const bar = document.getElementById(item.bar);
+            
             if (el) {
-                // Start bar animation
-                setTimeout(() => { if(bar) bar.style.width = '0%'; }, 100);
-                // Completely remove from DOM after 5s to clear all space
-                setTimeout(() => { el.remove(); }, 5000);
+                // Start bar animation slightly after load
+                setTimeout(() => { if(bar) bar.style.width = '0%'; }, 50);
+                
+                // Trigger smooth exit animation after 5 seconds
+                setTimeout(() => { closeToast(item.id); }, 5000);
             }
         });
     });
