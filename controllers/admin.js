@@ -7,92 +7,120 @@ const Complaint = require("../model/complain/complain.js");
 const DepositAccount = require("../model/transactions/accountDetail.js");
 const WhatsappNumber = require("../model/transactions/whatsapp.js");
 const Announcement = require("../model/user/announcement.js");
+const Exposure = require("../model/bet/exposure.js");
+const redis = require("../config/redis.js");
 
 module.exports.renderAdminDashboard = async (req, res) => {
   try {
     const activeTab = req.query.tab || "Dashboard";
 
-    // NEW: Fetch all users for the User Management tab
-    const users = await User.find().sort({ createdAt: -1 }).lean();
-    
-    // 1. Fetch Events
-    const activeEvents = await Event.find({ status: { $ne: "settled" } }).sort({ startTime: 1 }).lean();
-    const liveEvents = activeEvents.filter(event => event.status === "live");
-    const upcomingEvents = activeEvents.filter(event => event.status === "pending" || event.status === "upcoming");
+    // 1. Initialize ALL variables as empty arrays/objects so EJS never crashes on inactive tabs
+    let users = [];
+    let activeEvents = [], liveEvents = [], upcomingEvents = [];
+    let deposits = [], withdrawals = [];
+    let totalUsers = 0;
+    let complaints = [], stats = { open: 0, inProgress: 0, resolvedToday: 0 };
+    let whatsappNumbers = [], announcements = [];
 
-    // 2. Fetch ALL Deposits & Populate User Data
-    const deposits = await Transaction.find({ type: "deposit" })
-      .sort({ createdAt: -1 })
-      .populate("userId", "username email") // Pulls in the username for the table
-      .lean();
-
-    // 3. Fetch ALL Withdrawals & Populate User Data
-    const withdrawals = await Transaction.find({ type: "withdraw" })
-      .sort({ createdAt: -1 })
-      .populate("userId", "username email")
-      .lean();
-
-    const totalUsers = await User.countDocuments();
-
-    // 4. Calculate Financial Stats for the Top Cards
-    // Get start of today for "Total Deposits (Today)"
+    // Helper: Start of today for date calculations
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
 
-    const totalDepositsToday = deposits
-      .filter(d => d.status === "approved" && new Date(d.createdAt) >= startOfToday)
-      .reduce((sum, d) => sum + d.amount, 0);
+    // ==========================================
+    // 2. CONDITIONAL FETCHING (Perfectly mapped to your EJS tabs)
+    // ==========================================
+    switch (activeTab) {
+      case "UserManagement": 
+        // Maps to includes/admin/userManagement.ejs
+        users = await User.find().sort({ createdAt: -1 }).lean();
+        break;
 
-    const totalApprovedAmount = deposits
-      .filter(d => d.status === "approved")
-      .reduce((sum, d) => sum + d.amount, 0);
+      case "Events":
+        // Maps to includes/admin/events/events.ejs
+        activeEvents = await Event.find({ status: { $ne: "settled" } }).sort({ startTime: 1 }).lean();
+        break;
 
-      let complaints = [];
-      let stats = { open: 0, inProgress: 0, resolvedToday: 0 };
+      case "Finances": 
+        // Maps to includes/admin/finances/finances.ejs (Deposits)
+        deposits = await Transaction.find({ type: "deposit" })
+          .sort({ createdAt: -1 })
+          .populate("userId", "username email")
+          .lean();
+        break;
 
-      complaints = await Complaint.find()
-                .populate('userId', 'name _id')
-                .sort({ createdAt: -1 })
-                .lean();
+      case "Withdrawals":
+        // Maps to includes/admin/finances/withdrawals.ejs
+        withdrawals = await Transaction.find({ type: "withdraw" })
+          .sort({ createdAt: -1 })
+          .populate("userId", "username email")
+          .lean();
+        break;
 
-            stats.open = complaints.filter(c => c.status === 'Open').length;
-            stats.inProgress = complaints.filter(c => c.status === 'In Progress').length;
-            
-            const today = new Date().setHours(0, 0, 0, 0);
-            stats.resolvedToday = complaints.filter(c => 
-                c.status === 'Resolved' && new Date(c.updatedAt) >= today
-            ).length;
+      case "Complaints":
+        // Maps to includes/admin/complaints.ejs
+        complaints = await Complaint.find()
+          .populate('userId', 'name _id')
+          .sort({ createdAt: -1 })
+          .lean();
 
+        stats.open = complaints.filter(c => c.status === 'Open').length;
+        stats.inProgress = complaints.filter(c => c.status === 'In Progress').length;
+        stats.resolvedToday = complaints.filter(c => c.status === 'Resolved' && new Date(c.updatedAt) >= startOfToday).length;
+        break;
 
-    //Whatsapp Number mange
-    const whatsappNumbers = await WhatsappNumber.find().sort({ createdAt: -1 });
-    const announcements = await Announcement.find({});
+      case "WhatsApp": 
+        // Maps to includes/admin/WhatsAppManage.ejs
+        whatsappNumbers = await WhatsappNumber.find().sort({ createdAt: -1 }).lean();
+        break;
+
+      case "Dashboard":
+      default:
+        // 🚀 HIGH-SPEED DASHBOARD SUMMARY
+        // Maps to includes/admin/dashboard/dashboard.ejs
+        // We use Promise.all to fetch exactly what the main dashboard needs in parallel
+        const [dashEvents, dashDeposits, dashWithdrawals, dashUsersCount, dashAnnouncements] = await Promise.all([
+            Event.find({ status: { $ne: "settled" } }).sort({ startTime: 1 }).lean(),
+            Transaction.find({ type: "deposit" }).lean(), 
+            Transaction.find({ type: "withdraw" }).lean(), 
+            User.countDocuments(),
+            Announcement.find({}).sort({ createdAt: -1 }).lean()
+        ]);
+
+        activeEvents = dashEvents;
+        liveEvents = activeEvents.filter(event => event.status === "live");
+        upcomingEvents = activeEvents.filter(event => event.status === "pending" || event.status === "upcoming");
+        
+        deposits = dashDeposits;
+        withdrawals = dashWithdrawals;
+        totalUsers = dashUsersCount;
+        announcements = dashAnnouncements;
+        break;
+    }
 
     req.flash("success", "Welcome Amit to the Admin Dashboard!");
-    // 5. Render Dashboard
+    
+    // 3. Render Dashboard with all variables securely passed
     res.render("./admin/dashboard.ejs", { 
       activeTab, 
       users,
-      complaints: complaints,
-      stats: stats,
+      complaints,
+      stats,
       activeEvents, 
       liveEvents, 
       upcomingEvents,
-      deposits,            // Replaces pendingDeposits
-      withdrawals,         // Replaces pendingWithdrawals
+      deposits,            
+      withdrawals,         
       totalUsers,
-      totalDepositsToday,  // Dynamic stat
-      totalApprovedAmount,  // Dynamic stat
-      whatsappNumbers: whatsappNumbers,
+      whatsappNumbers,
       announcements,
     });
 
   } catch (err) {
     console.error("Error loading admin dashboard:", err);
     req.flash("error", "Failed to load admin dashboard.");
-    return res.redirect("/home"); // or wherever your fallback route is
+    return res.redirect("/home"); 
   }
-}
+};
 
 module.exports.renderAddEventPage = (req, res) => {
   res.render("./admin/addEvent.ejs");
@@ -299,53 +327,59 @@ module.exports.togglePaymentMethod = async (req, res) => {
 module.exports.addEvent = async (req, res) => {
   try {
     // 1. Destructure the data coming from the HTML form inputs (req.body)
+    // Thanks to the updated EJS 'name' attributes, these now match your schema perfectly.
     const {
       sport,
       league,
-      event_id,
-      start_time,
+      eventId,
+      startTime,
       status,
       providerId,
-      home_team,
-      home_id,
-      away_team,
-      away_id,
-      odds_home,
-      odds_away,
-      odds_draw,
-      toss_home,
-      toss_away
+      homeTeam,
+      homeId,
+      awayTeam,
+      awayId,
+      matchOdds,  // This comes in as an object containing back/lay odds
+      tossMarket  // This comes in as an object containing back/lay odds
     } = req.body;
 
     // 2. Map the form data to your Mongoose schema structure
     const newEvent = new Event({
-      sport: sport,
-      league: league,
-      eventId: event_id,         // Mapping HTML 'event_id' to Schema 'eventId'
-      homeTeam: home_team,
-      homeId: home_id,
-      awayTeam: away_team,
-      awayId: away_id,
-      startTime: start_time,     // Mapping HTML 'start_time' to Schema 'startTime'
-      status: status,
-      providerId: providerId,
+      sport,
+      league,
+      eventId,
+      homeTeam,
+      homeId,
+      awayTeam,
+      awayId,
+      startTime,
+      status,
+      providerId,
       
-      // We parse the odds as Floats since form inputs send strings by default
+      // We parse the nested odds as Floats safely using optional chaining (?)
       matchOdds: {
-        homeOdds: parseFloat(odds_home) || 0,
-        awayOdds: parseFloat(odds_away) || 0,
-        drawOdds: parseFloat(odds_draw) || 0,
+        homeOdds: parseFloat(matchOdds?.homeOdds) || 0,
+        homeLay:  parseFloat(matchOdds?.homeLay)  || 0,
+        awayOdds: parseFloat(matchOdds?.awayOdds) || 0,
+        awayLay:  parseFloat(matchOdds?.awayLay)  || 0,
+        drawOdds: parseFloat(matchOdds?.drawOdds) || 0,
+        drawLay:  parseFloat(matchOdds?.drawLay)  || 0,
         status: "active" 
       },
       
       tossMarket: {
-        homeOdds: parseFloat(toss_home) || 0,
-        awayOdds: parseFloat(toss_away) || 0,
+        homeOdds: parseFloat(tossMarket?.homeOdds) || 0,
+        homeLay:  parseFloat(tossMarket?.homeLay)  || 0,
+        awayOdds: parseFloat(tossMarket?.awayOdds) || 0,
+        awayLay:  parseFloat(tossMarket?.awayLay)  || 0,
         status: "active",
         winner: null
       }
     });
+
+    // 3. Save to database
     await newEvent.save();
+    
     req.flash("success", "Event created successfully!");
     res.redirect("/admin?=tab=Dashboard");
 
@@ -369,6 +403,77 @@ module.exports.updateEventStatus = async (req, res) => {
     event.result = result;
     await event.save();
 
+    // =========================================================
+    // 🟢 GREEN BOOK O(1) INSTANT WALLET SETTLEMENT 🟢
+    // =========================================================
+    if (status === "finished" && result) {
+        let winningTeam = "";
+        const resLower = result.toLowerCase();
+        
+        // Map the admin dropdown result to the actual team name
+        if (resLower === "home") winningTeam = event.homeTeam;
+        else if (resLower === "away") winningTeam = event.awayTeam;
+        else if (resLower === "draw") winningTeam = "The Draw";
+        else if (resLower === "void") winningTeam = "void";
+
+        if (winningTeam) {
+            // Find ALL active green books for this specific match
+            const activeExposures = await Exposure.find({ matchId: id, status: 'ACTIVE' });
+
+            for (let exposure of activeExposures) {
+                let payout = 0;
+                let ledgerType = "bet_won";
+                let remarks = `Match Payout: ${event.homeTeam} vs ${event.awayTeam}`;
+
+                if (winningTeam === "void") {
+                    // Match Voided: Refund the locked liability completely
+                    payout = Math.abs(exposure.liability || 0);
+                    ledgerType = "refund";
+                    remarks = `Match Voided Refund: ${event.homeTeam} vs ${event.awayTeam}`;
+                } else {
+                    // Convert Map to standard object
+                    const exposuresObj = Object.fromEntries(exposure.exposures || new Map());
+                    
+                    // Get the exact Profit/Loss for the team that won
+                    const userOutcomePnL = exposuresObj[winningTeam] || 0;
+                    
+                    // The Liability was already deducted when they placed the bet.
+                    // The magic formula: Payout = Locked Liability + The Outcome's PnL
+                    const lockedLiability = Math.abs(exposure.liability || 0);
+                    payout = lockedLiability + userOutcomePnL;
+                }
+
+                if (payout > 0) {
+                    // Atomically add the winnings directly to the wallet
+                    const userUpdate = await User.findByIdAndUpdate(
+                        exposure.userId,
+                        { $inc: { balance: payout } },
+                        { new: false } // Returns balance BEFORE the update
+                    );
+
+                    // Create the passbook receipt
+                    if (userUpdate) {
+                        await Ledger.create({
+                            userId: exposure.userId,
+                            type: ledgerType,
+                            amount: payout,
+                            balanceBefore: userUpdate.balance,
+                            balanceAfter: userUpdate.balance + payout,
+                            remarks: remarks
+                        });
+                    }
+                }
+
+                // Close out this user's position for this match permanently
+                exposure.status = 'SETTLED';
+                exposure.liability = 0; 
+                await exposure.save();
+            }
+            
+        }
+    }
+    // =========================================================
+
     req.flash("success", "Event status updated successfully!");
     res.redirect(`/admin/event/${id}`);
   } catch (error) {
@@ -381,27 +486,42 @@ module.exports.updateEventStatus = async (req, res) => {
 module.exports.updateMatchOdds = async (req, res) => {
   try {
     const { id } = req.params;
-    const { homeOdds, drawOdds, awayOdds, marketStatus } = req.body;
+    
+    // 1. Destructure ALL inputs sent from your EJS form, including the Lay odds
+    const { 
+      homeOdds, homeLay,
+      drawOdds, drawLay,
+      awayOdds, awayLay, 
+      marketStatus 
+    } = req.body;
 
+    // The checkbox only sends "active" if checked. If unchecked, it's undefined.
     const resolvedStatus = marketStatus === "active" ? "active" : "suspended";
 
-    // Update the database
+    // 2. Update the database with both Back and Lay odds
     const updatedEvent = await Event.findByIdAndUpdate(
       id,
       {
         "matchOdds.homeOdds": parseFloat(homeOdds) || 0,
+        "matchOdds.homeLay": parseFloat(homeLay) || 0,
+        
         "matchOdds.drawOdds": parseFloat(drawOdds) || 0,
+        "matchOdds.drawLay": parseFloat(drawLay) || 0,
+        
         "matchOdds.awayOdds": parseFloat(awayOdds) || 0,
+        "matchOdds.awayLay": parseFloat(awayLay) || 0,
+        
         "matchOdds.status": resolvedStatus
       },
-      { new: true } // Return the updated document
+      { new: true } 
     );
 
     if (!updatedEvent) {
       req.flash("error", "Event not found");
       return res.redirect("/admin?tab=Dashboard");
     }
-    req.flash("success", "Match odds updated successfully!");
+
+    req.flash("success", `Match odds updated! Market is now ${resolvedStatus.toUpperCase()}.`);
     res.redirect(`/admin/event/${id}`);
     
   } catch (error) {

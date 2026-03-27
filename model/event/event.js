@@ -13,21 +13,25 @@ const EventSchema = new mongoose.Schema({
 
   status: {
     type: String,
-    enum: ["upcoming", "pending", "live", "finished"],
+    enum: ["upcoming", "pending", "live", "finished" , "settled"],
     default: "upcoming",
     required: true
   },
 
   result: {
     type: String,
-    enum: ["home", "away", "draw", "void" , null],
+    enum: ["home", "away", "draw", "void", null],
     default: null
   },
 
+  // 1. Match Odds (Updated with explicit Back and Lay)
   matchOdds: {
-    homeOdds: { type: Number, default: 0 },
+    homeOdds: { type: Number, default: 0 }, // Back odds
+    homeLay:  { type: Number, default: 0 }, // Lay odds
     awayOdds: { type: Number, default: 0 },
-    drawOdds: { type: Number, default: 0 }, // Optional: Can be 0 or null for sports where draws aren't possible
+    awayLay:  { type: Number, default: 0 },
+    drawOdds: { type: Number, default: 0 },
+    drawLay:  { type: Number, default: 0 },
     status: { 
       type: String, 
       enum: ["active", "suspended"], 
@@ -35,16 +39,17 @@ const EventSchema = new mongoose.Schema({
     }
   },
 
-  // 2. Toss Market
+  // 2. Toss Market (Updated with explicit Back and Lay)
   tossMarket: {
-    homeOdds: { type: Number, default: 0 },
-    awayOdds: { type: Number, default: 0 },
+    homeOdds: { type: Number, default: 0 }, // Back
+    homeLay:  { type: Number, default: 0 }, // Lay
+    awayOdds: { type: Number, default: 0 }, // Back
+    awayLay:  { type: Number, default: 0 }, // Lay
     status: { 
       type: String, 
       enum: ["active", "suspended", "settled"], 
       default: "active" 
     },
-    
     winner: { 
       type: String, 
       enum: ["home", "away", null], 
@@ -56,11 +61,14 @@ const EventSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "Session"
   }],
+  
   providerId: { 
-        type: String, 
-        required: true // e.g., "35393146"
-    },
-  createdAt: Date,
-  updatedAt: Date
+    type: String, 
+    required: true // e.g., "35393146"
+  }
+}, {
+  // Mongoose will automatically manage 'createdAt' and 'updatedAt' fields for you
+  timestamps: true 
 });
+
 module.exports = mongoose.model("Event", EventSchema);

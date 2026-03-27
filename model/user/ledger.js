@@ -14,7 +14,8 @@ const LedgerSchema = new mongoose.Schema({
       "bet_placed",      // Money deducted for placing a bet
       "bet_won",         // Money added for winning a bet
       "refund",          // Money returned (voided match)
-      "admin_adjustment" // You manually added/removed funds
+      "admin_adjustment", // You manually added/removed funds
+      "refund"
     ],
     required: true
   },

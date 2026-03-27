@@ -197,7 +197,8 @@
         width: 8px; height: 8px;
     }
     .live-dot span {
-        position: absolute; inset: 0;
+        position: absolute;
+        inset: 0;
         border-radius: 50%;
         background: #22c55e;
     }
@@ -261,7 +262,8 @@
 
     /* Overlay */
     #dimmer {
-        position: fixed; inset: 0;
+        position: fixed;
+        inset: 0;
         background: rgba(0,0,0,0.75);
         backdrop-filter: blur(3px);
         z-index: 90;
@@ -282,7 +284,7 @@
         border-radius: 6px;
     }
     .slip-badge-back { background: var(--back-btn); color: #000; }
-    .slip-badge-lay  { background: var(--lay-btn);  color: #000; }
+    .slip-badge-lay  { background: var(--lay-btn); color: #000; }
 
     /* Odds / stake input panel */
     .slip-input-panel {
@@ -398,7 +400,8 @@
 
     /* ── Page Loader ── */
     #page-loader {
-        position: fixed; inset: 0;
+        position: fixed;
+        inset: 0;
         background: #0d0d0d;
         z-index: 999;
         display: flex;
@@ -433,7 +436,8 @@
 
     /* Toast */
     #bet-toast {
-        position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%) translateY(20px);
+        position: fixed;
+        bottom: 100px; left: 50%; transform: translateX(-50%) translateY(20px);
         z-index: 200;
         background: #1e1e1e;
         border: 1px solid var(--border);
@@ -450,6 +454,40 @@
         white-space: nowrap;
     }
     #bet-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* ── Tab Navigation ── */
+    .event-tabs {
+        display: flex;
+        gap: 0;
+        border-bottom: 1px solid var(--border);
+        background: linear-gradient(135deg, var(--surface-3) 0%, var(--surface-2) 100%);
+        padding: 0 16px;
+        margin: 0;
+    }
+
+    .event-tab {
+        padding: 12px 24px;
+        border: none;
+        background: transparent;
+        color: rgba(255,255,255,0.4);
+        font-family: 'Barlow Condensed', sans-serif;
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        cursor: pointer;
+        transition: all 0.2s;
+        border-bottom: 3px solid transparent;
+        position: relative;
+    }
+
+    .event-tab:hover { color: rgba(255,255,255,0.7); }
+    .event-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    .my-bets-tab-content { padding: 16px; }
 </style>
 
 <%
@@ -477,7 +515,6 @@
 <div id="bet-toast">✓ Bet Placed Successfully</div>
 <div id="dimmer" onclick="closeBetSlip()"></div>
 
-<!-- ════════════════════════════════ HEADER ════════════════════════════════ -->
 <header class="sticky top-0 z-40 bg-[#0d0d0d]/96 backdrop-blur-md border-b border-white/[0.07] shadow-xl">
     <div class="flex items-center p-4 justify-between max-w-2xl mx-auto">
         <div class="flex items-center gap-3">
@@ -515,236 +552,277 @@
         </div>
     </div>
 
-    <!-- NAV TABS -->
-    <div class="flex border-t border-white/[0.05] gap-4 overflow-x-auto no-scrollbar px-4 max-w-2xl mx-auto">
+    <div class="event-tabs max-w-2xl mx-auto">
+        <button class="event-tab main-tab active" onclick="switchMainTab('markets')" style="flex:1; text-align:center;">Markets</button>
+        <button class="event-tab main-tab" onclick="switchMainTab('my-bets')" style="flex:1; text-align:center;">My Bets</button>
+    </div>
+
+    <div id="market-sub-nav" class="flex border-t border-white/[0.05] gap-4 overflow-x-auto no-scrollbar px-4 max-w-2xl mx-auto">
         <a href="#match-odds"   class="nav-tab border-b-2 border-transparent text-white/40 hover:text-white/80 py-3 text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-colors">Match Odds</a>
         <a href="#toss-market"  class="nav-tab border-b-2 border-transparent text-white/40 hover:text-white/80 py-3 text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-colors">Toss</a>
         <a href="#fancy-market" class="nav-tab border-b-2 border-transparent text-white/40 hover:text-white/80 py-3 text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-colors">Sessions</a>
     </div>
 </header>
 
-<!-- ════════════════════════════════ MAIN ════════════════════════════════ -->
-<main class="pb-32 px-4 pt-5 max-w-2xl mx-auto space-y-6">
+<main class="pb-32 px-4 pt-5 max-w-2xl mx-auto">
 
-    <!-- ━━━━━━━━━━━━━ MATCH ODDS ━━━━━━━━━━━━━ -->
-    <section id="match-odds">
-        <div class="market-card">
-            <div class="market-header">
-                <div class="market-header-title">
-                    <span class="material-symbols-outlined" style="font-size:16px; color:var(--primary);">sports_cricket</span>
-                    Match Winner
-                    <% if(event.status === 'live') { %>
-                        <div class="live-dot" style="margin-left:4px;"><span></span><span></span></div>
-                    <% } %>
-                </div>
-                <div class="market-col-labels">
-                    <div style="width:58px; text-align:center; color:#72bbef;">Back</div>
-                    <div style="width:4px;"></div>
-                    <div style="width:58px; text-align:center; color:#faa9ba;">Lay</div>
-                </div>
-            </div>
+    <div id="markets-tab" class="tab-content active space-y-6">
 
-            <%
-               const isMatchActive = event.matchOdds && event.matchOdds.status === 'active';
-               const matchRunners = [
-                   { id: 'home', name: event.homeTeam, back: event.matchOdds?.homeOdds, lay: event.matchOdds?.homeLay || (event.matchOdds?.homeOdds ? parseFloat((event.matchOdds.homeOdds + 0.02).toFixed(2)) : 0) },
-                   { id: 'away', name: event.awayTeam, back: event.matchOdds?.awayOdds, lay: event.matchOdds?.awayLay || (event.matchOdds?.awayOdds ? parseFloat((event.matchOdds.awayOdds + 0.02).toFixed(2)) : 0) },
-                   { id: 'draw', name: "The Draw",     back: event.matchOdds?.drawOdds, lay: event.matchOdds?.drawOdds ? parseFloat((event.matchOdds.drawOdds + 0.02).toFixed(2)) : 0 }
-               ];
-
-               function fmtOdds(v) {
-                   const n = parseFloat(v);
-                   if (!n || n <= 0) return '--';
-                   return (n >= 10 && Number.isInteger(n)) ? n.toString() : n.toFixed(2);
-               }
-            %>
-
-            <% matchRunners.forEach(runner => { %>
-                <% if (runner.name !== "The Draw" || runner.back > 0) { %>
-                    <%
-                        let totalExposure = 0;
-                        if (typeof bets !== 'undefined' && bets.length > 0) {
-                            const matchBets = bets.filter(b => b.marketType === 'match_odds');
-                            matchBets.forEach(bet => {
-                                const pWin  = parseFloat(bet.potentialWin) || 0;
-                                const bStake = parseFloat(bet.stake)       || 0;
-                                if (bet.type === 'back') {
-                                    totalExposure += (bet.selection === runner.name) ? pWin : -bStake;
-                                } else {
-                                    totalExposure += (bet.selection === runner.name) ? -pWin : bStake;
-                                }
-                            });
-                        }
-                    %>
-                    <div class="runner-row">
-                        <div style="flex:1;">
-                            <p style="font-family:'Barlow Condensed',sans-serif; font-size:16px; font-weight:700; line-height:1.2; text-transform:uppercase; letter-spacing:0.5px;">
-                                <%= runner.name %>
-                            </p>
-                            <% if (totalExposure !== 0) { %>
-                                <span class="exposure-tag <%= totalExposure > 0 ? 'exposure-pos' : 'exposure-neg' %>">
-                                    <%= totalExposure > 0 ? '+' : '' %><%= totalExposure.toFixed(2) %>
-                                </span>
-                            <% } %>
-                        </div>
-
-                        <div style="display:flex; gap:4px; position:relative;">
-                            <% if (!isMatchActive) { %>
-                                <div class="suspended-overlay">
-                                    <span class="suspended-label">Suspended</span>
-                                </div>
-                            <% } %>
-                            <button id="btn-back-<%= runner.id %>"
-                                onclick="openBetSlip('<%= runner.name %>', document.getElementById('val-back-<%= runner.id %>').innerText, 'back', null, 'match_odds')"
-                                class="odds-btn btn-back <%= (!isMatchActive || runner.back <= 0) ? '' : '' %>"
-                                <%= (!isMatchActive || runner.back <= 0) ? 'disabled' : '' %>>
-                                <span id="val-back-<%= runner.id %>" class="odds-val"><%= fmtOdds(runner.back) %></span>
-                            </button>
-                            <button id="btn-lay-<%= runner.id %>"
-                                onclick="openBetSlip('<%= runner.name %>', document.getElementById('val-lay-<%= runner.id %>').innerText, 'lay', null, 'match_odds')"
-                                class="odds-btn btn-lay"
-                                <%= (!isMatchActive || runner.lay <= 0) ? 'disabled' : '' %>>
-                                <span id="val-lay-<%= runner.id %>" class="odds-val"><%= fmtOdds(runner.lay) %></span>
-                            </button>
-                        </div>
-                    </div>
-                <% } %>
-            <% }) %>
-        </div>
-    </section>
-
-    <!-- ━━━━━━━━━━━━━ TOSS MARKET ━━━━━━━━━━━━━ -->
-    <% if (!event.tossMarket || event.tossMarket.status !== 'settled') { %>
-    <section id="toss-market">
-        <div class="market-card">
-            <div class="market-header">
-                <div class="market-header-title">
-                    <span class="material-symbols-outlined" style="font-size:16px; color:#eab308;">monetization_on</span>
-                    Toss Winner
-                </div>
-                <div class="market-col-labels">
-                    <div style="width:68px; text-align:center; color:#72bbef;">BACK</div>
-                </div>
-            </div>
-
-            <%
-               const isTossActive = event.tossMarket && event.tossMarket.status === 'active';
-               const tossRunners = [
-                   { name: event.homeTeam, odds: event.tossMarket?.homeOdds },
-                   { name: event.awayTeam, odds: event.tossMarket?.awayOdds }
-               ];
-            %>
-
-            <% tossRunners.forEach((runner, idx) => { %>
-                <div class="runner-row" style="<%= idx === tossRunners.length-1 ? 'border-bottom:none;' : '' %>">
-                    <div style="flex:1;">
-                        <p style="font-family:'Barlow Condensed',sans-serif; font-size:16px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;">
-                            <%= runner.name %>
-                        </p>
-                        <p style="font-size:11px; color:var(--text-muted); margin-top:2px;">to win the toss</p>
-                    </div>
-                    <div style="position:relative;">
-                        <% if (!isTossActive) { %>
-                            <div class="suspended-overlay">
-                                <span class="suspended-label"><%= event.tossMarket?.status || 'Inactive' %></span>
-                            </div>
+        <section id="match-odds">
+            <div class="market-card">
+                <div class="market-header">
+                    <div class="market-header-title">
+                        <span class="material-symbols-outlined" style="font-size:16px; color:var(--primary);">sports_cricket</span>
+                        Match Winner
+                        <% if(event.status === 'live') { %>
+                            <div class="live-dot" style="margin-left:4px;"><span></span><span></span></div>
                         <% } %>
-                        <button onclick="openBetSlip('<%= runner.name %> (Toss)', <%= runner.odds %>, 'back', null, 'toss')"
-                            class="odds-btn btn-back"
-                            style="width:68px;"
-                            <%= (!isTossActive || runner.odds <= 0) ? 'disabled' : '' %>>
-                            <span class="odds-val"><%= runner.odds > 0 ? runner.odds : '--' %></span>
-                        </button>
+                    </div>
+                    <div class="market-col-labels">
+                        <div style="width:58px; text-align:center; color:#72bbef;">Back</div>
+                        <div style="width:4px;"></div>
+                        <div style="width:58px; text-align:center; color:#faa9ba;">Lay</div>
                     </div>
                 </div>
-            <% }) %>
-        </div>
-    </section>
-    <% } %>
 
-    <!-- ━━━━━━━━━━━━━ FANCY / SESSIONS ━━━━━━━━━━━━━ -->
-    <section id="fancy-market">
-        <div class="market-card">
-            <div class="market-header">
-                <div class="market-header-title">
-                    <span class="material-symbols-outlined" style="font-size:16px; color:#f97316;">bolt</span>
-                    Fancy Sessions
-                </div>
-                <div class="market-col-labels">
-                    <div style="width:58px; text-align:center; color:#faa9ba;">No</div>
-                    <div style="width:4px;"></div>
-                    <div style="width:58px; text-align:center; color:#72bbef;">Yes</div>
-                </div>
-            </div>
+                <%
+                   const isMatchActive = event.matchOdds && event.matchOdds.status === 'active';
+                   const matchRunners = [
+                       { id: 'home', name: event.homeTeam, back: event.matchOdds?.homeOdds, lay: event.matchOdds?.homeLay || (event.matchOdds?.homeOdds ? parseFloat((event.matchOdds.homeOdds + 0.02).toFixed(2)) : 0) },
+                       { id: 'away', name: event.awayTeam, back: event.matchOdds?.awayOdds, lay: event.matchOdds?.awayLay || (event.matchOdds?.awayOdds ? parseFloat((event.matchOdds.awayOdds + 0.02).toFixed(2)) : 0) },
+                       { id: 'draw', name: "The Draw",     back: event.matchOdds?.drawOdds, lay: event.matchOdds?.drawLay || (event.matchOdds?.drawOdds ? parseFloat((event.matchOdds.drawOdds + 0.02).toFixed(2)) : 0) }
+                   ];
 
-            <%
-                const activeSessions = event.sessions ? event.sessions.filter(s => s.status !== 'settled') : [];
-                if (activeSessions.length > 0) {
-                    const groupedSessions = {};
-                    activeSessions.forEach(session => {
-                        const cat = session.category || 'Other';
-                        if (!groupedSessions[cat]) groupedSessions[cat] = [];
-                        groupedSessions[cat].push(session);
-                    });
-            %>
-                <% Object.keys(groupedSessions).forEach(category => { %>
-                    <div class="category-divider">
-                        <span class="material-symbols-outlined" style="font-size:13px; color:var(--primary);">category</span>
-                        <span style="font-family:'Barlow Condensed',sans-serif; font-size:10px; font-weight:800; letter-spacing:2px; text-transform:uppercase; color:rgba(249,115,22,0.8);">
-                            <%= category %>
-                        </span>
-                    </div>
-                    <% groupedSessions[category].forEach(session => { %>
+                   function fmtOdds(v) {
+                       const n = parseFloat(v);
+                       if (!n || n <= 0) return '--';
+                       return (n >= 10 && Number.isInteger(n)) ? n.toString() : n.toFixed(2);
+                   }
+                %>
+
+                <% matchRunners.forEach(runner => { %>
+                    <% if (runner.name !== "The Draw" || runner.back > 0) { %>
+                        <%
+                            // ── NEW GREEN BOOK LOGIC ──
+                            let totalExposure = 0;
+                            // Check if userExposure exists from backend, if yes, pull the exact number!
+                            if (typeof userExposure !== 'undefined' && userExposure !== null) {
+                                totalExposure = userExposure[runner.name] || 0;
+                            }
+                        %>
                         <div class="runner-row">
                             <div style="flex:1;">
-                                <p style="font-family:'Barlow Condensed',sans-serif; font-size:15px; font-weight:700; letter-spacing:0.3px;">
-                                    <%= session.name %>
+                                <p style="font-family:'Barlow Condensed',sans-serif; font-size:16px; font-weight:700; line-height:1.2; text-transform:uppercase; letter-spacing:0.5px;">
+                                    <%= runner.name %>
                                 </p>
+                                <% if (totalExposure !== 0) { %>
+                                    <span class="exposure-tag <%= totalExposure > 0 ? 'exposure-pos' : 'exposure-neg' %>">
+                                        <%= totalExposure > 0 ? '+' : '' %><%= totalExposure.toFixed(2) %>
+                                    </span>
+                                <% } %>
                             </div>
+
                             <div style="display:flex; gap:4px; position:relative;">
-                                <% if (session.status !== 'active') { %>
+                                <% if (!isMatchActive) { %>
                                     <div class="suspended-overlay">
-                                        <span class="suspended-label"><%= session.status %></span>
+                                        <span class="suspended-label">Suspended</span>
                                     </div>
                                 <% } %>
-                                <!-- NO Button (Lay) -->
-                                <button onclick="openBetSlip('<%= session.name %>', <%= session.noOdds %>, 'lay', <%= session.value %>, 'session', '<%= session._id %>')"
-                                    class="odds-btn btn-lay"
-                                    <%= session.status !== 'active' ? 'disabled' : '' %>>
-                                    <span class="odds-val"><%= session.value %></span>
-                                    <span class="odds-size"><%= session.noOdds %></span>
-                                </button>
-                                <!-- YES Button (Back) -->
-                                <button onclick="openBetSlip('<%= session.name %>', <%= session.yesOdds %>, 'back', <%= session.value %>, 'session', '<%= session._id %>')"
+                                <button id="btn-back-<%= runner.id %>"
+                                    onclick="openBetSlip('<%= runner.name %>', document.getElementById('val-back-<%= runner.id %>').innerText, 'back', null, 'match_odds')"
                                     class="odds-btn btn-back"
-                                    <%= session.status !== 'active' ? 'disabled' : '' %>>
-                                    <span class="odds-val"><%= session.value %></span>
-                                    <span class="odds-size"><%= session.yesOdds %></span>
+                                    <%= (!isMatchActive || runner.back <= 0) ? 'disabled' : '' %>>
+                                    <span id="val-back-<%= runner.id %>" class="odds-val"><%= fmtOdds(runner.back) %></span>
+                                </button>
+                                <button id="btn-lay-<%= runner.id %>"
+                                    onclick="openBetSlip('<%= runner.name %>', document.getElementById('val-lay-<%= runner.id %>').innerText, 'lay', null, 'match_odds')"
+                                    class="odds-btn btn-lay"
+                                    <%= (!isMatchActive || runner.lay <= 0) ? 'disabled' : '' %>>
+                                    <span id="val-lay-<%= runner.id %>" class="odds-val"><%= fmtOdds(runner.lay) %></span>
                                 </button>
                             </div>
                         </div>
-                    <% }) %>
+                    <% } %>
                 <% }) %>
-            <% } else { %>
-                <div style="padding:48px 24px; text-align:center;">
-                    <span class="material-symbols-outlined" style="font-size:36px; color:rgba(255,255,255,0.12); display:block; margin-bottom:8px;">hourglass_empty</span>
-                    <p style="font-family:'Barlow Condensed',sans-serif; font-size:11px; font-weight:800; letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,0.25);">
-                        No Fancy Sessions Available Yet
-                    </p>
+            </div>
+        </section>
+
+        <% if (!event.tossMarket || event.tossMarket.status !== 'settled') { %>
+        <section id="toss-market">
+            <div class="market-card">
+                <div class="market-header">
+                    <div class="market-header-title">
+                        <span class="material-symbols-outlined" style="font-size:16px; color:#eab308;">monetization_on</span>
+                        Toss Winner
+                    </div>
+                    <div class="market-col-labels">
+                        <div style="width:68px; text-align:center; color:#72bbef;">BACK</div>
+                    </div>
                 </div>
-            <% } %>
-        </div>
-    </section>
+
+                <%
+                   const isTossActive = event.tossMarket && event.tossMarket.status === 'active';
+                   const tossRunners = [
+                       { name: event.homeTeam, odds: event.tossMarket?.homeOdds },
+                       { name: event.awayTeam, odds: event.tossMarket?.awayOdds }
+                   ];
+                %>
+
+                <% tossRunners.forEach((runner, idx) => { %>
+                    <div class="runner-row" style="<%= idx === tossRunners.length-1 ? 'border-bottom:none;' : '' %>">
+                        <div style="flex:1;">
+                            <p style="font-family:'Barlow Condensed',sans-serif; font-size:16px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;">
+                                <%= runner.name %>
+                            </p>
+                            <p style="font-size:11px; color:var(--text-muted); margin-top:2px;">to win the toss</p>
+                        </div>
+                        <div style="position:relative;">
+                            <% if (!isTossActive) { %>
+                                <div class="suspended-overlay">
+                                    <span class="suspended-label"><%= event.tossMarket?.status || 'Inactive' %></span>
+                                </div>
+                            <% } %>
+                            <button onclick="openBetSlip('<%= runner.name %> (Toss)', <%= runner.odds %>, 'back', null, 'toss')"
+                                class="odds-btn btn-back"
+                                style="width:68px;"
+                                <%= (!isTossActive || runner.odds <= 0) ? 'disabled' : '' %>>
+                                <span class="odds-val"><%= runner.odds > 0 ? runner.odds : '--' %></span>
+                            </button>
+                        </div>
+                    </div>
+                <% }) %>
+            </div>
+        </section>
+        <% } %>
+
+        <section id="fancy-market">
+            <div class="market-card">
+                <div class="market-header">
+                    <div class="market-header-title">
+                        <span class="material-symbols-outlined" style="font-size:16px; color:#f97316;">bolt</span>
+                        Fancy Sessions
+                    </div>
+                    <div class="market-col-labels">
+                        <div style="width:58px; text-align:center; color:#faa9ba;">No</div>
+                        <div style="width:4px;"></div>
+                        <div style="width:58px; text-align:center; color:#72bbef;">Yes</div>
+                    </div>
+                </div>
+
+                <%
+                    const activeSessions = event.sessions ? event.sessions.filter(s => s.status !== 'settled') : [];
+                    if (activeSessions.length > 0) {
+                        const groupedSessions = {};
+                        activeSessions.forEach(session => {
+                            const cat = session.category || 'Other';
+                            if (!groupedSessions[cat]) groupedSessions[cat] = [];
+                            groupedSessions[cat].push(session);
+                        });
+                %>
+                    <% Object.keys(groupedSessions).forEach(category => { %>
+                        <div class="category-divider">
+                            <span class="material-symbols-outlined" style="font-size:13px; color:var(--primary);">category</span>
+                            <span style="font-family:'Barlow Condensed',sans-serif; font-size:10px; font-weight:800; letter-spacing:2px; text-transform:uppercase; color:rgba(249,115,22,0.8);">
+                                <%= category %>
+                            </span>
+                        </div>
+                        <% groupedSessions[category].forEach(session => { %>
+                            <div class="runner-row">
+                                <div style="flex:1;">
+                                    <p style="font-family:'Barlow Condensed',sans-serif; font-size:15px; font-weight:700; letter-spacing:0.3px;">
+                                        <%= session.name %>
+                                    </p>
+                                </div>
+                                <div style="display:flex; gap:4px; position:relative;">
+                                    <% if (session.status !== 'active') { %>
+                                        <div class="suspended-overlay">
+                                            <span class="suspended-label"><%= session.status %></span>
+                                        </div>
+                                    <% } %>
+                                    <button onclick="openBetSlip('<%= session.name %>', <%= session.noOdds %>, 'lay', <%= session.value %>, 'session', '<%= session._id %>')"
+                                        class="odds-btn btn-lay"
+                                        <%= session.status !== 'active' ? 'disabled' : '' %>>
+                                        <span class="odds-val"><%= session.value %></span>
+                                        <span class="odds-size"><%= session.noOdds %></span>
+                                    </button>
+                                    <button onclick="openBetSlip('<%= session.name %>', <%= session.yesOdds %>, 'back', <%= session.value %>, 'session', '<%= session._id %>')"
+                                        class="odds-btn btn-back"
+                                        <%= session.status !== 'active' ? 'disabled' : '' %>>
+                                        <span class="odds-val"><%= session.value %></span>
+                                        <span class="odds-size"><%= session.yesOdds %></span>
+                                    </button>
+                                </div>
+                            </div>
+                        <% }) %>
+                    <% }) %>
+                <% } else { %>
+                    <div style="padding:48px 24px; text-align:center;">
+                        <span class="material-symbols-outlined" style="font-size:36px; color:rgba(255,255,255,0.12); display:block; margin-bottom:8px;">hourglass_empty</span>
+                        <p style="font-family:'Barlow Condensed',sans-serif; font-size:11px; font-weight:800; letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,0.25);">
+                            No Fancy Sessions Available Yet
+                        </p>
+                    </div>
+                <% } %>
+            </div>
+        </section>
+    </div>
+
+    <div id="my-bets-tab" class="tab-content my-bets-tab-content space-y-4">
+        <%
+            let activeBets = [];
+            if (typeof bets !== 'undefined' && bets.length > 0) {
+                activeBets = bets.filter(b => b.status !== 'settled');
+            }
+        %>
+        
+        <% if (activeBets.length > 0) { %>
+            <% activeBets.forEach(bet => { %>
+                <div class="market-card p-4">
+                    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding-bottom:8px; margin-bottom:12px;">
+                        <span style="font-family:'Barlow Condensed',sans-serif; font-size:12px; font-weight:800; letter-spacing:1px; text-transform:uppercase; color:var(--text-muted);">
+                            <%= bet.marketType.replace('_', ' ') %>
+                        </span>
+                        <span class="slip-badge <%= bet.type === 'back' ? 'slip-badge-back' : 'slip-badge-lay' %>" style="padding:3px 8px; font-size:10px;">
+                            <%= bet.type.toUpperCase() %>
+                        </span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div>
+                            <p style="font-family:'Barlow Condensed',sans-serif; font-size:16px; font-weight:700; text-transform:uppercase; margin-bottom:4px; letter-spacing:0.5px;">
+                                <%= bet.selection %>
+                            </p>
+                            <p style="font-size:12px; color:var(--text-muted); font-family:'Rajdhani',sans-serif; font-weight:600;">
+                                Odds: <span style="color:var(--text-primary);"><%= bet.odds %></span> &nbsp;|&nbsp;
+                                Stake: <span style="color:var(--text-primary);">₹<%= bet.stake %></span>
+                            </p>
+                        </div>
+                        <div style="text-align:right;">
+                            <p style="font-family:'Barlow Condensed',sans-serif; font-size:10px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--text-muted);">
+                                Potential Win
+                            </p>
+                            <p style="font-family:'Rajdhani',sans-serif; font-size:18px; font-weight:700; color:<%= bet.type === 'back' ? 'var(--green)' : 'var(--red)' %>;">
+                                ₹<%= parseFloat(bet.potentialWin || 0).toFixed(2) %>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            <% }) %>
+        <% } else { %>
+            <div class="market-card" style="padding:48px 24px; text-align:center;">
+                <span class="material-symbols-outlined" style="font-size:36px; color:rgba(255,255,255,0.12); display:block; margin-bottom:8px;">receipt_long</span>
+                <p style="font-family:'Barlow Condensed',sans-serif; font-size:11px; font-weight:800; letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,0.25);">
+                    No Active Bets
+                </p>
+            </div>
+        <% } %>
+    </div>
 
 </main>
 
-<!-- ════════════════════════════════ BET SLIP ════════════════════════════════ -->
 <div id="bet-slip">
     <div class="slip-handle"></div>
 
     <form id="bet-form" action="/place-bet" method="POST" onsubmit="handleBetSubmit(event)">
-
-        <!-- Top row: badge + close -->
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
             <span id="slip-badge" class="slip-badge slip-badge-back">BACK</span>
             <button type="button" onclick="closeBetSlip()" style="width:32px;height:32px;background:rgba(255,255,255,0.06);border:none;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;">
@@ -752,7 +830,6 @@
             </button>
         </div>
 
-        <!-- Selection info -->
         <p id="slip-team-name" style="font-family:'Barlow Condensed',sans-serif; font-size:22px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; line-height:1.1; margin-bottom:3px;">Selection</p>
         <div style="display:flex; align-items:center; gap:6px; margin-bottom:16px;">
             <p id="slip-market-name" style="font-family:'Barlow Condensed',sans-serif; font-size:11px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:var(--primary);">Market</p>
@@ -762,7 +839,6 @@
             </div>
         </div>
 
-        <!-- Odds + Stake inputs -->
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px;">
             <div class="slip-input-panel">
                 <p class="slip-input-label">Odds</p>
@@ -777,14 +853,12 @@
             </div>
         </div>
 
-        <!-- Quick Stake Row 1 -->
         <div style="display:flex; gap:6px; margin-bottom:6px;">
             <button type="button" class="quick-stake-btn" onclick="addStake(100)">+100</button>
             <button type="button" class="quick-stake-btn" onclick="addStake(500)">+500</button>
             <button type="button" class="quick-stake-btn" onclick="addStake(1000)">+1K</button>
             <button type="button" class="quick-stake-btn" onclick="addStake(5000)">+5K</button>
         </div>
-        <!-- Quick Stake Row 2 -->
         <div style="display:flex; gap:6px; margin-bottom:14px;">
             <button type="button" class="quick-stake-btn" onclick="addStake(10000)">+10K</button>
             <button type="button" class="quick-stake-btn" onclick="addStake(25000)">+25K</button>
@@ -792,7 +866,6 @@
             <button type="button" class="quick-stake-btn" onclick="clearStake()" style="color:var(--red); border-color:rgba(239,68,68,0.25);">Clear</button>
         </div>
 
-        <!-- Profit / Liability display -->
         <div class="profit-bar" style="margin-bottom:14px;">
             <div>
                 <p class="profit-label">Profit</p>
@@ -804,7 +877,6 @@
             </div>
         </div>
 
-        <!-- Hidden fields -->
         <input type="hidden" name="selection"    id="slip-team-hidden">
         <input type="hidden" name="type"         id="slip-type-hidden">
         <input type="hidden" name="marketType"   id="slip-market-type-hidden">
@@ -814,14 +886,12 @@
         <input type="hidden" name="sessionId"    id="slip-session-id-hidden">
         <input type="hidden" name="potentialWin" id="slip-potential-win-hidden">
 
-        <!-- Place Bet Button -->
         <button type="submit" id="place-bet-btn" class="place-bet-btn place-bet-btn-back">
             Place Bet
         </button>
     </form>
 </div>
 
-<!-- Socket.io -->
 <script src="/socket.io/socket.io.js"></script>
 
 <script>
@@ -831,6 +901,23 @@
 let currentBetType = 'back';
 
 // ════════════════════════════════════════════════
+//  TAB SWITCHER (Markets vs My Bets)
+// ════════════════════════════════════════════════
+function switchMainTab(tabId) {
+    document.querySelectorAll('.event-tab.main-tab').forEach(t => t.classList.remove('active'));
+    document.querySelector(`[onclick="switchMainTab('${tabId}')"]`).classList.add('active');
+
+    document.getElementById('markets-tab').classList.remove('active');
+    document.getElementById('my-bets-tab').classList.remove('active');
+    document.getElementById(`${tabId}-tab`).classList.add('active');
+
+    const subNav = document.getElementById('market-sub-nav');
+    if (subNav) {
+        subNav.style.display = tabId === 'markets' ? 'flex' : 'none';
+    }
+}
+
+// ════════════════════════════════════════════════
 //  BET SLIP
 // ════════════════════════════════════════════════
 const slip   = document.getElementById('bet-slip');
@@ -838,7 +925,6 @@ const dimmer = document.getElementById('dimmer');
 
 function openBetSlip(selection, odds, type, line = null, marketType = 'match_odds', sessionId = '') {
     currentBetType = type;
-
     document.getElementById('slip-team-name').innerText  = selection;
     document.getElementById('slip-team-hidden').value    = selection;
     document.getElementById('slip-odds-input').value     = odds;
@@ -846,11 +932,9 @@ function openBetSlip(selection, odds, type, line = null, marketType = 'match_odd
     document.getElementById('slip-market-type-hidden').value = marketType;
     document.getElementById('slip-session-id-hidden').value  = sessionId;
 
-    // Market label
     const labels = { match_odds: 'MATCH ODDS', toss: 'TOSS WINNER', session: 'FANCY SESSION' };
     document.getElementById('slip-market-name').innerText = labels[marketType] || marketType.toUpperCase().replace('_', ' ');
 
-    // Line pill
     const linePill  = document.getElementById('slip-line-pill');
     const lineHidden = document.getElementById('slip-session-value-hidden');
     if (marketType === 'session' && line != null) {
@@ -862,7 +946,6 @@ function openBetSlip(selection, odds, type, line = null, marketType = 'match_odd
         lineHidden.value = '';
     }
 
-    // Badge + button style
     const badge = document.getElementById('slip-badge');
     const placeBtn = document.getElementById('place-bet-btn');
 
@@ -876,7 +959,6 @@ function openBetSlip(selection, odds, type, line = null, marketType = 'match_odd
         placeBtn.className = 'place-bet-btn place-bet-btn-lay';
     }
 
-    // Reset stake
     const stakeInput = document.getElementById('slip-stake-input');
     stakeInput.value = '';
     document.getElementById('slip-profit-value').innerText    = '₹0.00';
@@ -886,7 +968,6 @@ function openBetSlip(selection, odds, type, line = null, marketType = 'match_odd
 
     slip.classList.add('slip-open');
     dimmer.classList.add('overlay-visible');
-
     setTimeout(() => stakeInput.focus(), 320);
 }
 
@@ -911,17 +992,12 @@ function addStake(amount) {
     calculateProfit();
 }
 
-// Show clear button when user types
 document.getElementById('slip-stake-input').addEventListener('input', function() {
     document.getElementById('clear-stake-btn').style.display = this.value ? 'flex' : 'none';
 });
 
 // ════════════════════════════════════════════════
 //  PROFESSIONAL P&L CALCULATION
-//  Back bet  → Profit = stake × (odds − 1)   |  Liability = stake
-//  Lay bet   → Profit = stake                 |  Liability = stake × (odds − 1)
-//  Session back (YES) → same as back
-//  Session lay  (NO)  → same as lay
 // ════════════════════════════════════════════════
 function calculateProfit() {
     const stake      = parseFloat(document.getElementById('slip-stake-input').value) || 0;
@@ -939,11 +1015,9 @@ function calculateProfit() {
     let liability = 0;
 
     if (type === 'back') {
-        // Back / YES: you risk the stake, you win stake × (odds − 1)
         profit    = stake * (odds - 1);
         liability = stake;
     } else {
-        // Lay / NO: you win the stake, you risk stake × (odds − 1)
         profit    = stake;
         liability = stake * (odds - 1);
     }
@@ -954,7 +1028,7 @@ function calculateProfit() {
 }
 
 // ════════════════════════════════════════════════
-//  FORM SUBMIT — show loader then let it POST
+//  FORM SUBMIT 
 // ════════════════════════════════════════════════
 function handleBetSubmit(e) {
     const stake = parseFloat(document.getElementById('slip-stake-input').value) || 0;
@@ -963,10 +1037,8 @@ function handleBetSubmit(e) {
         showToast('⚠ Minimum stake is ₹10', '#ef4444');
         return;
     }
-    // Show full-page loader
     document.getElementById('page-loader').classList.add('active');
     closeBetSlip();
-    // Let the form POST naturally — server redirects back
 }
 
 // ════════════════════════════════════════════════
@@ -986,6 +1058,7 @@ function showToast(msg, color = '#22c55e') {
 // ════════════════════════════════════════════════
 const sections = document.querySelectorAll('section[id]');
 const navTabs  = document.querySelectorAll('.nav-tab');
+
 const io2 = new IntersectionObserver(entries => {
     entries.forEach(entry => {
         if (entry.isIntersecting) {
@@ -998,6 +1071,7 @@ const io2 = new IntersectionObserver(entries => {
         }
     });
 }, { rootMargin: '-40% 0px -55% 0px' });
+
 sections.forEach(s => io2.observe(s));
 
 // ════════════════════════════════════════════════
@@ -1005,11 +1079,13 @@ sections.forEach(s => io2.observe(s));
 // ════════════════════════════════════════════════
 const socket = io();
 const currentEventId = '<%= event._id %>';
+
 socket.emit('join_event_room', currentEventId);
 
 function updateOddButton(elementId, newValue, btnClass) {
     const el  = document.getElementById(`val-${elementId}`);
     const btn = document.getElementById(`btn-${elementId}`);
+
     if (!el || !btn) return;
 
     const oldValue    = parseFloat(el.innerText) || 0;
@@ -1030,9 +1106,9 @@ function updateOddButton(elementId, newValue, btnClass) {
         btn.disabled = false;
         btn.style.opacity = '1';
 
-        // Flash
         const upClass   = btnClass === 'back' ? 'flash-up-back'   : 'flash-up-lay';
         const downClass = btnClass === 'back' ? 'flash-down-back'  : 'flash-down-lay';
+        
         btn.classList.remove(upClass, downClass);
         void btn.offsetWidth;
         btn.classList.add(numNewValue > oldValue ? upClass : downClass);
@@ -1040,14 +1116,20 @@ function updateOddButton(elementId, newValue, btnClass) {
 }
 
 socket.on('live_odds_update', (oddsData) => {
-    updateOddButton('back-home', oddsData.homeTeam.back, 'back');
-    updateOddButton('lay-home',  oddsData.homeTeam.lay,  'lay');
-    updateOddButton('back-away', oddsData.awayTeam.back, 'back');
-    updateOddButton('lay-away',  oddsData.awayTeam.lay,  'lay');
+    updateOddButton('back-home', oddsData.homeTeam?.back, 'back');
+    updateOddButton('lay-home',  oddsData.homeTeam?.lay,  'lay');
+    updateOddButton('back-away', oddsData.awayTeam?.back, 'back');
+    updateOddButton('lay-away',  oddsData.awayTeam?.lay,  'lay');
+    
+    // Check if scraper provided Draw odds and update them!
+    if (oddsData.drawTeam) {
+        updateOddButton('back-draw', oddsData.drawTeam?.back, 'back');
+        updateOddButton('lay-draw',  oddsData.drawTeam?.lay,  'lay');
+    }
 });
 
 // ════════════════════════════════════════════════
-//  Hide loader on page load (in case of redirect back)
+//  Hide loader on page load
 // ════════════════════════════════════════════════
 window.addEventListener('pageshow', () => {
     document.getElementById('page-loader').classList.remove('active');

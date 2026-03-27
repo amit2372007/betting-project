@@ -27,18 +27,17 @@ document.addEventListener("DOMContentLoaded", () => {
         }, 400); 
     }, 2500);
 
-    // 2. Hide Loader when the entire page finishes downloading
+    // 2. Hide Loader IMMEDIATELY when the page assets finish downloading
     window.addEventListener('load', () => {
-        // Artificial delay: Ensure the user sees the loader for at least 1.2 seconds 
-        // even if they have super fast internet. It builds premium anticipation!
+        clearInterval(textInterval); // Stop the text loop instantly
+        
+        // Force the CSS transition to be snappy (250ms instead of 700ms)
+        loaderOverlay.style.transition = 'opacity 0.25s ease'; 
+        loaderOverlay.style.opacity = '0';  // Trigger the fade-out
+        
+        // Remove it from the DOM as soon as the quick fade is done
         setTimeout(() => {
-            clearInterval(textInterval); // Stop the text loop
-            loaderOverlay.style.opacity = '0';  // Trigger the CSS fade-out transition
-            
-            // Wait for the fade out to finish (700ms), then completely remove it from the DOM
-            setTimeout(() => {
-                loaderOverlay.style.display = 'none';
-            }, 700);
-        }, 1200); 
+            loaderOverlay.style.display = 'none';
+        }, 250);
     });
 });
