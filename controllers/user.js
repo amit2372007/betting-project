@@ -3,40 +3,16 @@ const Complaint = require("../model/complain/complain.js");
 const Bet = require("../model/bet/bet.js");
 const Transaction = require("../model/transactions/transaction.js");
 const Ledger = require("../model/user/ledger.js");
+const WhatsappNumber = require("../model/transactions/whatsapp.js");
 
-module.exports.renderLogin = (req, res)=>{
-    res.render("./user/login.ejs");
-};
-
-module.exports.renderRegister = (req, res) => {
-  res.render("./user/signup.ejs");
-};
-
-module.exports.registerUser = async (req, res, next) => {
-  try {
-    let { name, username, password } = req.body;
-    if (!username || !password || !name) {
-      req.flash("error", "Name, Username and Password are required!");
-      return res.redirect("/user/register");
-    }
-
-    const newUser = new User({
-      name: name,
-      username: username,
-      balance: 0,
-      isActive: true,
-    });
-
-    const registeredUser = await User.register(newUser, password);
-    req.login(registeredUser, (err) => {
-      if (err) return next(err);
-      req.flash("success", `Hey! ${name}, account created successfully.`);
-      res.redirect("/home");
-    });
-  } catch (e) {
-    req.flash("error", e.message);
-    res.redirect("/user/register");
-  }
+module.exports.renderLogin = async(req, res)=>{
+    try{
+      const whatsaapNumber =  await WhatsappNumber.findOne({purpose: "deposit"});
+      res.render("./user/login.ejs" , {whatsaapNumber});
+    } catch(err) {
+      req.flash("error" , "Failed to Load Login Page!");
+      res.redirect("/user/login");
+    }   
 };
 
 module.exports.demoLogin = async (req, res, next) => {

@@ -1,6 +1,7 @@
 const Transaction = require("../model/transactions/transaction.js");
 const User = require("../model/user/user.js");
 const DepositAccount = require("../model/transactions/accountDetail.js");
+const WhatsaapNumber = require("../model/transactions/whatsapp.js");
 
 module.exports.renderDepositHistory = async (req, res) => {
   try {
@@ -43,7 +44,8 @@ module.exports.renderDepositPage = async (req, res) => {
       return res.redirect("/user/login");
     }
     const depositAccounts = await DepositAccount.find({ isActive: true });
-    res.render("./user/deposit.ejs", { depositAccounts });
+    const whatsaapNumber = await WhatsaapNumber.find({purpose: "support"});
+    res.render("./user/deposit.ejs", { depositAccounts , whatsaapNumber});
   } catch (err) {
     req.flash("error", `error: ${err}`);
     res.redirect("/home");
@@ -69,7 +71,7 @@ module.exports.deposit = async (req, res) => {
     // 2. Validation: Balance check
     // We find the user again to get the latest balance
     const user = await User.findById(req.user._id);
-
+    
     // 3. Create Transaction Request
     const newTransaction = new Transaction({
       userId: req.user._id,

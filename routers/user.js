@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const passport = require("passport");
-const { isLoggedIn } = require("../middleware.js"); 
+const { isLoggedIn, isNotBlocked } = require("../middleware.js"); 
 const userController = require("../controllers/user.js");
 
 router.get("/login", userController.renderLogin);
@@ -17,11 +17,10 @@ router.get("/logout", (req, res, next) => {
 router.get("/accountStatements", isLoggedIn, userController.renderAccountStatements);
 router.get('/demo-login', userController.demoLogin);
 router.get("/change-password", isLoggedIn, userController.renderChangePassword);
-// router.get("/register", userController.renderRegister);
 router.get("/support" , isLoggedIn, userController.renderUserSupport);
 router.post("/support/complaint", isLoggedIn, userController.submitComplaint);
 router.post('/change-password', isLoggedIn, userController.changePassword);
-router.post("/login" , passport.authenticate("local", {
+router.post("/login" ,isNotBlocked, passport.authenticate("local", {
     failureRedirect: "/user/login",
     failureFlash: true,
   }),
@@ -30,6 +29,6 @@ router.post("/login" , passport.authenticate("local", {
     res.redirect("/home");
   },
 );
-router.post("/register" , userController.registerUser);
+
 
 module.exports = router;

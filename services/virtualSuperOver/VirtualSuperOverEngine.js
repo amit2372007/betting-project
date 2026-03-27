@@ -202,7 +202,7 @@ class SuperOverEngine {
                 },
                 completedAt: new Date()
             });
-            console.log(`💾 Match ${this.state.eventId} saved. Result: ${finalMargin}`);
+            
 
             // 🔥 FIXED: finalWinner is already 'home', 'away', or 'tie'. Just pass it directly!
             this.io.emit('vso_match_result', { winner: finalWinner });

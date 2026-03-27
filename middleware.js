@@ -1,4 +1,4 @@
-
+const User = require("./model/user/user.js");
 // 1. Check if the user is logged in
 module.exports.isLoggedIn = (req, res, next) => {
     // req.isAuthenticated() is automatically provided by Passport.js
@@ -61,4 +61,33 @@ module.exports.isNotDemo = (req, res, next) => {
         return res.redirect(redirectUrl);
     }
     next();
+};
+
+module.exports.isNotBlocked = async (req, res, next) => {
+    try {
+        // Grab the username (or email) from the login form submission
+        const { username } = req.body;
+
+        if (!username) {
+            // If they left it blank, just let Passport handle the "missing credentials" error
+            return next(); 
+        }
+
+        // Find the user in the database
+        const user = await User.findOne({ username: username });
+
+        // If the user exists AND their account is marked as blocked
+        if (user && user.isBlocked === true) {
+            req.flash("error", "Your account has been blocked by an Admin. Please contact support via WhatsApp.");
+            return res.redirect("/user/login"); // Send them back to the login page
+        }
+
+        // If the user is not blocked, allow the login process to continue
+        next();
+        
+    } catch (err) {
+        console.error("Error in isNotBlocked middleware:", err);
+        req.flash("error", "Something went wrong during login verification.");
+        res.redirect("/user/login");
+    }
 };

@@ -213,6 +213,211 @@
         </div>
         <!-- END: Events Table -->
 
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6 md:mt-8">
+            
+            <div class="bg-surface rounded-custom border border-white/5 p-4 md:p-6 lg:col-span-1 h-fit">
+                <div class="flex items-center gap-2 mb-4">
+                    <span class="material-symbols-outlined text-primary">campaign</span>
+                    <h2 class="font-display font-semibold text-white text-sm md:text-base">Broadcast Message</h2>
+                </div>
+                
+                <form action="/admin/announcements/create" method="POST" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-400 uppercase mb-1.5">Message Text</label>
+                        <textarea name="message" required rows="3" class="w-full bg-surface-darker border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:ring-primary focus:border-primary resize-none placeholder:text-white/20" placeholder="e.g., IPL bets are now open!"></textarea>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-400 uppercase mb-1.5">Theme Color</label>
+                        <select name="theme" class="w-full bg-surface-darker border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:ring-primary focus:border-primary">
+                            <option value="primary">Orange (Standard)</option>
+                            <option value="success">Green (Success/Winners)</option>
+                            <option value="danger">Red (Urgent/Maintenance)</option>
+                            <option value="info">Blue (Info)</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" class="w-full bg-primary hover:bg-primary/90 text-black font-bold py-3 rounded-xl text-sm transition-all flex items-center justify-center gap-2 active:scale-95">
+                        <span class="material-symbols-outlined text-[18px]">send</span>
+                        PUBLISH NOW
+                    </button>
+                </form>
+            </div>
+
+            <div class="bg-surface rounded-custom border border-white/5 overflow-hidden lg:col-span-2 flex flex-col">
+                <div class="px-4 md:px-6 py-4 border-b border-white/5 flex items-center justify-between shrink-0">
+                    <h2 class="font-display font-semibold text-white text-sm md:text-base">Manage Announcements</h2>
+                    <span class="text-[10px] text-gray-400 uppercase tracking-widest font-bold bg-white/5 px-2 py-1 rounded">Only 1 active at a time</span>
+                </div>
+
+                <div class="overflow-x-auto w-full">
+                    <table class="w-full min-w-[500px] text-left text-sm whitespace-nowrap">
+                        <thead class="bg-surface-lighter/50 text-gray-400 uppercase text-[10px] font-bold tracking-wider">
+                            <tr>
+                                <th class="px-4 md:px-6 py-3 w-[50%]">Message</th>
+                                <th class="px-4 md:px-6 py-3 w-[15%]">Theme</th>
+                                <th class="px-4 md:px-6 py-3 w-[15%] text-center">Status</th>
+                                <th class="px-4 md:px-6 py-3 w-[20%] text-right">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-white/10">
+                            <% if (typeof announcements !== 'undefined' && announcements.length > 0) { %>
+                                <% announcements.forEach(ann => { %>
+                                    <tr class="hover:bg-white/5 transition-colors group">
+                                        <td class="px-4 md:px-6 py-4">
+                                            <p class="text-white font-medium truncate max-w-[250px] md:max-w-[300px]" title="<%= ann.message %>">
+                                                <%= ann.message %>
+                                            </p>
+                                            <p class="text-[10px] text-gray-500 mt-1">
+                                                <%= new Date(ann.createdAt).toLocaleDateString('en-GB') %>
+                                            </p>
+                                        </td>
+                                        <td class="px-4 md:px-6 py-4">
+                                            <span class="capitalize text-xs font-bold text-gray-300"><%= ann.theme %></span>
+                                        </td>
+                                        <td class="px-4 md:px-6 py-4 text-center">
+                                            <% if (ann.isActive) { %>
+                                                <span class="px-2 py-1 rounded-md text-[10px] font-black bg-green-500/10 text-green-500 uppercase tracking-widest border border-green-500/20">Active</span>
+                                            <% } else { %>
+                                                <span class="px-2 py-1 rounded-md text-[10px] font-black bg-gray-500/10 text-gray-400 uppercase tracking-widest border border-gray-500/20">Inactive</span>
+                                            <% } %>
+                                        </td>
+                                        <td class="px-4 md:px-6 py-4 text-right">
+                                            <div class="flex items-center justify-end gap-2">
+                                                <form action="/admin/announcements/toggle/<%= ann._id %>" method="POST" class="m-0">
+                                                    <% if (ann.isActive) { %>
+                                                        <button type="submit" class="text-xs font-bold text-yellow-500 hover:text-yellow-400 bg-yellow-500/10 px-3 py-1.5 rounded-lg transition-colors">Deactivate</button>
+                                                    <% } else { %>
+                                                        <button type="submit" class="text-xs font-bold text-green-500 hover:text-green-400 bg-green-500/10 px-3 py-1.5 rounded-lg transition-colors">Activate</button>
+                                                    <% } %>
+                                                </form>
+                                                
+                                                <form action="/admin/announcements/delete/<%= ann._id %>" method="POST" class="m-0" onsubmit="return confirm('Delete this announcement?');">
+                                                    <button type="submit" class="text-xs font-bold text-red-500 hover:text-red-400 bg-red-500/10 px-3 py-1.5 rounded-lg transition-colors">
+                                                        <span class="material-symbols-outlined text-[16px] mt-0.5">delete</span>
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                <% }) %>
+                            <% } else { %>
+                                <tr>
+                                    <td colspan="4" class="px-4 py-8 text-center text-gray-500 text-sm">
+                                        No announcements found. Create one to broadcast to users!
+                                    </td>
+                                </tr>
+                            <% } %>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="mt-6 md:mt-8 bg-surface rounded-custom border border-white/5 overflow-hidden flex flex-col">
+    <div class="px-4 md:px-6 py-4 border-b border-white/5 flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-[#00f2ff]">data_object</span>
+            <h2 class="font-display font-semibold text-white text-sm md:text-base">Active Provider IDs (For Scraping)</h2>
+        </div>
+        <span class="text-[10px] text-gray-400 uppercase tracking-widest font-bold bg-white/5 px-2 py-1 rounded">Excludes Settled</span>
+    </div>
+
+    <div class="overflow-x-auto w-full">
+        <table class="w-full min-w-[600px] text-left text-sm whitespace-nowrap">
+            <thead class="bg-surface-lighter/50 text-gray-400 uppercase text-[10px] font-bold tracking-wider">
+                <tr>
+                    <th class="px-4 md:px-6 py-3 w-[40%]">Match</th>
+                    <th class="px-4 md:px-6 py-3 w-[20%]">Status</th>
+                    <th class="px-4 md:px-6 py-3 w-[25%]">Provider ID</th>
+                    <th class="px-4 md:px-6 py-3 w-[15%] text-right">Action</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-white/10">
+                <% if (typeof activeEvents !== 'undefined' && activeEvents.length > 0) { %>
+                    <% activeEvents.forEach(event => { %>
+                        <tr class="hover:bg-white/5 transition-colors group">
+                            <td class="px-4 md:px-6 py-3">
+                                <div class="font-bold text-white text-sm"><%= event.homeTeam %> <span class="text-gray-500 text-xs mx-1">vs</span> <%= event.awayTeam %></div>
+                                <div class="text-[10px] text-gray-500 mt-0.5 capitalize"><%= event.sport %></div>
+                            </td>
+                            <td class="px-4 md:px-6 py-3">
+                                <% if (event.status === 'live') { %>
+                                    <span class="px-2 py-1 rounded-md text-[10px] font-black bg-green-500/10 text-green-500 uppercase tracking-widest border border-green-500/20">Live</span>
+                                <% } else { %>
+                                    <span class="px-2 py-1 rounded-md text-[10px] font-black bg-blue-500/10 text-blue-400 uppercase tracking-widest border border-blue-500/20"><%= event.status %></span>
+                                <% } %>
+                            </td>
+                            <td class="px-4 md:px-6 py-3">
+                                <code class="font-mono text-xs text-[#00f2ff] bg-[#00f2ff]/10 px-2 py-1 rounded border border-[#00f2ff]/20">
+                                    <%= event.providerId || 'NOT SET' %>
+                                </code>
+                            </td>
+                            <td class="px-4 md:px-6 py-3 text-right">
+                                <% if (event.providerId) { %>
+                                    <button onclick="copyProviderId('<%= event.providerId %>')" class="text-xs font-bold text-gray-400 hover:text-black hover:bg-[#00f2ff] border border-white/10 hover:border-[#00f2ff] px-3 py-1.5 rounded-lg transition-all flex items-center justify-end gap-1 ml-auto active:scale-95">
+                                        <span class="material-symbols-outlined text-[14px]">content_copy</span> Copy
+                                    </button>
+                                <% } else { %>
+                                    <span class="text-xs text-gray-600 italic">No ID available</span>
+                                <% } %>
+                            </td>
+                        </tr>
+                    <% }) %>
+                <% } else { %>
+                    <tr>
+                        <td colspan="4" class="px-4 py-8 text-center text-gray-500 text-sm">No active events found for scraping.</td>
+                    </tr>
+                <% } %>
+            </tbody>
+        </table>
+    </div>
+</div>
+            </div>
+        </div>
+
     </div>
     <!-- END: Dashboard Body -->
 </main>
+
+<script>
+    function copyProviderId(id) {
+        navigator.clipboard.writeText(id).then(() => {
+            // Use our custom browser-side flash message
+            showAdminToast("Copied!", "success");
+        }).catch(err => {
+            console.error('Failed to copy text: ', err);
+            showAdminToast("Failed to copy.", "error");
+        });
+    }
+
+    // Client-side Flash Message (Toast) Generator
+    function showAdminToast(message, type = "success") {
+        // 1. Create the toast element
+        const toast = document.createElement("div");
+        
+        // 2. Style it based on success or error using your Tailwind colors
+        const bgColor = type === "success" ? "bg-green-500/10 border-green-500/30 text-green-500" : "bg-red-500/10 border-red-500/30 text-red-500";
+        const icon = type === "success" ? "check_circle" : "error";
+
+        toast.className = `fixed top-6 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-3 px-5 py-3.5 rounded-2xl border backdrop-blur-md transition-all duration-300 transform translate-y-[-20px] opacity-0 ${bgColor} shadow-lg`;
+        
+        toast.innerHTML = `
+            <span class="material-symbols-outlined text-xl">${icon}</span>
+            <p class="text-sm font-bold tracking-wide">${message}</p>
+        `;
+
+        // 3. Add to the page
+        document.body.appendChild(toast);
+
+        // 4. Animate in
+        requestAnimationFrame(() => {
+            toast.classList.remove("translate-y-[-20px]", "opacity-0");
+            toast.classList.add("translate-y-0", "opacity-100");
+        });
+
+        // 5. Remove after 3 seconds
+        setTimeout(() => {
+            toast.classList.remove("translate-y-0", "opacity-100");
+            toast.classList.add("translate-y-[-20px]", "opacity-0");
+            setTimeout(() => toast.remove(), 300); // Wait for fade out to finish before removing from DOM
+        }, 3000);
+    }
+</script>

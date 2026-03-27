@@ -3,9 +3,9 @@
 <head>
     <meta charset="utf-8" />
     <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport" />
-    <title>Premium Casino Lobby</title>
-    
-    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;700;900&display=swap" rel="stylesheet" />
+    <title>Casino Lobby | WicketAdda</title>
+    <link rel="icon" type="image/png" href="https://ik.imagekit.io/xcrdwi6be/Batting_assets/bmcn2NR451G1XkRXqUlOZz.png" />
+    <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
     
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
@@ -16,260 +16,595 @@
                 extend: {
                     colors: {
                         "primary": "#ff8c00",
-                        "casino-dark": "#0a0a0a",
-                        "surface-dark": "#161616",
+                        "casino-dark": "#080808",
+                        "surface-dark": "#111111",
                         "neon-blue": "#00f2ff",
                         "neon-pink": "#ff007a",
                         "neon-gold": "#ffd700",
                         "neon-red": "#ff3131",
                     },
                     fontFamily: {
-                        "display": ["Lexend", "sans-serif"]
+                        "display": ["Oswald", "sans-serif"],
+                        "body": ["DM Sans", "sans-serif"],
                     },
-                    borderRadius: { "DEFAULT": "0.75rem", "lg": "1.5rem", "xl": "2.5rem", "full": "9999px" },
                 },
             },
         }
     </script>
     
-    <style type="text/tailwindcss">
-        @layer base {
-            body {
-                font-family: 'Lexend', sans-serif;
-                -webkit-tap-highlight-color: transparent;
-                background-color: #0a0a0a;
-                color: #ffffff;
-            }
+    <style>
+        :root {
+            --gold: #c9a84c;
+            --gold-light: #f0d080;
+            --gold-dim: rgba(201,168,76,0.15);
+            --red-hot: #ff3131;
+            --red-dim: rgba(255,49,49,0.15);
+            --blue-neon: #00f2ff;
+            --blue-dim: rgba(0,242,255,0.12);
+            --surface: #111111;
+            --surface-2: #181818;
+            --surface-3: #1e1e1e;
+            --border: rgba(255,255,255,0.07);
+            --border-gold: rgba(201,168,76,0.25);
         }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background-color: #080808;
+            color: #fff;
+            min-height: 100svh;
+            -webkit-tap-highlight-color: transparent;
+            /* Subtle noise texture */
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+        }
+
+        h1, h2, h3, h4, .display { font-family: 'Oswald', sans-serif; }
+
+        /* ── Scrollbar ── */
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        
-        .neon-glow-red { box-shadow: 0 0 20px rgba(255, 49, 49, 0.4); }
-        .neon-glow-blue { box-shadow: 0 0 15px rgba(0, 242, 255, 0.3); }
-        .neon-glow-gold { box-shadow: 0 0 15px rgba(255, 215, 0, 0.3); }
-        
-        /* Smooth animation for the live feed */
+
+        /* ── Hero Banner ── */
+        .hero-banner {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 16/7;
+            border-radius: 20px;
+            overflow: hidden;
+            background: linear-gradient(135deg, #1a0404 0%, #0d0208 50%, #040a0d 100%);
+            border: 1px solid rgba(255,49,49,0.2);
+        }
+        .hero-banner::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: 
+                radial-gradient(ellipse 80% 60% at 20% 50%, rgba(255,49,49,0.12) 0%, transparent 70%),
+                radial-gradient(ellipse 40% 40% at 80% 30%, rgba(255,140,0,0.08) 0%, transparent 60%);
+        }
+        .hero-banner::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(255,255,255,0.012) 2px,
+                rgba(255,255,255,0.012) 4px
+            );
+            pointer-events: none;
+        }
+
+        /* ── Multiplier Counter ── */
+        .multiplier-display {
+            font-family: 'Oswald', sans-serif;
+            font-size: 42px;
+            font-weight: 700;
+            color: var(--red-hot);
+            text-shadow: 0 0 30px rgba(255,49,49,0.7), 0 0 60px rgba(255,49,49,0.3);
+            letter-spacing: -1px;
+            line-height: 1;
+            animation: flicker 3s ease-in-out infinite;
+        }
+        @keyframes flicker {
+            0%,100% { text-shadow: 0 0 30px rgba(255,49,49,0.7), 0 0 60px rgba(255,49,49,0.3); }
+            50% { text-shadow: 0 0 20px rgba(255,49,49,0.5), 0 0 40px rgba(255,49,49,0.2); }
+        }
+
+        /* ── Hero CTA ── */
+        .hero-cta {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            background: var(--red-hot);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 10px;
+            font-family: 'Oswald', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: #fff;
+            text-decoration: none;
+            box-shadow: 0 0 24px rgba(255,49,49,0.5), 0 4px 16px rgba(0,0,0,0.4);
+            transition: all 0.2s;
+        }
+        .hero-cta:active { transform: scale(0.96); }
+        .hero-cta:hover { box-shadow: 0 0 36px rgba(255,49,49,0.7), 0 4px 20px rgba(0,0,0,0.5); }
+
+        /* ── Section heading ── */
+        .section-title {
+            font-family: 'Oswald', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.85);
+        }
+        .section-link {
+            font-family: 'Oswald', sans-serif;
+            font-size: 11px;
+            font-weight: 500;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--blue-neon);
+            text-decoration: none;
+            transition: color 0.15s;
+        }
+        .section-link:hover { color: #fff; }
+
+        /* ── Game Cards ── */
+        .game-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            overflow: hidden;
+            transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+            cursor: pointer;
+        }
+        .game-card:active { transform: scale(0.97); }
+
+        .game-card-thumb {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .game-card-thumb::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(180deg, transparent 40%, rgba(0,0,0,0.6) 100%);
+        }
+
+        /* Glow accent line at top of card */
+        .card-accent-line {
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            opacity: 0.8;
+        }
+
+        .game-card-body {
+            padding: 12px 14px 14px;
+            border-top: 1px solid var(--border);
+        }
+        .game-card-category {
+            font-family: 'Oswald', sans-serif;
+            font-size: 9px;
+            font-weight: 500;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.35);
+            margin-bottom: 3px;
+        }
+        .game-card-name {
+            font-family: 'Oswald', sans-serif;
+            font-size: 15px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.92);
+            margin-bottom: 12px;
+        }
+
+        .play-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            font-family: 'Oswald', sans-serif;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 2.5px;
+            text-transform: uppercase;
+            text-decoration: none;
+            cursor: pointer;
+            border: none;
+            transition: all 0.15s;
+        }
+        .play-btn:active { transform: scale(0.95); }
+
+        .play-btn-ghost {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: rgba(255,255,255,0.7);
+        }
+        .play-btn-ghost:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.2); color: #fff; }
+
+        .play-btn-blue {
+            background: rgba(0,242,255,0.08);
+            border: 1px solid rgba(0,242,255,0.25);
+            color: var(--blue-neon);
+        }
+        .play-btn-blue:hover { background: rgba(0,242,255,0.14); }
+
+        /* ── Live Badge ── */
+        .live-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            background: rgba(0,0,0,0.65);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 6px;
+            padding: 4px 8px;
+            font-family: 'Oswald', sans-serif;
+            font-size: 9px;
+            font-weight: 600;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.8);
+        }
+
+        /* ── Hot Badge ── */
+        .hot-badge {
+            font-family: 'Oswald', sans-serif;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: #fff;
+            background: var(--red-hot);
+            padding: 3px 10px;
+            border-radius: 5px;
+            box-shadow: 0 2px 12px rgba(255,49,49,0.5);
+        }
+
+        /* ── Payout Feed ── */
+        .feed-table {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+        .feed-header {
+            display: grid;
+            grid-template-columns: 5fr 3fr 4fr;
+            gap: 8px;
+            padding: 10px 16px;
+            border-bottom: 1px solid var(--border);
+            background: rgba(255,255,255,0.03);
+            font-family: 'Oswald', sans-serif;
+            font-size: 9px;
+            font-weight: 500;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.3);
+        }
+        #live-wins-feed { background: #0e0e0e; }
+
+        .feed-row {
+            display: grid;
+            grid-template-columns: 5fr 3fr 4fr;
+            gap: 8px;
+            align-items: center;
+            padding: 10px 16px;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+            transition: background 0.2s;
+        }
+        .feed-row:last-child { border-bottom: none; }
+
+        /* ── Slide-in animation ── */
         @keyframes slideInDown {
-            0% { opacity: 0; transform: translateY(-15px); }
+            0%   { opacity: 0; transform: translateY(-12px); }
             100% { opacity: 1; transform: translateY(0); }
         }
-        .animate-slide-in {
-            animation: slideInDown 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        .animate-slide-in { animation: slideInDown 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+
+        /* ── Pulse dots ── */
+        @keyframes ping { 0%{transform:scale(1);opacity:0.8} 75%,100%{transform:scale(2);opacity:0} }
+        .dot-ping { animation: ping 1.4s cubic-bezier(0,0,0.2,1) infinite; }
+
+        /* ── Decorative plane trail ── */
+        .plane-trail {
+            position: absolute;
+            right: 24px;
+            bottom: 30px;
+            pointer-events: none;
+        }
+        @keyframes soar {
+            0%   { transform: translate(0, 0) rotate(-15deg); }
+            50%  { transform: translate(-8px, -6px) rotate(-18deg); }
+            100% { transform: translate(0, 0) rotate(-15deg); }
+        }
+        .plane-icon { animation: soar 3s ease-in-out infinite; }
+
+        /* ── Dots indicator ── */
+        .dot-indicator {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+        }
+        .dot-indicator span {
+            display: block;
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            transition: all 0.3s;
+        }
+
+        /* ── Gold section accent ── */
+        .gold-accent-line {
+            width: 24px; height: 2px;
+            background: linear-gradient(90deg, var(--gold), transparent);
+            border-radius: 1px;
         }
     </style>
 </head>
 
-<body class="min-h-screen">
+<body>
+<main class="pb-28 max-w-2xl mx-auto">
 
-    <main class="pb-24">
+    <!-- ════════════ HERO BANNER — AVIATOR ════════════ -->
+    <section class="px-4 pt-6 pb-4">
+        <div class="hero-banner group">
+            <!-- Decorative grid -->
+            <div style="position:absolute;inset:0;background-image:linear-gradient(rgba(255,49,49,0.06) 1px,transparent 1px),linear-gradient(90deg,rgba(255,49,49,0.06) 1px,transparent 1px);background-size:40px 40px;"></div>
 
-        <section class="px-4 py-6">
-            <div class="relative w-full aspect-[16/9] rounded-2xl overflow-hidden bg-gradient-to-br from-[#1a0505] to-[#0a0a0a] border border-neon-red/20 neon-glow-red group">
-                <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-20"></div>
-                <div class="absolute inset-0 p-5 flex flex-col justify-between z-10">
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <span class="bg-neon-red text-[10px] font-black px-2 py-0.5 rounded text-white uppercase italic shadow-lg shadow-neon-red/50">Hot Now</span>
-                            <h2 class="text-3xl font-black italic tracking-tighter mt-1 text-white drop-shadow-md">AVIATOR</h2>
-                        </div>
-                        <div class="text-right bg-black/40 backdrop-blur-sm border border-neon-red/20 rounded-xl px-3 py-1.5">
-                            <p class="text-[9px] font-bold text-white/60 uppercase">Live Multiplier</p>
-                            <p class="text-3xl font-black text-neon-red italic tracking-tighter">14.52x</p>
-                        </div>
+            <!-- Content -->
+            <div style="position:relative;z-index:10;padding:20px 20px 18px;height:100%;display:flex;flex-direction:column;justify-content:space-between;">
+                <!-- Top row -->
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+                    <div>
+                        <span class="hot-badge">🔥 Hot Now</span>
+                        <h2 style="font-family:'Oswald',sans-serif;font-size:38px;font-weight:700;letter-spacing:-1px;text-transform:uppercase;line-height:1;margin-top:8px;text-shadow:0 2px 20px rgba(0,0,0,0.5);">AVIATOR</h2>
                     </div>
-                    
-                    <div class="flex justify-between items-end">
-                        <a href="/casino/aviator" class="w-1/2 py-3 bg-neon-red hover:bg-neon-red/80 text-white rounded-xl text-xs font-black uppercase tracking-[0.2em] transition-all duration-300 flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(255,49,49,0.4)] active:scale-95 border border-white/20">
-                            <span class="material-symbols-outlined text-lg">play_arrow</span> Play
-                        </a>
-                        <div class="flex gap-1.5 bg-black/40 px-2 py-1 rounded-full backdrop-blur-sm">
-                            <div class="size-2 rounded-full bg-neon-red animate-pulse"></div>
-                            <div class="size-2 rounded-full bg-white/20"></div>
-                            <div class="size-2 rounded-full bg-white/20"></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="absolute right-0 bottom-0 w-3/4 h-3/4 pointer-events-none transition-transform duration-700 group-hover:scale-110">
-                    <span class="material-symbols-outlined absolute right-8 bottom-12 text-[120px] text-neon-red/40 rotate-[-15deg]">flight_takeoff</span>
-                    <div class="absolute right-16 bottom-24 w-40 h-1 bg-gradient-to-l from-neon-red to-transparent opacity-50 rotate-[-15deg]"></div>
-                </div>
-            </div>
-        </section>
-
-        <section class="px-4 py-2">
-            <div class="flex items-center justify-between mb-4">
-                <h3 class="text-sm font-bold uppercase tracking-[0.2em] text-white/90">Popular Games</h3>
-                <span class="text-[10px] font-bold text-neon-blue uppercase cursor-pointer hover:text-white transition-colors">View All</span>
-            </div>
-            
-            <div class="grid grid-cols-2 gap-3">
-                <div class="bg-surface-dark rounded-xl overflow-hidden border border-white/5 group relative">
-                    <div class="aspect-square relative bg-gradient-to-b from-[#1a1a1a] to-[#0a0a0a] flex items-center justify-center p-6 overflow-hidden">
-                        <span class="material-symbols-outlined text-7xl text-neon-gold opacity-80 group-hover:scale-110 transition-transform duration-500 neon-glow-gold rounded-full">incomplete_circle</span>
-                        <div class="absolute top-2 right-2 flex items-center gap-1 bg-black/60 backdrop-blur-md px-2 py-1 rounded text-[8px] font-bold border border-white/10">
-                            <span class="size-1.5 rounded-full bg-green-500 animate-pulse"></span> LIVE
-                        </div>
-                    </div>
-                    <div class="p-3 border-t border-white/5">
-                        <p class="text-[9px] font-black text-white/40 uppercase mb-0.5">Table Games</p>
-                        <p class="text-xs font-bold uppercase mb-3 text-white/90">Roulette 3D</p>
-                        <button class="w-full py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 hover:border-neon-gold/50 hover:text-neon-gold">Play Now</button>
+                    <div style="background:rgba(0,0,0,0.55);backdrop-filter:blur(12px);border:1px solid rgba(255,49,49,0.25);border-radius:12px;padding:10px 14px;text-align:right;">
+                        <p style="font-family:'Oswald',sans-serif;font-size:9px;font-weight:500;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,0.45);margin-bottom:3px;">Live Multiplier</p>
+                        <p class="multiplier-display">14.52x</p>
                     </div>
                 </div>
 
-                <div class="bg-surface-dark rounded-xl overflow-hidden border border-white/5 group relative">
-                    <div class="aspect-square relative bg-gradient-to-b from-[#0a1622] to-[#0a0a0a] flex items-center justify-center p-6 overflow-hidden">
-                        <div class="grid grid-cols-2 gap-2 group-hover:scale-110 transition-transform duration-500">
-                            <span class="material-symbols-outlined text-4xl text-neon-blue neon-glow-blue">diamond</span>
-                            <span class="material-symbols-outlined text-4xl text-white/10">diamond</span>
-                            <span class="material-symbols-outlined text-4xl text-white/10">diamond</span>
-                            <span class="material-symbols-outlined text-4xl text-neon-red neon-glow-red">bomb</span>
-                        </div>
-                    </div>
-                    <div class="p-3 border-t border-white/5">
-                        <p class="text-[9px] font-black text-white/40 uppercase mb-0.5">Crash Games</p>
-                        <p class="text-xs font-bold uppercase mb-3 text-white/90">Diamond Mines</p>
-                        <a href="/casino/diamond-and-mines" class="w-full py-2.5 bg-neon-blue/10 hover:bg-neon-blue/20 border border-neon-blue/30 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 text-neon-blue flex items-center justify-center">Play Now</a>
-                    </div>
-                </div>
-
-                <div class="bg-surface-dark rounded-xl overflow-hidden border border-white/5 group relative">
-                    <div class="aspect-square relative bg-gradient-to-b from-[#220a1c] to-[#0a0a0a] flex items-center justify-center p-6 overflow-hidden">
-                        <div class="flex gap-1 items-center bg-black/60 p-2 rounded-xl border border-neon-pink/30 group-hover:scale-110 transition-transform duration-500 shadow-[0_0_20px_rgba(255,0,122,0.2)]">
-                            <span class="text-3xl">🍒</span><span class="text-3xl">🍒</span><span class="text-3xl">🍒</span>
-                        </div>
-                    </div>
-                    <div class="p-3 border-t border-white/5">
-                        <p class="text-[9px] font-black text-white/40 uppercase mb-0.5">Slots</p>
-                        <p class="text-xs font-bold uppercase mb-3 text-white/90">Fruit Bonanza</p>
-                        <a href="/casino/fruit-bonanza" class="w-full py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 hover:border-neon-pink/50 hover:text-neon-pink">Play Now</a>
-                    </div>
-                </div>
-                
-                <div class="bg-surface-dark rounded-xl overflow-hidden border border-white/5 group relative">
-                    <div class="aspect-square relative bg-gradient-to-b from-[#1a0a22] to-[#0a0a0a] flex items-center justify-center p-6 overflow-hidden">
-                        <div class="flex gap-2 group-hover:scale-110 transition-transform duration-500">
-                             <span class="material-symbols-outlined text-5xl text-purple-400 drop-shadow-[0_0_15px_rgba(192,132,252,0.5)]">casino</span>
-                             <span class="material-symbols-outlined text-5xl text-purple-400 drop-shadow-[0_0_15px_rgba(192,132,252,0.5)]">casino</span>
-                        </div>
-                    </div>
-                    <div class="p-3 border-t border-white/5">
-                        <p class="text-[9px] font-black text-white/40 uppercase mb-0.5">Table Games</p>
-                        <p class="text-xs font-bold uppercase mb-3 text-white/90">7 Up 7 Down</p>
-                        <a href="/casino/7up-7down" class="w-full py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 hover:border-purple-400/50 hover:text-purple-400 flex items-center justify-center">Play Now</a>
+                <!-- Bottom row -->
+                <div style="display:flex;justify-content:space-between;align-items:flex-end;">
+                    <a href="/casino/aviator" class="hero-cta">
+                        <span class="material-symbols-outlined" style="font-size:18px;font-variation-settings:'FILL' 1;">play_circle</span>
+                        Play Now
+                    </a>
+                    <div class="dot-indicator">
+                        <span style="background:var(--red-hot);width:20px;border-radius:3px;"></span>
+                        <span style="background:rgba(255,255,255,0.2);"></span>
+                        <span style="background:rgba(255,255,255,0.2);"></span>
                     </div>
                 </div>
             </div>
-        </section>
 
-        <section class="mt-6 px-4">
-            <div class="flex items-center gap-2 mb-3">
-                <span class="material-symbols-outlined text-neon-gold animate-pulse text-lg">sensors</span>
-                <h3 class="text-sm font-bold uppercase tracking-[0.2em] text-white/90">Live Payouts</h3>
-            </div>
-            
-            <div class="bg-surface-dark rounded-2xl border border-white/5 overflow-hidden shadow-lg">
-                <div class="grid grid-cols-12 gap-2 p-3 border-b border-white/5 bg-white/5 text-[9px] font-black uppercase text-white/40 tracking-widest">
-                    <div class="col-span-5">Game / Player</div>
-                    <div class="col-span-3 text-center">Bet</div>
-                    <div class="col-span-4 text-right">Payout</div>
+            <!-- Decorative plane -->
+            <div class="plane-trail">
+                <div class="plane-icon">
+                    <span class="material-symbols-outlined" style="font-size:88px;color:rgba(255,49,49,0.22);">flight_takeoff</span>
                 </div>
-                
-                <div class="relative w-full">
-                    <div id="live-wins-feed" class="flex flex-col max-h-[220px] overflow-hidden bg-[#111]">
-                        <div class="p-3 text-center text-xs font-bold text-white/30 italic">Connecting to live servers...</div>
-                    </div>
-                    <div class="absolute bottom-0 left-0 w-full h-12 bg-gradient-to-t from-surface-dark to-transparent pointer-events-none"></div>
-                </div>
+                <!-- Trail lines -->
+                <div style="position:absolute;right:72px;bottom:28px;width:120px;height:1.5px;background:linear-gradient(270deg,rgba(255,49,49,0.4),transparent);transform:rotate(-15deg);border-radius:1px;"></div>
+                <div style="position:absolute;right:72px;bottom:38px;width:80px;height:1px;background:linear-gradient(270deg,rgba(255,49,49,0.2),transparent);transform:rotate(-15deg);border-radius:1px;"></div>
             </div>
-        </section>
+        </div>
+    </section>
+
+    <!-- ════════════ POPULAR GAMES ════════════ -->
+    <section class="px-4 py-2">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+                <div class="gold-accent-line"></div>
+                <span class="section-title">Popular Games</span>
+            </div>
+            <span class="section-link">View All →</span>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+
+            <div class="game-card" style="position:relative;">
+    <div class="card-accent-line" style="background:linear-gradient(90deg, #ff8c00, transparent);"></div>
+    
+    <div class="game-card-thumb" style="background:radial-gradient(ellipse at center, #291500 0%, #0d0d0d 100%);">
         
-    </main>
+        <span class="material-symbols-outlined group-hover:scale-110" style="font-size:76px;color:#ffb77d;filter:drop-shadow(0 0 20px rgba(255,140,0,0.4));transition:transform 0.4s;z-index:2;">
+            egg
+        </span>
+        
+        <div style="position:absolute;top:10px;right:10px;z-index:3;" class="live-badge">
+            <span style="width:5px;height:5px;border-radius:50%;background:#22c55e;position:relative;flex-shrink:0;">
+                <span class="dot-ping" style="position:absolute;inset:-2px;border-radius:50%;background:#22c55e;display:block;"></span>
+            </span>
+            LIVE
+        </div>
+    </div>
+    
+    <div class="game-card-body">
+        <p class="game-card-category">Mini Games</p>
+        <p class="game-card-name">Chicken Road</p>
+        <a href="/casino/chicken-road" class="play-btn play-btn-ghost">Play Now</a>
+    </div>
+</div>
 
-    <script>
-        document.addEventListener("DOMContentLoaded", () => {
-            const feedContainer = document.getElementById('live-wins-feed');
-            
-            // Casino Games Database
-            const gamesList = [
-                { name: 'Aviator', color: 'text-neon-red', icon: 'flight_takeoff' },
-                { name: 'Mines & Mac', color: 'text-neon-blue', icon: 'diamond' },
-                { name: '7 Up 7 Down', color: 'text-purple-400', icon: 'casino' },
-                { name: 'Roulette 3D', color: 'text-neon-gold', icon: 'incomplete_circle' },
-                { name: 'Fruit Bonanza', color: 'text-neon-pink', icon: 'view_week' },
-                { name: 'Super Over', color: 'text-primary', icon: 'sports_cricket' }
-            ];
-            
-            // Fake Usernames
-            const playerNames = ["Alex***", "Raj***", "Dev***", "Sam***", "Poo***", "Moh***", "Vik***", "Sne***", "Joh***", "Chris***"
-                , "Ami***", "Anu***", "Sai***", "Kav***", "Nikh***", "Har***", "Aar***", "Pri***", "Adh***", "Man***", "Shiv***", "Arj***",
-                 "Kri***", "Suh***", "Tan***", "Dha***", "Yog***", "Ish***", "Par***", "Gau***", "Lak***", "Vi***", "Sha***", "Ragh***", "Kum***",
-                  "Chir***", "Samar***", "Nave***", "Tej***", "Vij***", "Ash***", "Mahi***", "Rit***", "Sidh***", "Ansh***", "Kaly***", "Shan***",
-                 "Raghv***", "Amit***", "Saty***", "Vish***", "Karan***", "Jai***", "Rah***", "Aditya***", "Suresh***", "Vikram***", "Sanjay***", 
-                 "Rohit***", "Aman***", "Kunal***", "Pranav***", "Sahil***"
-                , "Nikhil***", "Harsh***", "Aarav***", "Priyansh***", "Adhvik***", "Manav***", "Shivam***", "Arjun***", "Krish***", "Suhas***", "Tanmay***",
-                 "Dhaval***", "Yogesh***", "Ishaan***", "Parth***", "Gaurav***", "Lakshay***", "Vishal***", "Shantanu***"
-            ];
-
-            // Clear the "Connecting..." text initially
-            feedContainer.innerHTML = '';
-
-            function generateFakeWin() {
-                // Randomly select data
-                const game = gamesList[Math.floor(Math.random() * gamesList.length)];
-                const player = playerNames[Math.floor(Math.random() * playerNames.length)];
-                
-                // Randomize Bet and Multiplier
-                const betAmounts = [10, 50, 100, 200, 500, 1000];
-                const bet = betAmounts[Math.floor(Math.random() * betAmounts.length)];
-                
-                // Multipliers favor smaller wins, occasional big wins
-                let multiplier;
-                const luck = Math.random();
-                if (luck > 0.9) multiplier = (Math.random() * 20 + 5).toFixed(2); // 5x to 25x
-                else if (luck > 0.6) multiplier = (Math.random() * 3 + 2).toFixed(2); // 2x to 5x
-                else multiplier = (Math.random() * 1 + 1.1).toFixed(2); // 1.1x to 2x
-
-                const payout = (bet * multiplier).toFixed(2);
-
-                // Create the row element
-                const row = document.createElement('div');
-                row.className = 'grid grid-cols-12 gap-2 items-center px-3 py-2.5 border-b border-white/5 bg-surface-dark/50 animate-slide-in';
-                
-                // Format the HTML
-                row.innerHTML = `
-                    <div class="col-span-5 flex items-center gap-2 overflow-hidden">
-                        <span class="material-symbols-outlined text-[16px] ${game.color}">${game.icon}</span>
-                        <div class="flex flex-col truncate">
-                            <span class="text-[10px] font-bold text-white/90 truncate">${game.name}</span>
-                            <span class="text-[9px] font-medium text-white/40">${player}</span>
-                        </div>
+            <!-- ── Diamond Mines ── -->
+            <div class="game-card" style="position:relative;">
+                <div class="card-accent-line" style="background:linear-gradient(90deg,var(--blue-neon),transparent);"></div>
+                <div class="game-card-thumb" style="background:radial-gradient(ellipse at center, #041520 0%, #0a0a0a 100%);">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;transition:transform 0.4s;z-index:2;">
+                        <span class="material-symbols-outlined" style="font-size:38px;color:var(--blue-neon);filter:drop-shadow(0 0 12px rgba(0,242,255,0.6));font-variation-settings:'FILL' 1;">diamond</span>
+                        <span class="material-symbols-outlined" style="font-size:38px;color:rgba(255,255,255,0.08);font-variation-settings:'FILL' 1;">diamond</span>
+                        <span class="material-symbols-outlined" style="font-size:38px;color:rgba(255,255,255,0.08);font-variation-settings:'FILL' 1;">diamond</span>
+                        <span class="material-symbols-outlined" style="font-size:38px;color:var(--red-hot);filter:drop-shadow(0 0 12px rgba(255,49,49,0.6));font-variation-settings:'FILL' 1;">bomb</span>
                     </div>
-                    <div class="col-span-3 text-center flex flex-col justify-center">
-                        <span class="text-[10px] font-mono text-white/60">₹${bet}</span>
-                        <span class="text-[8px] font-bold ${game.color} opacity-80">${multiplier}x</span>
+                </div>
+                <div class="game-card-body">
+                    <p class="game-card-category">Crash Games</p>
+                    <p class="game-card-name">Diamond Mines</p>
+                    <a href="/casino/diamond-and-mines" class="play-btn play-btn-blue">Play Now</a>
+                </div>
+            </div>
+
+            <!-- ── Fruit Bonanza ── -->
+            <div class="game-card" style="position:relative;">
+                <div class="card-accent-line" style="background:linear-gradient(90deg,#ff007a,transparent);"></div>
+                <div class="game-card-thumb" style="background:radial-gradient(ellipse at center, #1a0510 0%, #0a0a0a 100%);">
+                    <div style="display:flex;align-items:center;gap:4px;background:rgba(0,0,0,0.5);border:1px solid rgba(255,0,122,0.25);border-radius:14px;padding:14px 16px;box-shadow:0 0 24px rgba(255,0,122,0.15);z-index:2;">
+                        <span style="font-size:34px;line-height:1;">🍒</span>
+                        <span style="font-size:34px;line-height:1;">🍒</span>
+                        <span style="font-size:34px;line-height:1;">🍒</span>
                     </div>
-                    <div class="col-span-4 text-right flex items-center justify-end">
-                        <span class="text-xs font-black text-[#28a745] drop-shadow-[0_0_8px_rgba(40,167,69,0.5)]">+₹${payout}</span>
+                </div>
+                <div class="game-card-body">
+                    <p class="game-card-category">Slots</p>
+                    <p class="game-card-name">Fruit Bonanza</p>
+                    <a href="/casino/fruit-bonanza" class="play-btn play-btn-ghost" style="border-color:rgba(255,0,122,0.2);color:rgba(255,255,255,0.7);">Play Now</a>
+                </div>
+            </div>
+
+            <!-- ── 7 Up 7 Down ── -->
+            <div class="game-card" style="position:relative;">
+                <div class="card-accent-line" style="background:linear-gradient(90deg,#a78bfa,transparent);"></div>
+                <div class="game-card-thumb" style="background:radial-gradient(ellipse at center, #120a22 0%, #0a0a0a 100%);">
+                    <div style="display:flex;gap:10px;z-index:2;">
+                        <span class="material-symbols-outlined" style="font-size:52px;color:#a78bfa;filter:drop-shadow(0 0 16px rgba(167,139,250,0.5));font-variation-settings:'FILL' 1;">casino</span>
+                        <span class="material-symbols-outlined" style="font-size:52px;color:#a78bfa;filter:drop-shadow(0 0 16px rgba(167,139,250,0.5));font-variation-settings:'FILL' 1;">casino</span>
                     </div>
-                `;
+                </div>
+                <div class="game-card-body">
+                    <p class="game-card-category">Table Games</p>
+                    <p class="game-card-name">7 Up 7 Down</p>
+                    <a href="/casino/7up-7down" class="play-btn play-btn-ghost" style="border-color:rgba(167,139,250,0.2);color:rgba(255,255,255,0.7);">Play Now</a>
+                </div>
+            </div>
 
-                // Insert at the top
-                feedContainer.insertBefore(row, feedContainer.firstChild);
+        </div>
+    </section>
 
-                // Keep only the latest 8 rows to prevent DOM bloat
-                if (feedContainer.children.length > 8) {
-                    feedContainer.removeChild(feedContainer.lastChild);
-                }
+    <!-- ════════════ LIVE PAYOUTS ════════════ -->
+    <section style="margin-top:24px;" class="px-4">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+            <div style="position:relative;width:10px;height:10px;flex-shrink:0;">
+                <span style="position:absolute;inset:0;border-radius:50%;background:#ffd700;display:block;"></span>
+                <span class="dot-ping" style="position:absolute;inset:-3px;border-radius:50%;background:rgba(255,215,0,0.4);display:block;"></span>
+            </div>
+            <span class="section-title">Live Payouts</span>
+        </div>
 
-                // Schedule next win (random interval between 1.5s and 4s)
-                const nextDelay = Math.random() * 2500 + 1500;
-                setTimeout(generateFakeWin, nextDelay);
-            }
+        <div class="feed-table">
+            <!-- Header -->
+            <div class="feed-header">
+                <div>Game / Player</div>
+                <div style="text-align:center;">Bet</div>
+                <div style="text-align:right;">Payout</div>
+            </div>
 
-            // Kick off the engine
-            generateFakeWin();
-        });
-    </script>
+            <!-- Feed rows -->
+            <div style="position:relative;">
+                <div id="live-wins-feed" style="max-height:240px;overflow:hidden;background:#0c0c0c;">
+                    <div style="padding:24px;text-align:center;font-family:'Oswald',sans-serif;font-size:12px;font-weight:500;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,0.2);">
+                        Connecting to live servers…
+                    </div>
+                </div>
+                <!-- Fade gradient -->
+                <div style="position:absolute;bottom:0;left:0;right:0;height:48px;background:linear-gradient(to top,#0c0c0c,transparent);pointer-events:none;"></div>
+            </div>
+        </div>
+    </section>
+
+</main>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const feedContainer = document.getElementById('live-wins-feed');
+    
+    const gamesList = [
+        { name: 'Aviator',       color: '#ff3131', icon: 'flight_takeoff' },
+        { name: 'Mines & Mac',   color: '#00f2ff', icon: 'diamond' },
+        { name: '7 Up 7 Down',   color: '#a78bfa', icon: 'casino' },
+        { name: 'Roulette 3D',   color: '#ffd700', icon: 'incomplete_circle' },
+        { name: 'Fruit Bonanza', color: '#ff007a', icon: 'view_week' },
+        { name: 'Super Over',    color: '#ff8c00', icon: 'sports_cricket' }
+    ];
+    
+    const playerNames = ["Alex***", "Raj***", "Dev***", "Sam***", "Poo***", "Moh***", "Vik***", "Sne***", "Joh***", "Chris***",
+        "Ami***", "Anu***", "Sai***", "Kav***", "Nikh***", "Har***", "Aar***", "Pri***", "Adh***", "Man***", "Shiv***", "Arj***",
+        "Kri***", "Suh***", "Tan***", "Dha***", "Yog***", "Ish***", "Par***", "Gau***", "Lak***", "Vi***", "Sha***", "Ragh***", "Kum***",
+        "Chir***", "Samar***", "Nave***", "Tej***", "Vij***", "Ash***", "Mahi***", "Rit***", "Sidh***", "Ansh***", "Kaly***", "Shan***",
+        "Raghv***", "Amit***", "Saty***", "Vish***", "Karan***", "Jai***", "Rah***", "Aditya***", "Suresh***", "Vikram***", "Sanjay***",
+        "Rohit***", "Aman***", "Kunal***", "Pranav***", "Sahil***", "Nikhil***", "Harsh***", "Aarav***", "Priyansh***", "Adhvik***",
+        "Manav***", "Shivam***", "Arjun***", "Krish***", "Suhas***", "Tanmay***", "Dhaval***", "Yogesh***", "Ishaan***", "Parth***",
+        "Gaurav***", "Lakshay***", "Vishal***", "Shantanu***"
+    ];
+
+    feedContainer.innerHTML = '';
+
+    function generateFakeWin() {
+        const game   = gamesList[Math.floor(Math.random() * gamesList.length)];
+        const player = playerNames[Math.floor(Math.random() * playerNames.length)];
+        
+        const betAmounts = [10, 50, 100, 200, 500, 1000];
+        const bet = betAmounts[Math.floor(Math.random() * betAmounts.length)];
+        
+        let multiplier;
+        const luck = Math.random();
+        if (luck > 0.9)      multiplier = (Math.random() * 20 + 5).toFixed(2);
+        else if (luck > 0.6) multiplier = (Math.random() * 3  + 2).toFixed(2);
+        else                 multiplier = (Math.random() * 1  + 1.1).toFixed(2);
+
+        const payout = (bet * multiplier).toFixed(2);
+
+        const row = document.createElement('div');
+        row.className = 'feed-row animate-slide-in';
+        row.innerHTML = `
+            <div style="display:flex;align-items:center;gap:10px;overflow:hidden;">
+                <div style="width:30px;height:30px;border-radius:8px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <span class="material-symbols-outlined" style="font-size:16px;color:${game.color};font-variation-settings:'FILL' 1;">${game.icon}</span>
+                </div>
+                <div style="overflow:hidden;">
+                    <p style="font-family:'Oswald',sans-serif;font-size:12px;font-weight:600;letter-spacing:0.3px;color:rgba(255,255,255,0.9);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${game.name}</p>
+                    <p style="font-size:10px;color:rgba(255,255,255,0.35);margin-top:1px;">${player}</p>
+                </div>
+            </div>
+            <div style="text-align:center;">
+                <p style="font-family:'Oswald',sans-serif;font-size:12px;color:rgba(255,255,255,0.55);">₹${bet}</p>
+                <p style="font-family:'Oswald',sans-serif;font-size:10px;font-weight:600;color:${game.color};">${multiplier}x</p>
+            </div>
+            <div style="text-align:right;display:flex;align-items:center;justify-content:flex-end;gap:4px;">
+                <span style="font-family:'Oswald',sans-serif;font-size:14px;font-weight:700;color:#22c55e;text-shadow:0 0 12px rgba(34,197,94,0.4);">+₹${payout}</span>
+            </div>
+        `;
+
+        feedContainer.insertBefore(row, feedContainer.firstChild);
+
+        if (feedContainer.children.length > 8) {
+            feedContainer.removeChild(feedContainer.lastChild);
+        }
+
+        const nextDelay = Math.random() * 2500 + 1500;
+        setTimeout(generateFakeWin, nextDelay);
+    }
+
+    generateFakeWin();
+});
+</script>
 </body>
 </html>

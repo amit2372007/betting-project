@@ -43,7 +43,8 @@ const SevenUpBet = require("./model/7up7Down/7up7down.js");
 const FruitBonanzaBet = require("./model/fruitBonanza/fruitBonanza.js");
 
 const DepositAccount = require("./model/transactions/accountDetail.js");
-
+const WhatsappNumber = require("./model/transactions/whatsapp.js");
+const Announcement = require("./model/user/announcement.js");
 
 //Game Engines
 const SuperOverEngine = require("./services/virtualSuperOver/VirtualSuperOverEngine.js");
@@ -352,12 +353,17 @@ app.get("/home", async (req, res) => {
         .lean(); 
     }
 
+    //find a deposite whatsaap Number
+    const whatsappNumber = await WhatsappNumber.findOne({purpose: "deposit"})
+    const announcement = await Announcement.findOne({isActive: true});
     // Send everything to the frontend
     res.render("./webpage/home.ejs", {
       activeTab,
       cricketEvents,
       footballEvents, 
       bets,
+      whatsappNumber,
+      announcement
     });
   } catch (err) {
     console.error("Route Error:", err);
@@ -371,9 +377,19 @@ app.get("/home", async (req, res) => {
   }
 });
 
-app.get("/lucky-spin" , (req,res)=>{
-    res.render("./webpage/luckySpin.ejs" );
-})
+app.get("/lucky-spin", async (req, res) => {
+    try {
+        const whatsaapNumber = await WhatsappNumber.findOne({
+            purpose: "deposit",
+            status: "active"
+        });
+
+        res.render("./webpage/luckySpin.ejs",  {whatsaapNumber} );
+    } catch (err) {
+        req.flash("error", "Server Issue! Try Again");
+        res.redirect("/home");
+    } 
+});
 
 app.get("/refresh", (req, res) => {
     // 1. Grab the URL the user just came from
@@ -828,7 +844,7 @@ app.post("/place-bet",isLoggedIn, async (req, res) => {
       // Fetch LIVE scraped odds from Redis cache
       const liveCachedOdds = await redis.get(`live_odds_${eventId}`);
       if (!liveCachedOdds) {
-        req.flash("error", "Market is currently suspended. Try again.");
+        req.flash("error", "Market is currently suspended. Wait for Live Match");
         return res.redirect(`/event/${eventId}`);
       }
       

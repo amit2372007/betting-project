@@ -5,6 +5,8 @@ const Transaction = require("../model/transactions/transaction.js");
 const Session = require("../model/event/session.js");
 const Complaint = require("../model/complain/complain.js");
 const DepositAccount = require("../model/transactions/accountDetail.js");
+const WhatsappNumber = require("../model/transactions/whatsapp.js");
+const Announcement = require("../model/user/announcement.js");
 
 module.exports.renderAdminDashboard = async (req, res) => {
   try {
@@ -61,6 +63,11 @@ module.exports.renderAdminDashboard = async (req, res) => {
                 c.status === 'Resolved' && new Date(c.updatedAt) >= today
             ).length;
 
+
+    //Whatsapp Number mange
+    const whatsappNumbers = await WhatsappNumber.find().sort({ createdAt: -1 });
+    const announcements = await Announcement.find({});
+
     req.flash("success", "Welcome Amit to the Admin Dashboard!");
     // 5. Render Dashboard
     res.render("./admin/dashboard.ejs", { 
@@ -75,7 +82,9 @@ module.exports.renderAdminDashboard = async (req, res) => {
       withdrawals,         // Replaces pendingWithdrawals
       totalUsers,
       totalDepositsToday,  // Dynamic stat
-      totalApprovedAmount  // Dynamic stat
+      totalApprovedAmount,  // Dynamic stat
+      whatsappNumbers: whatsappNumbers,
+      announcements,
     });
 
   } catch (err) {
@@ -722,7 +731,7 @@ module.exports.replyToComplaint = async (req, res) => {
     }
 };
 
-exports.updateComboMarket = async (req, res) => {
+module.exports.updateComboMarket = async (req, res) => {
     try {
         const { eventId, sessionId } = req.params;
         const { status, result } = req.body;
@@ -761,5 +770,116 @@ exports.updateComboMarket = async (req, res) => {
         console.error("Error updating combo market:", err);
         req.flash('error', 'Something went wrong while updating the combo.');
         res.redirect('back');
+    }
+};
+
+
+module.exports.addWhatsAppNumber = async (req, res) => {
+    try {
+        const { phoneNumber, purpose, status, activeUntil } = req.body;
+        await WhatsappNumber.create({ phoneNumber, purpose, status, activeUntil });
+        req.flash('success', 'WhatsApp number added successfully!');
+        res.redirect('/admin?tab=WhatsApp');
+    } catch (err) {
+        console.error('Error adding number:', err);
+        req.flash('error', 'Failed to add number. Make sure the number is unique.');
+        res.redirect('/admin?tab=WhatsApp');
+    }
+};
+
+module.exports.editWhatsAppNumber = async (req, res) => {
+    try {
+        const { phoneNumber, purpose, status, activeUntil } = req.body;
+        await WhatsappNumber.findByIdAndUpdate(req.params.id, {
+            phoneNumber, purpose, status, activeUntil
+        });
+        req.flash('success', 'WhatsApp number updated successfully!');
+        res.redirect('/admin?tab=WhatsApp');
+    } catch (err) {
+        console.error('Error updating number:', err);
+        req.flash('error', 'Failed to update number.');
+        res.redirect('/admin?tab=WhatsApp');
+    }
+};
+
+module.exports.deleteWhatsAppNumber = async (req, res) => {
+    try {
+        await WhatsappNumber.findByIdAndDelete(req.params.id);
+        req.flash('success', 'WhatsApp number deleted.');
+        res.redirect('/admin?tab=WhatsApp');
+    } catch (err) {
+        console.error('Error deleting number:', err);
+        req.flash('error', 'Failed to delete number.');
+        res.redirect('/admin?tab=WhatsApp');
+    }
+};
+
+module.exports.createAnnouncement = async (req, res) => {
+    try {
+        const { message, theme } = req.body;
+
+        // Deactivate all existing announcements first (enforcing the "only 1 active" rule)
+        await Announcement.updateMany({}, { isActive: false });
+
+        // Create the new one (isActive defaults to true in your schema)
+        await Announcement.create({
+            message,
+            theme,
+            isActive: true 
+        });
+
+        req.flash('success', 'Announcement broadcasted successfully!');
+        res.redirect('/admin?tab=Dashboard'); // Adjust redirect to where your dashboard is
+    } catch (err) {
+        console.error('Error creating announcement:', err);
+        req.flash('error', 'Failed to broadcast announcement.');
+        res.redirect('/admin?tab=Dashboard');
+    }
+};
+
+// 2. Toggle Active Status
+module.exports.toggleAnnouncement = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const announcement = await Announcement.findById(id);
+
+        if (!announcement) {
+            req.flash('error', 'Announcement not found.');
+            return res.redirect('/admin?tab=Dashboard');
+        }
+
+        if (announcement.isActive) {
+            // If it's currently active, just turn it off
+            announcement.isActive = false;
+            await announcement.save();
+            req.flash('success', 'Announcement deactivated.');
+        } else {
+            // If we are turning it ON, we must turn all others OFF first
+            await Announcement.updateMany({}, { isActive: false });
+            announcement.isActive = true;
+            await announcement.save();
+            req.flash('success', 'Announcement activated.');
+        }
+
+        res.redirect('/admin?tab=Dashboard');
+    } catch (err) {
+        console.error('Error toggling announcement:', err);
+        req.flash('error', 'Failed to toggle status.');
+        res.redirect('/admin?tab=Dashboard');
+    }
+};
+
+// 3. Delete Announcement
+module.exports.deleteAnnouncement = async (req, res) => {
+    try {
+        const { id } = req.params;
+        await Announcement.findByIdAndDelete(id);
+        
+        req.flash('success', 'Announcement deleted.');
+        res.redirect('/admin?tab=Dashboard');
+    } catch (err) {
+        console.error('Error deleting announcement:', err);
+        req.flash('error', 'Failed to delete announcement.');
+        res.redirect('/admin?tab=Dashboard');
     }
 };

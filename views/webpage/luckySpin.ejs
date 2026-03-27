@@ -286,14 +286,29 @@
                 popupContent.classList.add('scale-100');
             }, 50);
         }
-
+const whatsaapNumber = <%- JSON.stringify(whatsaapNumber || null) %>;
+        
+        // ... (Keep your fake winners feed and spin logic exactly the same) ...
+        
         function claimViaWhatsApp() {
-            // Replace '918102073403' with your actual WhatsApp support number if needed
-            const phoneNumber = "918102073403"; 
-            const message = encodeURIComponent(`Hi WicketAdda! I just won the 100% Deposit Bonus from the Daily Spin! My secret coupon code is: ${generatedCode}. How do I claim it?`);
-            const whatsappUrl = `https://wa.me/${phoneNumber}?text=${message}`;
+            // Safety check: Ensure the database actually found a number
+            if (!whatsaapNumber || !whatsaapNumber.phoneNumber) {
+                alert("Our WhatsApp support is currently updating. Please try again in 2 minutes!");
+                return;
+            }
+
+            // 1. Ensure the number exists and strip out the '+' or any spaces
+            const rawNumber = whatsaapNumber.phoneNumber; 
+            const cleanNumber = rawNumber.replace(/\D/g, ''); // Regex to keep ONLY digits
             
-            window.location.href = whatsappUrl;
+            // 2. Construct the message
+            const message = encodeURIComponent(`Hi WicketAdda! I just won the 100% Deposit Bonus from the Daily Spin! My secret coupon code is: ${generatedCode}. How do I claim it?`);
+            
+            // 3. Build the URL
+            const whatsappUrl = `https://wa.me/${cleanNumber}?text=${message}`;
+            
+            // 4. Open in a NEW tab so they don't lose their place on WicketAdda
+            window.open(whatsappUrl, '_blank');
         }
     </script>
 </body>
