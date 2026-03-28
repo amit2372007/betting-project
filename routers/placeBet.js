@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+const mongoose = require("mongoose");
 
 const User = require("../model/user/user");
 const Event = require("../model/event/event.js");
@@ -8,7 +9,10 @@ const Session = require("../model/event/session.js");
 const Ledger = require("../model/user/ledger.js");
 const Exposure = require("../model/bet/exposure.js");
 
+const redis = require("../config/redis.js");
+
 const {isLoggedIn} = require("../middleware.js");
+
 router.post("/", isLoggedIn, async (req, res) => {
   try {
     const { 
@@ -16,7 +20,6 @@ router.post("/", isLoggedIn, async (req, res) => {
       eventName, sessionId, odds, stake 
     } = req.body;
 
-    
     const numStake = parseFloat(stake);
     const requestedOdds = parseFloat(odds); // What the frontend sent (Do not trust this)
 
@@ -94,13 +97,11 @@ router.post("/", isLoggedIn, async (req, res) => {
 
     // Compare requested odds vs real odds
     if (type === "back" && requestedOdds > trueOdds) {
-      // User wanted better profit, but odds dropped. Protect them.
       req.flash("error", `Odds dropped! Current odds are now ${trueOdds}. Please check and try again.`);
       return res.redirect(`/event/${eventId}`);
     } 
     
     if (type === "lay" && trueOdds > requestedOdds) {
-      // User wanted low liability, but odds spiked. Protect them from massive risk!
       req.flash("error", `Odds increased! Current odds are now ${trueOdds}. Laying this would increase your risk. Please try again.`);
       return res.redirect(`/event/${eventId}`);
     }
@@ -126,16 +127,16 @@ router.post("/", isLoggedIn, async (req, res) => {
       let balanceAfter = 0;
 
       if (marketType === "match_odds") {
-        // 1. Fetch or Create the single Exposure Document for this user & match
+        // 🌟 FIX: Use eventId here instead of matchId to prevent E11000 errors
         let exposureDoc = await Exposure.findOne({ 
             userId: req.user._id, 
-            matchId: eventId 
+            eventId: eventId 
         }).session(dbSession);
 
         if (!exposureDoc) {
             exposureDoc = new Exposure({
                 userId: req.user._id,
-                matchId: eventId,
+                eventId: eventId, // 🌟 FIX: Replaced matchId with eventId
                 exposures: {},
                 liability: 0
             });
@@ -145,7 +146,6 @@ router.post("/", isLoggedIn, async (req, res) => {
         let currentExposures = Object.fromEntries(exposureDoc.exposures || new Map());
         
         // 🌟 DYNAMIC 2-WAY vs 3-WAY FIX 🌟
-        // Only include "The Draw" if the admin has set odds for it > 0
         const hasDraw = event.matchOdds && event.matchOdds.drawOdds > 0;
         const validRunners = [event.homeTeam, event.awayTeam];
         if (hasDraw) {
@@ -157,7 +157,7 @@ router.post("/", isLoggedIn, async (req, res) => {
             if (currentExposures[team] === undefined) currentExposures[team] = 0;
         });
 
-        // 2. Add the New Bet to the Exposure Map (ONLY loop through validRunners)
+        // 2. Add the New Bet to the Exposure Map
         if (type === "back") {
           potentialWin = numStake * (numOdds - 1);
           for (let team of validRunners) {
@@ -173,15 +173,16 @@ router.post("/", isLoggedIn, async (req, res) => {
           }
         }
 
-        // 3. Calculate the new Liability (ONLY check the valid runners)
+        // 3. Calculate the new Liability
         let validExposureValues = validRunners.map(team => currentExposures[team]);
         let minExposure = Math.min(...validExposureValues);
         
         let newLiability = minExposure < 0 ? minExposure : 0; 
         let oldLiability = exposureDoc.liability || 0;
 
-        // 4. Calculate True Cost 
-        costOfBet = Math.abs(newLiability) - Math.abs(oldLiability);
+        // 🌟 FIX: Added Math.round to prevent floating point currency bugs
+        let rawCost = Math.abs(newLiability) - Math.abs(oldLiability);
+        costOfBet = Math.round(rawCost * 100) / 100;
 
         // 5. Update the Exposure Document in memory
         exposureDoc.exposures = currentExposures;
@@ -204,6 +205,9 @@ router.post("/", isLoggedIn, async (req, res) => {
             potentialWin = numStake;
           }
         }
+        // Round standard logic too just in case
+        costOfBet = Math.round(costOfBet * 100) / 100;
+        potentialWin = Math.round(potentialWin * 100) / 100;
       }
 
       // ==========================================
@@ -231,7 +235,7 @@ router.post("/", isLoggedIn, async (req, res) => {
           { new: false, session: dbSession }
         );
         balanceBefore = userUpdate.balance;
-        ledgerType = "refund"; // ✅ USING THE VALID ENUM VALUE
+        ledgerType = "refund"; 
         ledgerRemarks = `Hedging Refund: Freed up liability on ${selection}`;
       } else {
         // 0 COST HEDGE: Risk didn't change, just get current balance
@@ -298,7 +302,7 @@ router.post("/", isLoggedIn, async (req, res) => {
       return res.redirect(`/event/${eventId}`);
     }
   } catch (outerErr) {
-    console.error("Place Bet Outer Error:", outerErr);
+    console.log("Place Bet Outer Error:", outerErr);
     req.flash("error", "An unexpected error occurred.");
     const redirectUrl = req.body.eventId ? `/event/${req.body.eventId}` : "/home";
     res.redirect(redirectUrl);

@@ -7,9 +7,10 @@ const exposureSchema = new mongoose.Schema({
     required: true,
     index: true 
   },
-  matchId: {
+  // 🌟 FIX 1 & 2: Changed to eventId and ref to 'Event'
+  eventId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Match',
+    ref: 'Event', 
     required: true,
     index: true
   },
@@ -34,7 +35,7 @@ const exposureSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
-// Compound index to quickly find a specific user's exposure for a specific match
-exposureSchema.index({ userId: 1, matchId: 1 }, { unique: true });
+// 🌟 FIX 3: Updated compound index to use eventId
+exposureSchema.index({ userId: 1, eventId: 1 }, { unique: true });
 
 module.exports = mongoose.model('Exposure', exposureSchema);

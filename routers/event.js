@@ -15,7 +15,8 @@ router.get("/:id", async (req, res) => {
     const [eventData, bets, exposureDoc] = await Promise.all([
       Event.findById(id).populate("sessions").lean(),
       req.user ? Bet.find({ userId: req.user._id, eventId: id }).lean() : [],
-      req.user ? Exposure.findOne({ userId: req.user._id, matchId: id }) : null
+      // 🌟 FIX 1 & 2: Changed matchId to eventId AND added .lean()
+      req.user ? Exposure.findOne({ userId: req.user._id, eventId: id }).lean() : null
     ]);
 
     if (!eventData) {
@@ -24,7 +25,9 @@ router.get("/:id", async (req, res) => {
     }
 
     let event = eventData;
-    let userExposure = exposureDoc && exposureDoc.exposures ? Object.fromEntries(exposureDoc.exposures) : null;
+    
+    // 🌟 FIX 3: Because of .lean(), exposureDoc.exposures is already a normal object!
+    let userExposure = exposureDoc ? exposureDoc.exposures : null;
 
     // ==========================================================
     // 🌟 THE CRITICAL FIX: FORCE SCRAPER DATA FROM REDIS 🌟
