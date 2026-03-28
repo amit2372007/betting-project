@@ -64,6 +64,32 @@ app.use(express.urlencoded({ extended: true }));
 app.use(methodOverride("_method"));
 app.use(express.json());
 
+// 🧹 ONE-TIME CLEANUP SCRIPT
+mongoose.connection.once('open', async () => {
+    try {
+        const db = mongoose.connection.db;
+        
+        // 1. Forcefully drop the old ghost index that is causing the crash
+        await db.collection('exposures').dropIndex('userId_1_matchId_1');
+        console.log("✅ SUCCESS: Dropped the old matchId ghost index.");
+    } catch (e) {
+        // It will throw an error if it's already deleted, which is fine!
+    }
+
+    try {
+        const db = mongoose.connection.db;
+        
+        // 2. Wipe out any corrupted exposure documents where matchId or eventId is null
+        const result1 = await db.collection('exposures').deleteMany({ matchId: null });
+        const result2 = await db.collection('exposures').deleteMany({ eventId: null });
+        
+        if (result1.deletedCount > 0 || result2.deletedCount > 0) {
+            console.log(`✅ SUCCESS: Deleted ${result1.deletedCount + result2.deletedCount} corrupted exposure documents.`);
+        }
+    } catch (e) {
+        console.error("Cleanup error:", e.message);
+    }
+});
 // --- 3. Session Configuration ---
 let sessionOption = {
   secret: process.env.SECRET || "mysupersecret",

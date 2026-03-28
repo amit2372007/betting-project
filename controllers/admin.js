@@ -8,6 +8,7 @@ const DepositAccount = require("../model/transactions/accountDetail.js");
 const WhatsappNumber = require("../model/transactions/whatsapp.js");
 const Announcement = require("../model/user/announcement.js");
 const Exposure = require("../model/bet/exposure.js");
+const Ledger = require("../model/user/ledger.js");
 const redis = require("../config/redis.js");
 
 module.exports.renderAdminDashboard = async (req, res) => {
@@ -417,8 +418,15 @@ module.exports.updateEventStatus = async (req, res) => {
         else if (resLower === "void") winningTeam = "void";
 
         if (winningTeam) {
-            // Find ALL active green books for this specific match
-            const activeExposures = await Exposure.find({ matchId: id, status: 'ACTIVE' });
+            console.log(`🏆 Initiating Payouts for Winner: ${winningTeam}`);
+
+            // 🌟 THE FIX: Find ALL exposures that aren't already settled
+            const activeExposures = await Exposure.find({ 
+                eventId: id, 
+                status: { $ne: 'SETTLED' } 
+            });
+
+            console.log(`Found ${activeExposures.length} users to settle for this match.`);
 
             for (let exposure of activeExposures) {
                 let payout = 0;
@@ -431,8 +439,11 @@ module.exports.updateEventStatus = async (req, res) => {
                     ledgerType = "refund";
                     remarks = `Match Voided Refund: ${event.homeTeam} vs ${event.awayTeam}`;
                 } else {
-                    // Convert Map to standard object
-                    const exposuresObj = Object.fromEntries(exposure.exposures || new Map());
+                    // 🌟 THE FIX: Bulletproof Map-to-Object conversion
+                    const rawExposures = exposure.exposures;
+                    const exposuresObj = (rawExposures instanceof Map) 
+                        ? Object.fromEntries(rawExposures) 
+                        : (rawExposures || {});
                     
                     // Get the exact Profit/Loss for the team that won
                     const userOutcomePnL = exposuresObj[winningTeam] || 0;
@@ -461,7 +472,10 @@ module.exports.updateEventStatus = async (req, res) => {
                             balanceAfter: userUpdate.balance + payout,
                             remarks: remarks
                         });
+                        console.log(`✅ Paid ₹${payout} to User: ${userUpdate.username || exposure.userId}`);
                     }
+                } else {
+                     console.log(`❌ User ${exposure.userId} lost or broke even. Payout: ₹0`);
                 }
 
                 // Close out this user's position for this match permanently
@@ -469,12 +483,12 @@ module.exports.updateEventStatus = async (req, res) => {
                 exposure.liability = 0; 
                 await exposure.save();
             }
-            
+            console.log(`🏁 O(1) Exposure Settlement Complete for: ${event.homeTeam} vs ${event.awayTeam}`);
         }
     }
     // =========================================================
 
-    req.flash("success", "Event status updated successfully!");
+    req.flash("success", "Event status updated and payouts processed successfully!");
     res.redirect(`/admin/event/${id}`);
   } catch (error) {
     console.error("Error updating event status:", error);
@@ -482,7 +496,6 @@ module.exports.updateEventStatus = async (req, res) => {
     return res.redirect("/admin?tab=Dashboard");
   }
 };
-
 module.exports.updateMatchOdds = async (req, res) => {
   try {
     const { id } = req.params;
@@ -534,27 +547,119 @@ module.exports.updateMatchOdds = async (req, res) => {
 module.exports.updateTossResult = async (req, res) => {
   try {
     const { id } = req.params;
-    const { homeTossOdds, awayTossOdds, tossStatus, tossWinner } = req.body;
+    
+    // Match the exact name attributes from your EJS form
+    const { homeOdds, homeLay, awayOdds, awayLay, status, winner } = req.body;
 
-    const resolvedWinner = tossWinner === "" ? null : tossWinner;
-
-    const updatedEvent = await Event.findByIdAndUpdate(
-      id,
-      {
-        "tossMarket.homeOdds": parseFloat(homeTossOdds) || 0,
-        "tossMarket.awayOdds": parseFloat(awayTossOdds) || 0,
-        "tossMarket.status": tossStatus,
-        "tossMarket.winner": resolvedWinner
-      },
-      { new: true } 
-    );
-
-    if (!updatedEvent) {
+    const event = await Event.findById(id);
+    if (!event) {
       req.flash("error", "Event not found");
       return res.redirect("/admin?tab=Dashboard");
     }
 
-    req.flash("success", "Toss market updated successfully!");
+    const resolvedWinner = winner === "" ? null : winner;
+
+    // =========================================================
+    // 🪙 TOSS SETTLEMENT PAYOUT LOGIC
+    // =========================================================
+    // If Admin selects "Settled" and it wasn't already settled before
+    if (status === "settled" && event.tossMarket.status !== "settled") {
+        
+        if (!resolvedWinner) {
+            req.flash("error", "You must select a Toss Winner to settle the market.");
+            return res.redirect(`/admin/event/${id}`);
+        }
+
+        let winningSelection = "";
+        let isVoid = false;
+
+        // Map the admin dropdown result to the actual bet string
+        if (resolvedWinner === "home") winningSelection = `${event.homeTeam} (Toss)`;
+        else if (resolvedWinner === "away") winningSelection = `${event.awayTeam} (Toss)`;
+        else if (resolvedWinner === "void") isVoid = true;
+
+        // Find all pending Toss bets for this specific match
+        const pendingTossBets = await Bet.find({
+            eventId: id,
+            marketType: "toss",
+            status: "pending"
+        });
+
+        console.log(`🪙 Settling ${pendingTossBets.length} Toss Bets...`);
+
+        // Process Payouts
+        for (const bet of pendingTossBets) {
+            let payout = 0;
+            let finalStatus = "lost";
+            let ledgerType = "bet_won";
+            let remarks = `Toss Winnings: ${event.homeTeam} vs ${event.awayTeam}`;
+
+            if (isVoid) {
+                // Refund the stake if the toss was cancelled
+                payout = bet.stake;
+                finalStatus = "void";
+                ledgerType = "refund";
+                remarks = `Toss Voided Refund: ${event.homeTeam} vs ${event.awayTeam}`;
+            } else if (bet.type === "back" && bet.selection === winningSelection) {
+                // Backed the correct team
+                payout = bet.stake + bet.potentialWin;
+                finalStatus = "won";
+            } else if (bet.type === "lay" && bet.selection !== winningSelection) {
+                // Layed the wrong team (meaning you win)
+                payout = bet.stake + bet.potentialWin;
+                finalStatus = "won";
+            } else {
+                payout = 0;
+                finalStatus = "lost";
+            }
+
+            // Update user wallet and create Ledger receipt
+            if (payout > 0) {
+                const userUpdate = await User.findByIdAndUpdate(
+                    bet.userId,
+                    { $inc: { balance: payout } },
+                    { new: false } // Get balance BEFORE update
+                );
+
+                if (userUpdate) {
+                    await Ledger.create({
+                        userId: bet.userId,
+                        type: ledgerType,
+                        amount: payout,
+                        balanceBefore: userUpdate.balance,
+                        balanceAfter: userUpdate.balance + payout,
+                        betId: bet._id, 
+                        remarks: remarks
+                    });
+                    console.log(`✅ Paid ₹${payout} to User for Toss Win`);
+                }
+            }
+
+            // Update the individual Bet Receipt
+            bet.status = finalStatus;
+            bet.payout = payout;
+            bet.settledAt = new Date();
+            await bet.save();
+        }
+    }
+    // =========================================================
+
+    // Update the Event Document with the new odds and status
+    event.tossMarket.homeOdds = parseFloat(homeOdds) || 0;
+    event.tossMarket.homeLay  = parseFloat(homeLay) || 0;
+    event.tossMarket.awayOdds = parseFloat(awayOdds) || 0;
+    event.tossMarket.awayLay  = parseFloat(awayLay) || 0;
+    event.tossMarket.status   = status;
+    event.tossMarket.winner   = resolvedWinner;
+    
+    await event.save();
+
+    if (status === 'settled') {
+        req.flash("success", "Toss market settled and winners paid out successfully!");
+    } else {
+        req.flash("success", "Toss market updated successfully!");
+    }
+    
     res.redirect(`/admin/event/${id}`);
     
   } catch (error) {

@@ -41,7 +41,7 @@ const LedgerSchema = new mongoose.Schema({
   betId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Bet",
-    required: true
+    required: false
   },
 
   // Human-readable receipt 

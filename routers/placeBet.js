@@ -41,6 +41,11 @@ router.post("/", isLoggedIn, async (req, res) => {
       return res.redirect("/home");
     }
 
+    if (event.status === "finished" || event.status === "settled") {
+      req.flash("error", "This match has ended. Betting is permanently closed.");
+      return res.redirect(`/event/${eventId}`);
+    }
+
     // ===================================================================
     // 🛡️ THE SECURITY GATE: SERVER-SIDE ODDS VERIFICATION (PERMANENT)
     // ===================================================================
