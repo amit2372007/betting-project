@@ -307,7 +307,6 @@ router.post("/", isLoggedIn, async (req, res) => {
       return res.redirect(`/event/${eventId}`);
     }
   } catch (outerErr) {
-    console.log("Place Bet Outer Error:", outerErr);
     req.flash("error", "An unexpected error occurred.");
     const redirectUrl = req.body.eventId ? `/event/${req.body.eventId}` : "/home";
     res.redirect(redirectUrl);

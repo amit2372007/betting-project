@@ -146,7 +146,6 @@ module.exports.renderEventDetails = async (req, res) => {
       req.flash("error", "Event not found");
       return res.redirect("/admin?tab=Dashboard");
     }
-    console.log("Fetched Event for Admin:", event);
     res.render("./admin/eventDetails.ejs", { Event: event });
   } catch (error) {
     console.error("Error fetching event:", error);
