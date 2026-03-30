@@ -106,7 +106,8 @@ module.exports.withdraw = async (req, res) => {
         "error",
         "Withdrawal amount must be between ₹3,000 and ₹1,00,000.",
       );
-      return res.redirect("/user/withdraw");
+      req.flash("error" , "Note: Minimum withdrawal amount is ₹3,000 to ensure transaction viability.");
+      return res.redirect("/home");
     }
 
     // 2. Validation: Balance check
