@@ -64,7 +64,8 @@ const EventSchema = new mongoose.Schema({
   
   providerId: { 
     type: String, 
-    required: true // e.g., "35393146"
+    required: true, // e.g., "35393146"
+    index: true
   }
 }, {
   // Mongoose will automatically manage 'createdAt' and 'updatedAt' fields for you

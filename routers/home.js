@@ -7,6 +7,7 @@ const Bet = require("../model/bet/bet.js");
 const WhatsappNumber = require("../model/transactions/whatsapp.js");
 const Announcement = require("../model/user/announcement.js");
 const redis = require("../config/redis.js");
+
 router.get("/", async (req, res) => {
   try {
     const activeTab = req.query.tab || "Home";
@@ -14,6 +15,7 @@ router.get("/", async (req, res) => {
     // Initialize empty arrays so EJS doesn't crash on inactive tabs
     let cricketEvents = [];
     let footballEvents = [];
+    let tennisEvents = []; // <-- ADDED: Initialize tennisEvents
     let bets = [];
     let whatsappNumber = null;
     let announcement = null;
@@ -73,32 +75,7 @@ router.get("/", async (req, res) => {
     // 2. CONDITIONAL TAB FETCHING (The Speed Boost)
     // ==========================================
     switch (activeTab) {
-        case "Football":
-            const cachedFootball = await redis.get("active_football_matches");
-            if (cachedFootball) {
-                footballEvents = JSON.parse(cachedFootball);
-            } else {
-                footballEvents = await Event.find({
-                    sport: { $regex: /^football$/i },
-                    status: { $nin: ["settled", "finished"] }, 
-                    $or: [
-                        { startTime: { $gte: startDate, $lte: endDate } },
-                        { status: "live" } 
-                    ]
-                }).sort({ startTime: 1 }).lean();
-
-                footballEvents.sort((a, b) => {
-                    if (a.status === "live" && b.status !== "live") return -1;
-                    if (a.status !== "live" && b.status === "live") return 1;
-                    const dateA = a.startTime ? new Date(a.startTime).getTime() : 0;
-                    const dateB = b.startTime ? new Date(b.startTime).getTime() : 0;
-                    return dateA - dateB;
-                });
-                await redis.set("active_football_matches", JSON.stringify(footballEvents), "EX", 10);
-            }
-            await attachLiveOdds(footballEvents);
-            break;
-
+        
         case "MyBets":
             if (req.user) {
                 bets = await Bet.find({ userId: req.user._id })
@@ -108,26 +85,62 @@ router.get("/", async (req, res) => {
             break;
 
         case "Cricket":
-        case "Home":
+       case "Home":
         default:
-            const cachedCricket = await redis.get("active_cricket_matches");
-            if (cachedCricket) {
-                cricketEvents = JSON.parse(cachedCricket);
+            // 1. Check if we have a combined cache for the home page
+            const cachedHome = await redis.get("active_home_matches");
+            
+            if (cachedHome) {
+                const parsedHome = JSON.parse(cachedHome);
+                cricketEvents = parsedHome.cricketEvents;
+                footballEvents = parsedHome.footballEvents;
+                tennisEvents = parsedHome.tennisEvents;
             } else {
-                cricketEvents = await Event.find({
-                    sport: { $regex: /^cricket$/i },
-                    startTime: { $gte: startDate, $lte: endDate },
-                    status: { $ne: "settled" },
-                }).sort({ startTime: 1 }).lean();
+                // 2. Fetch all three sports at the exact same time
+                const [cricketData, footballData, tennisData] = await Promise.all([
+                    Event.find({
+                        sport: { $regex: /^cricket$/i },
+                        startTime: { $gte: startDate, $lte: endDate },
+                        status: { $ne: "settled" }
+                    }).sort({ startTime: 1 }).lean(),
+                    
+                    Event.find({
+                        sport: { $regex: /^football$/i },
+                        status: { $nin: ["settled", "finished"] }, 
+                        $or: [{ startTime: { $gte: startDate, $lte: endDate } }, { status: "live" }]
+                    }).sort({ startTime: 1 }).lean(),
+                    
+                    Event.find({
+                        sport: { $regex: /^tennis$/i },
+                        status: { $nin: ["settled", "finished"] }, 
+                        $or: [{ startTime: { $gte: startDate, $lte: endDate } }, { status: "live" }]
+                    }).sort({ startTime: 1 }).lean()
+                ]);
 
-                cricketEvents.sort((a, b) => {
+                cricketEvents = cricketData;
+                footballEvents = footballData;
+                tennisEvents = tennisData;
+
+                const sortLiveFirst = (a, b) => {
                     if (a.status === "live" && b.status !== "live") return -1;
                     if (a.status !== "live" && b.status === "live") return 1;
                     return new Date(a.startTime) - new Date(b.startTime);
-                });
-                await redis.set("active_cricket_matches", JSON.stringify(cricketEvents), "EX", 10);
+                };
+
+                cricketEvents.sort(sortLiveFirst);
+                footballEvents.sort(sortLiveFirst);
+                tennisEvents.sort(sortLiveFirst);
+
+                await redis.set("active_home_matches", JSON.stringify({
+                    cricketEvents, footballEvents, tennisEvents
+                }), "EX", 10);
             }
-            await attachLiveOdds(cricketEvents);
+
+            await Promise.all([
+                attachLiveOdds(cricketEvents),
+                attachLiveOdds(footballEvents),
+                attachLiveOdds(tennisEvents)
+            ]);
             break;
     }
 
@@ -138,6 +151,7 @@ router.get("/", async (req, res) => {
       activeTab,
       cricketEvents,
       footballEvents, 
+      tennisEvents, // <-- ADDED: Pass to frontend
       bets,
       whatsappNumber,
       announcement
@@ -150,6 +164,7 @@ router.get("/", async (req, res) => {
       activeTab: req.query.tab || "Home",
       cricketEvents: [],
       footballEvents: [], 
+      tennisEvents: [], // <-- ADDED: Pass empty array on error
       bets: [],
       whatsappNumber: null,
       announcement: null

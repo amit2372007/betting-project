@@ -179,20 +179,21 @@ app.post('/api/webhook/odds', async (req, res) => {
             io.to(internalRoomId).emit('live_odds_update', odds);
 
             // 4. HOME PAGE EMIT: Broadcast globally for home.ejs to catch and flash!
-            io.emit('odds_update', {
+            const emitData = {
                 eventId: internalRoomId,
-                
-                // Back Odds
                 homeOdds: odds.homeTeam?.back || 0,
                 awayOdds: odds.awayTeam?.back || 0,
-                drawOdds: odds.drawTeam?.back || 0, // Will be 0 if scraper doesn't send it
-                
-                // Lay Odds (Added these just in case your home page needs them!)
                 homeLay: odds.homeTeam?.lay || 0,
-                awayLay: odds.awayTeam?.lay || 0,
-                drawLay: odds.drawTeam?.lay || 0
-            });
-            
+                awayLay: odds.awayTeam?.lay || 0
+            };
+
+            // Only attach Draw odds if the scraper actually sent them
+            if (odds.drawTeam) {
+                emitData.drawOdds = odds.drawTeam.back;
+                emitData.drawLay = odds.drawTeam.lay;
+            }
+
+            io.emit('odds_update', emitData);
             res.status(200).send('Odds processed and broadcasted');
         } else {
             res.status(404).send('Event not found');

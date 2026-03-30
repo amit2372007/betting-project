@@ -559,7 +559,9 @@
 
     <div id="market-sub-nav" class="flex border-t border-white/[0.05] gap-4 overflow-x-auto no-scrollbar px-4 max-w-2xl mx-auto">
         <a href="#match-odds"   class="nav-tab border-b-2 border-transparent text-white/40 hover:text-white/80 py-3 text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-colors">Match Odds</a>
+        <% if (event.sport !== 'football' && event.sport !== 'tennis') { %>
         <a href="#toss-market"  class="nav-tab border-b-2 border-transparent text-white/40 hover:text-white/80 py-3 text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-colors">Toss</a>
+        <% } %>
         <a href="#fancy-market" class="nav-tab border-b-2 border-transparent text-white/40 hover:text-white/80 py-3 text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-colors">Sessions</a>
     </div>
 </header>
@@ -601,7 +603,7 @@
                 %>
 
                 <% matchRunners.forEach(runner => { %>
-                    <% if (runner.name !== "The Draw" || runner.back > 0) { %>
+                    <% if (runner.name !== "The Draw" || (event.sport && event.sport.toLowerCase() === 'football') || runner.back > 0) { %>
                         <%
                             // ── NEW GREEN BOOK LOGIC ──
                             let totalExposure = 0;
@@ -647,7 +649,9 @@
             </div>
         </section>
 
-        <% if (!event.tossMarket || event.tossMarket.status !== 'settled') { %>
+        <%  // Only show Toss for Cricket
+    if (event.sport !== 'football' && event.sport !== 'tennis') { %>
+<% if (!event.tossMarket || event.tossMarket.status !== 'settled') { %>
         <section id="toss-market">
             <div class="market-card">
                 <div class="market-header">
@@ -693,7 +697,8 @@
                 <% }) %>
             </div>
         </section>
-        <% } %>
+       <% } %>
+<% } %>
 
         <section id="fancy-market">
             <div class="market-card">
