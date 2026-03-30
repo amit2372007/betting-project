@@ -15,8 +15,6 @@ const {isLoggedIn} = require("../middleware.js");
 
 router.post("/", isLoggedIn, async (req, res) => {
   try {
-    req.flash("error", "TECHNIQAL ISSUE");
-    return res.redirect("/home");
     const { 
       selection, type, marketType, eventId, 
       eventName, sessionId, odds, stake 
