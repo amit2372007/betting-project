@@ -101,10 +101,10 @@ module.exports.withdraw = async (req, res) => {
     const withdrawAmount = Number(amount);
 
     // 1. Validation: Minimum/Maximum checks
-    if (withdrawAmount < 500 || withdrawAmount > 100000) {
+    if (withdrawAmount < 3000 || withdrawAmount > 100000) {
       req.flash(
         "error",
-        "Withdrawal amount must be between ₹500 and ₹1,00,000.",
+        "Withdrawal amount must be between ₹3,000 and ₹1,00,000.",
       );
       return res.redirect("/user/withdraw");
     }
