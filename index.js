@@ -172,7 +172,12 @@ app.post('/api/webhook/odds', async (req, res) => {
             
             // 2. THE CACHE - Save the absolute latest odds to Redis
             if (typeof redis !== 'undefined') {
-                await redis.set(`live_odds_${internalRoomId}`, JSON.stringify(odds));
+                // We use Date.now() to stamp the exact millisecond this was saved
+                const payloadToSave = { 
+                    ...odds, 
+                    timestamp: Date.now() 
+                };
+                await redis.set(`live_odds_${internalRoomId}`, JSON.stringify(payloadToSave));
             }
 
             // 3. EVENT PAGE EMIT: Broadcast to active users inside the match

@@ -60,6 +60,16 @@ router.post("/", isLoggedIn, async (req, res) => {
       }
       
       const realOddsData = JSON.parse(liveCachedOdds);
+
+       // ⏱️ THE HEARTBEAT CHECK (Stale Odds Prevention)
+      // If the odds are older than 15 seconds (15000 milliseconds), block the bet!
+      if (realOddsData.timestamp) {
+          const timeSinceLastUpdate = Date.now() - realOddsData.timestamp;
+          if (timeSinceLastUpdate > 5000) { // 5 seconds threshold for freshness
+              req.flash("error", "Market suspended . Please wait for live odds to refresh.");
+              return res.redirect(`/event/${eventId}`);
+          }
+      }
       
       if (selection === event.homeTeam) {
         trueOdds = type === "back" ? realOddsData.homeTeam.back : realOddsData.homeTeam.lay;

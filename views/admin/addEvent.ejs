@@ -29,12 +29,13 @@
             background-color: #1a1a1a !important;
             border-color: #2d2d2d !important;
             color: #ffffff !important;
+            padding: 0.5rem 0.75rem !important;
         }
 
         input:focus,
         select:focus {
             border-color: #00f2ff !important;
-            ring-color: #00f2ff !important;
+            --tw-ring-color: #00f2ff !important;
             outline: none;
         }
 
@@ -45,44 +46,41 @@
 </head>
 
 <body class="bg-dark-bg text-gray-200 min-h-screen font-sans antialiased p-4 md:p-8">
-    <main class="max-w-5xl mx-auto">
-        <header class="mb-8" data-purpose="page-header">
+    <main class="max-w-4xl mx-auto">
+        <header class="mb-8 border-b border-border-dark pb-4">
             <h1 class="text-3xl font-bold text-white tracking-tight">Create New Event</h1>
             <p class="text-gray-400 mt-1">Configure and launch a new sports market.</p>
         </header>
-        <form action="/admin/addEvent" class="space-y-8" method="POST">
+        
+        <form action="/admin/addEvent" class="space-y-8 bg-dark-surface p-6 md:p-10 rounded-xl border border-border-dark shadow-2xl" method="POST">
             
-            <section class="bg-dark-surface border border-border-dark rounded-xl p-6 shadow-2xl"
-                data-purpose="event-details-section">
-                <div class="flex items-center gap-3 mb-6">
-                    <div class="h-6 w-1 bg-neon-blue rounded-full"></div>
-                    <h2 class="text-xl font-semibold text-white">1. Event Details</h2>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div class="flex flex-col gap-2">
+            <section>
+                <h2 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                    <span class="w-2 h-6 bg-neon-blue rounded-full inline-block"></span>
+                    Event Details
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="flex flex-col gap-1.5">
                         <label class="text-sm font-medium text-gray-400" for="sport">Sport</label>
-                        <select class="block w-full rounded-md shadow-sm sm:text-sm" id="sport" name="sport">
+                        <select class="block w-full rounded-md shadow-sm sm:text-sm" id="sport" name="sport" onchange="toggleTossMarket()">
                             <option value="cricket">Cricket</option>
                             <option value="football">Football</option>
                             <option value="tennis">Tennis</option>
                         </select>
                     </div>
-                    <div class="flex flex-col gap-2">
+                    <div class="flex flex-col gap-1.5">
                         <label class="text-sm font-medium text-gray-400" for="league">League/Tournament</label>
-                        <input class="block w-full rounded-md shadow-sm sm:text-sm" id="league" name="league"
-                            placeholder="e.g. Premier League" type="text" />
+                        <input class="block w-full rounded-md shadow-sm sm:text-sm" id="league" name="league" placeholder="e.g. Premier League" type="text" />
                     </div>
-                    <div class="flex flex-col gap-2">
+                    <div class="flex flex-col gap-1.5">
                         <label class="text-sm font-medium text-gray-400" for="eventId">Internal Event ID</label>
-                        <input class="block w-full rounded-md shadow-sm sm:text-sm" id="eventId" name="eventId"
-                            placeholder="UID-8829" type="text" />
+                        <input class="block w-full rounded-md shadow-sm sm:text-sm" id="eventId" name="eventId" placeholder="UID-8829" type="text" />
                     </div>
-                    <div class="flex flex-col gap-2">
+                    <div class="flex flex-col gap-1.5">
                         <label class="text-sm font-medium text-gray-400" for="startTime">Start Time</label>
-                        <input class="block w-full rounded-md shadow-sm sm:text-sm" id="startTime" name="startTime"
-                            type="datetime-local" />
+                        <input class="block w-full rounded-md shadow-sm sm:text-sm" id="startTime" name="startTime" type="datetime-local" />
                     </div>
-                    <div class="flex flex-col gap-2">
+                    <div class="flex flex-col gap-1.5">
                         <label class="text-sm font-medium text-gray-400" for="status">Status</label>
                         <select class="block w-full rounded-md shadow-sm sm:text-sm" id="status" name="status">
                             <option value="upcoming">Upcoming</option>
@@ -91,128 +89,112 @@
                             <option value="finished">Finished</option>
                         </select>
                     </div>
-                    <div class="flex flex-col gap-2">
-                        <label class="text-sm font-medium text-neon-blue" for="providerId">Provider Match ID</label>
-                        <input class="block w-full rounded-md shadow-sm sm:text-sm border-neon-blue/50" id="providerId" name="providerId"
-                            placeholder="e.g. 35387026" type="text" required />
-                        <span class="text-xs text-gray-500">External ID to link live scraped odds.</span>
+                    <div class="flex flex-col gap-1.5">
+                        <label class="text-sm font-medium text-neon-blue" for="providerId">Provider Match ID *</label>
+                        <input class="block w-full rounded-md shadow-sm sm:text-sm border-neon-blue/50" id="providerId" name="providerId" placeholder="e.g. 35387026" type="text" required />
                     </div>
                 </div>
             </section>
+
+            <hr class="border-border-dark" />
             
-            <section class="bg-dark-surface border border-border-dark rounded-xl p-6 shadow-2xl"
-                data-purpose="team-details-section">
-                <div class="flex items-center gap-3 mb-6">
-                    <div class="h-6 w-1 bg-neon-blue rounded-full"></div>
-                    <h2 class="text-xl font-semibold text-white">2. Team Details</h2>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
-                    <div class="space-y-4">
-                        <div class="flex flex-col gap-2">
-                            <label class="text-sm font-medium text-gray-400" for="homeTeam">Home Team</label>
-                            <input class="block w-full rounded-md shadow-sm sm:text-sm" id="homeTeam" name="homeTeam"
-                                placeholder="Home Team Name" type="text" />
-                        </div>
-                        <div class="flex flex-col gap-2">
-                            <label class="text-sm font-medium text-gray-400" for="homeId">Home ID</label>
-                            <input class="block w-full rounded-md shadow-sm sm:text-sm" id="homeId" name="homeId"
-                                placeholder="HT-001" type="text" />
-                        </div>
+            <section>
+                <h2 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                    <span class="w-2 h-6 bg-neon-blue rounded-full inline-block"></span>
+                    Team Details
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="flex flex-col gap-1.5">
+                        <label class="text-sm font-medium text-gray-400" for="homeTeam">Home Team</label>
+                        <input class="block w-full rounded-md shadow-sm sm:text-sm" id="homeTeam" name="homeTeam" placeholder="Home Team Name" type="text" />
                     </div>
-                    <div class="space-y-4 border-t md:border-t-0 md:border-l border-border-dark pt-6 md:pt-0 md:pl-12">
-                        <div class="flex flex-col gap-2">
-                            <label class="text-sm font-medium text-gray-400" for="awayTeam">Away Team</label>
-                            <input class="block w-full rounded-md shadow-sm sm:text-sm" id="awayTeam" name="awayTeam"
-                                placeholder="Away Team Name" type="text" />
-                        </div>
-                        <div class="flex flex-col gap-2">
-                            <label class="text-sm font-medium text-gray-400" for="awayId">Away ID</label>
-                            <input class="block w-full rounded-md shadow-sm sm:text-sm" id="awayId" name="awayId"
-                                placeholder="AT-002" type="text" />
-                        </div>
+                    <div class="flex flex-col gap-1.5">
+                        <label class="text-sm font-medium text-gray-400" for="awayTeam">Away Team</label>
+                        <input class="block w-full rounded-md shadow-sm sm:text-sm" id="awayTeam" name="awayTeam" placeholder="Away Team Name" type="text" />
                     </div>
                 </div>
             </section>
+
+            <hr class="border-border-dark" />
             
-            <section class="bg-dark-surface border border-border-dark rounded-xl p-6 shadow-2xl"
-                data-purpose="markets-odds-section">
-                <div class="flex items-center gap-3 mb-6">
-                    <div class="h-6 w-1 bg-neon-blue rounded-full"></div>
-                    <h2 class="text-xl font-semibold text-white">3. Initial Markets &amp; Odds</h2>
-                </div>
+            <section>
+                <h2 class="text-lg font-semibold text-white mb-6 flex items-center gap-2">
+                    <span class="w-2 h-6 bg-neon-blue rounded-full inline-block"></span>
+                    Initial Markets & Odds
+                </h2>
                 
-                <div class="grid grid-cols-1 gap-8">
-                    <div class="space-y-4">
-                        <span class="text-xs uppercase tracking-widest text-neon-blue font-bold">Match Odds (1X2)</span>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="space-y-8">
+                    <div>
+                        <h3 class="text-sm uppercase tracking-widest text-gray-400 font-bold mb-4">Match Odds (1X2)</h3>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                             <div class="p-4 bg-dark-bg border border-border-dark rounded-lg">
-                                <label class="text-sm font-medium text-gray-300 mb-3 block">Home Win</label>
-                                <div class="grid grid-cols-2 gap-3">
-                                    <div class="flex flex-col gap-1">
+                                <label class="text-sm font-medium text-gray-300 mb-3 block text-center">Home Win</label>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div class="flex flex-col gap-1 text-center">
                                         <span class="text-xs text-back-blue font-semibold">Back</span>
-                                        <input class="block w-full rounded-md shadow-sm sm:text-sm" name="matchOdds[homeOdds]" placeholder="0.00" step="0.01" type="number" />
+                                        <input class="block w-full rounded-md shadow-sm sm:text-sm text-center" name="matchOdds[homeOdds]" placeholder="0.00" step="0.01" type="number" />
                                     </div>
-                                    <div class="flex flex-col gap-1">
+                                    <div class="flex flex-col gap-1 text-center">
                                         <span class="text-xs text-lay-pink font-semibold">Lay</span>
-                                        <input class="block w-full rounded-md shadow-sm sm:text-sm" name="matchOdds[homeLay]" placeholder="0.00" step="0.01" type="number" />
+                                        <input class="block w-full rounded-md shadow-sm sm:text-sm text-center" name="matchOdds[homeLay]" placeholder="0.00" step="0.01" type="number" />
                                     </div>
                                 </div>
                             </div>
                             <div class="p-4 bg-dark-bg border border-border-dark rounded-lg">
-                                <label class="text-sm font-medium text-gray-300 mb-3 block">Away Win</label>
-                                <div class="grid grid-cols-2 gap-3">
-                                    <div class="flex flex-col gap-1">
+                                <label class="text-sm font-medium text-gray-300 mb-3 block text-center">Away Win</label>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div class="flex flex-col gap-1 text-center">
                                         <span class="text-xs text-back-blue font-semibold">Back</span>
-                                        <input class="block w-full rounded-md shadow-sm sm:text-sm" name="matchOdds[awayOdds]" placeholder="0.00" step="0.01" type="number" />
+                                        <input class="block w-full rounded-md shadow-sm sm:text-sm text-center" name="matchOdds[awayOdds]" placeholder="0.00" step="0.01" type="number" />
                                     </div>
-                                    <div class="flex flex-col gap-1">
+                                    <div class="flex flex-col gap-1 text-center">
                                         <span class="text-xs text-lay-pink font-semibold">Lay</span>
-                                        <input class="block w-full rounded-md shadow-sm sm:text-sm" name="matchOdds[awayLay]" placeholder="0.00" step="0.01" type="number" />
+                                        <input class="block w-full rounded-md shadow-sm sm:text-sm text-center" name="matchOdds[awayLay]" placeholder="0.00" step="0.01" type="number" />
                                     </div>
                                 </div>
                             </div>
                             <div class="p-4 bg-dark-bg border border-border-dark rounded-lg">
-                                <label class="text-sm font-medium text-gray-300 mb-3 block">Draw</label>
-                                <div class="grid grid-cols-2 gap-3">
-                                    <div class="flex flex-col gap-1">
+                                <label class="text-sm font-medium text-gray-300 mb-3 block text-center">Draw</label>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div class="flex flex-col gap-1 text-center">
                                         <span class="text-xs text-back-blue font-semibold">Back</span>
-                                        <input class="block w-full rounded-md shadow-sm sm:text-sm" name="matchOdds[drawOdds]" placeholder="0.00" step="0.01" type="number" />
+                                        <input class="block w-full rounded-md shadow-sm sm:text-sm text-center" name="matchOdds[drawOdds]" placeholder="0.00" step="0.01" type="number" />
                                     </div>
-                                    <div class="flex flex-col gap-1">
+                                    <div class="flex flex-col gap-1 text-center">
                                         <span class="text-xs text-lay-pink font-semibold">Lay</span>
-                                        <input class="block w-full rounded-md shadow-sm sm:text-sm" name="matchOdds[drawLay]" placeholder="0.00" step="0.01" type="number" />
+                                        <input class="block w-full rounded-md shadow-sm sm:text-sm text-center" name="matchOdds[drawLay]" placeholder="0.00" step="0.01" type="number" />
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="space-y-4 border-t border-border-dark pt-6">
-                        <span class="text-xs uppercase tracking-widest text-neon-blue font-bold">Toss Market</span>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 md:w-2/3">
+                    <div id="toss-market-section">
+                        <h3 class="text-sm uppercase tracking-widest text-gray-400 font-bold mb-4">Toss Market</h3>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div class="p-4 bg-dark-bg border border-border-dark rounded-lg">
-                                <label class="text-sm font-medium text-gray-300 mb-3 block">Home Toss</label>
-                                <div class="grid grid-cols-2 gap-3">
-                                    <div class="flex flex-col gap-1">
+                                <label class="text-sm font-medium text-gray-300 mb-3 block text-center">Home Toss</label>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div class="flex flex-col gap-1 text-center">
                                         <span class="text-xs text-back-blue font-semibold">Back</span>
-                                        <input class="block w-full rounded-md shadow-sm sm:text-sm" name="tossMarket[homeOdds]" placeholder="0.00" step="0.01" type="number" />
+                                        <input class="block w-full rounded-md shadow-sm sm:text-sm text-center" name="tossMarket[homeOdds]" value="1.95" step="0.01" type="number" />
                                     </div>
-                                    <div class="flex flex-col gap-1">
+                                    <div class="flex flex-col gap-1 text-center">
                                         <span class="text-xs text-lay-pink font-semibold">Lay</span>
-                                        <input class="block w-full rounded-md shadow-sm sm:text-sm" name="tossMarket[homeLay]" placeholder="0.00" step="0.01" type="number" />
+                                        <input class="block w-full rounded-md shadow-sm sm:text-sm text-center" name="tossMarket[homeLay]" value="1.95" step="0.01" type="number" />
                                     </div>
                                 </div>
                             </div>
                             <div class="p-4 bg-dark-bg border border-border-dark rounded-lg">
-                                <label class="text-sm font-medium text-gray-300 mb-3 block">Away Toss</label>
-                                <div class="grid grid-cols-2 gap-3">
-                                    <div class="flex flex-col gap-1">
+                                <label class="text-sm font-medium text-gray-300 mb-3 block text-center">Away Toss</label>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div class="flex flex-col gap-1 text-center">
                                         <span class="text-xs text-back-blue font-semibold">Back</span>
-                                        <input class="block w-full rounded-md shadow-sm sm:text-sm" name="tossMarket[awayOdds]" placeholder="0.00" step="0.01" type="number" />
+                                        <input class="block w-full rounded-md shadow-sm sm:text-sm text-center" name="tossMarket[awayOdds]" value="1.95" step="0.01" type="number" />
                                     </div>
-                                    <div class="flex flex-col gap-1">
+                                    <div class="flex flex-col gap-1 text-center">
                                         <span class="text-xs text-lay-pink font-semibold">Lay</span>
-                                        <input class="block w-full rounded-md shadow-sm sm:text-sm" name="tossMarket[awayLay]" placeholder="0.00" step="0.01" type="number" />
+                                        <input class="block w-full rounded-md shadow-sm sm:text-sm text-center" name="tossMarket[awayLay]" value="1.95" step="0.01" type="number" />
                                     </div>
                                 </div>
                             </div>
@@ -221,20 +203,32 @@
                 </div>
             </section>
             
-            <footer class="flex items-center justify-end gap-4 py-4" data-purpose="form-actions">
-                <a href="/admin"
-                    class="px-6 py-2.5 rounded-lg border border-border-dark text-gray-300 font-medium hover:bg-white/5 transition-colors"
-                    type="button">
+            <div class="pt-6 flex justify-end gap-4 border-t border-border-dark">
+                <a href="/admin" class="px-6 py-2 rounded-md border border-border-dark text-gray-300 font-medium hover:bg-white/5 transition-colors" type="button">
                     Cancel
                 </a>
-                <button
-                    class="px-8 py-2.5 rounded-lg bg-neon-blue text-dark-bg font-bold shadow-[0_0_15_rgba(0,242,255,0.3)] hover:bg-neon-blue-hover hover:shadow-[0_0_20px_rgba(0,242,255,0.5)] transition-all"
-                    type="submit">
+                <button class="px-8 py-2 rounded-md bg-neon-blue text-dark-bg font-bold shadow-[0_0_10px_rgba(0,242,255,0.2)] hover:bg-neon-blue-hover hover:shadow-[0_0_15px_rgba(0,242,255,0.4)] transition-all" type="submit">
                     Create Event
                 </button>
-            </footer>
+            </div>
         </form>
     </main>
+
+    <script>
+        function toggleTossMarket() {
+            const sportSelect = document.getElementById('sport');
+            const tossSection = document.getElementById('toss-market-section');
+            
+            if (sportSelect.value.toLowerCase() === 'cricket') {
+                tossSection.style.display = 'block';
+            } else {
+                tossSection.style.display = 'none';
+            }
+        }
+
+        // Run on page load to set the initial state
+        document.addEventListener('DOMContentLoaded', toggleTossMarket);
+    </script>
 </body>
 
 </html>

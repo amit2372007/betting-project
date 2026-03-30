@@ -15,13 +15,23 @@ module.exports.renderAdminDashboard = async (req, res) => {
   try {
     const activeTab = req.query.tab || "Dashboard";
 
-    // 1. Initialize ALL variables as empty arrays/objects so EJS never crashes on inactive tabs
+    // 1. Initialize ALL variables as empty arrays/objects/defaults so EJS never crashes on inactive tabs
     let users = [];
     let activeEvents = [], liveEvents = [], upcomingEvents = [];
     let deposits = [], withdrawals = [];
     let totalUsers = 0;
     let complaints = [], stats = { open: 0, inProgress: 0, resolvedToday: 0 };
     let whatsappNumbers = [], announcements = [];
+
+    // Initialize NEW Pagination and Finance variables
+    let currentStatus = 'all';
+    let page = 1;
+    let totalPages = 1;
+    let totalItems = 0;
+    let pendingCount = 0;
+    let rejectedCount = 0;
+    let totalApprovedAmount = 0;
+    let totalDepositsToday = 0;
 
     // Helper: Start of today for date calculations
     const startOfToday = new Date();
@@ -41,13 +51,58 @@ module.exports.renderAdminDashboard = async (req, res) => {
         activeEvents = await Event.find({ status: { $ne: "settled" } }).sort({ startTime: 1 }).lean();
         break;
 
-      case "Finances": 
-        // Maps to includes/admin/finances/finances.ejs (Deposits)
-        deposits = await Transaction.find({ type: "deposit" })
-          .sort({ createdAt: -1 })
-          .populate("userId", "username email")
-          .lean();
+      case "Finances": { 
+        // Note the { } added here! This creates a block scope, allowing us to safely declare 
+        // temporary variables without bleeding into other switch cases.
+        
+        // 1. Get query parameters for pagination and filtering
+        page = parseInt(req.query.page) || 1;
+        const limit = 20;
+        currentStatus = req.query.status || 'all';
+
+        // 2. Build the query
+        let query = { type: "deposit" };
+        if (currentStatus !== 'all') {
+            query.status = currentStatus;
+        }
+
+        // 3. Fetch Paginated Data
+        const skip = (page - 1) * limit;
+        deposits = await Transaction.find(query)
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit)
+            .populate("userId", "username email")
+            .lean();
+
+        // 4. Pagination Math
+        totalItems = await Transaction.countDocuments(query);
+        totalPages = Math.ceil(totalItems / limit) || 1; // Fallback to 1 if no items
+
+        // 5. Stat Card Calculations
+        pendingCount = await Transaction.countDocuments({ type: "deposit", status: "pending" });
+        rejectedCount = await Transaction.countDocuments({ type: "deposit", status: "rejected" });
+
+        const approvedStats = await Transaction.aggregate([
+            { $match: { type: "deposit", status: "approved" } },
+            { 
+                $group: { 
+                    _id: null, 
+                    totalAmount: { $sum: "$amount" },
+                    todayAmount: { 
+                        $sum: { 
+                            $cond: [ { $gte: ["$createdAt", startOfToday] }, "$amount", 0 ] 
+                        } 
+                    }
+                } 
+            }
+        ]);
+
+        totalApprovedAmount = approvedStats[0] ? approvedStats[0].totalAmount : 0;
+        totalDepositsToday = approvedStats[0] ? approvedStats[0].todayAmount : 0;
+        
         break;
+      }
 
       case "Withdrawals":
         // Maps to includes/admin/finances/withdrawals.ejs
@@ -75,10 +130,9 @@ module.exports.renderAdminDashboard = async (req, res) => {
         break;
 
       case "Dashboard":
-      default:
+      default: {
         // 🚀 HIGH-SPEED DASHBOARD SUMMARY
-        // Maps to includes/admin/dashboard/dashboard.ejs
-        // We use Promise.all to fetch exactly what the main dashboard needs in parallel
+        // Enclosed in { } to scope const variables
         const [dashEvents, dashDeposits, dashWithdrawals, dashUsersCount, dashAnnouncements] = await Promise.all([
             Event.find({ status: { $ne: "settled" } }).sort({ startTime: 1 }).lean(),
             Transaction.find({ type: "deposit" }).lean(), 
@@ -96,9 +150,11 @@ module.exports.renderAdminDashboard = async (req, res) => {
         totalUsers = dashUsersCount;
         announcements = dashAnnouncements;
         break;
+      }
     }
 
-    req.flash("success", "Welcome Amit to the Admin Dashboard!");
+    // Flash message removed to prevent it popping up on every tab click
+    // req.flash("success", "Welcome Amit to the Admin Dashboard!");
     
     // 3. Render Dashboard with all variables securely passed
     res.render("./admin/dashboard.ejs", { 
@@ -114,6 +170,15 @@ module.exports.renderAdminDashboard = async (req, res) => {
       totalUsers,
       whatsappNumbers,
       announcements,
+      // Pass the new Finance variables to EJS
+      currentStatus, 
+      page, 
+      totalPages, 
+      totalItems, 
+      pendingCount, 
+      rejectedCount, 
+      totalApprovedAmount, 
+      totalDepositsToday
     });
 
   } catch (err) {

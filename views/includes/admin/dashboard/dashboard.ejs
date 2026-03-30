@@ -317,7 +317,24 @@
             <span class="material-symbols-outlined text-[#00f2ff]">data_object</span>
             <h2 class="font-display font-semibold text-white text-sm md:text-base">Active Provider IDs (For Scraping)</h2>
         </div>
-        <span class="text-[10px] text-gray-400 uppercase tracking-widest font-bold bg-white/5 px-2 py-1 rounded">Excludes Settled</span>
+        
+        <div class="flex items-center gap-3">
+            <span class="hidden md:inline-block text-[10px] text-gray-400 uppercase tracking-widest font-bold bg-white/5 px-2 py-1 rounded">Excludes Settled</span>
+            
+            <% 
+                // Filter out events that don't have a providerId, then map to an array of just the IDs
+                let allProviderIds = [];
+                if (typeof activeEvents !== 'undefined' && activeEvents.length > 0) {
+                    allProviderIds = activeEvents.filter(e => e.providerId).map(e => e.providerId);
+                }
+            %>
+            <% if (allProviderIds.length > 0) { %>
+                <button onclick="copyAllIds('<%= allProviderIds.join(',') %>', this)" 
+                    class="bg-[#00f2ff]/10 hover:bg-[#00f2ff]/20 text-[#00f2ff] border border-[#00f2ff]/30 hover:border-[#00f2ff] text-xs font-bold px-3 py-1.5 rounded transition-all flex items-center gap-1 active:scale-95">
+                    <span class="material-symbols-outlined text-[14px]">content_copy</span> Copy All
+                </button>
+            <% } %>
+        </div>
     </div>
 
     <div class="overflow-x-auto w-full">
@@ -419,5 +436,34 @@
             toast.classList.add("translate-y-[-20px]", "opacity-0");
             setTimeout(() => toast.remove(), 300); // Wait for fade out to finish before removing from DOM
         }, 3000);
+    }
+
+    function copyAllIds(rawIdsString, btnElement) {
+        if (!rawIdsString) return;
+        
+        // This splits the EJS string and rejoins it with " , " to get your requested format: "id1 , id2 , id3"
+        const formattedArrayStr = rawIdsString.split(',').join(' , ');
+
+        navigator.clipboard.writeText(formattedArrayStr).then(() => {
+            // Save original HTML
+            const originalHTML = btnElement.innerHTML;
+            
+            // Visual feedback: Change to green checkmark
+            btnElement.innerHTML = '<span class="material-symbols-outlined text-[14px]">check</span> Copied!';
+            btnElement.classList.replace('text-[#00f2ff]', 'text-green-400');
+            btnElement.classList.replace('bg-[#00f2ff]/10', 'bg-green-500/20');
+            btnElement.classList.replace('border-[#00f2ff]/30', 'border-green-500/50');
+            
+            // Revert back to original after 2 seconds
+            setTimeout(() => {
+                btnElement.innerHTML = originalHTML;
+                btnElement.classList.replace('text-green-400', 'text-[#00f2ff]');
+                btnElement.classList.replace('bg-green-500/20', 'bg-[#00f2ff]/10');
+                btnElement.classList.replace('border-green-500/50', 'border-[#00f2ff]/30');
+            }, 2000);
+        }).catch(err => {
+            console.error('Failed to copy text: ', err);
+            alert("Failed to copy IDs to clipboard.");
+        });
     }
 </script>
