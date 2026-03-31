@@ -15,7 +15,7 @@ router.get("/", async (req, res) => {
     // Initialize empty arrays so EJS doesn't crash on inactive tabs
     let cricketEvents = [];
     let footballEvents = [];
-    let tennisEvents = []; // <-- ADDED: Initialize tennisEvents
+    let tennisEvents = []; 
     let bets = [];
     let whatsappNumber = null;
     let announcement = null;
@@ -31,12 +31,10 @@ router.get("/", async (req, res) => {
         whatsappNumber = parsedConfigs.whatsappNumber;
         announcement = parsedConfigs.announcement;
     } else {
-        // Run both DB queries at the same time
         [whatsappNumber, announcement] = await Promise.all([
             WhatsappNumber.findOne({ purpose: "deposit" }).lean(),
             Announcement.findOne({ isActive: true }).lean()
         ]);
-        // Cache for 300 seconds (5 minutes)
         await redis.set(globalCacheKey, JSON.stringify({ whatsappNumber, announcement }), "EX", 300);
     }
 
@@ -53,7 +51,6 @@ router.get("/", async (req, res) => {
     // Helper: Fetch Instant Odds
     const attachLiveOdds = async (eventsArray) => {
         if (!eventsArray || eventsArray.length === 0 || typeof redis === 'undefined') return;
-        
         await Promise.all(eventsArray.map(async (event) => {
             try {
                 const liveCachedOdds = await redis.get(`live_odds_${event._id}`);
@@ -71,6 +68,34 @@ router.get("/", async (req, res) => {
         }));
     };
 
+    // Helper: Format Dates consistently to fix the EJS crashes and Timezone shifts
+    const formatDatesForFrontend = (eventsArray) => {
+        if (!eventsArray) return;
+        eventsArray.forEach(event => {
+            if (event.startTime) {
+                // Ensure it's a Date object whether it came from Mongo or Redis
+                const d = new Date(event.startTime.$date || event.startTime);
+                
+                if (!isNaN(d.getTime())) {
+                    event.safeUtcTime = d.toISOString();
+                    
+                    // We force 'UTC' here so that 19:30 in the DB stays exactly 19:30 on the screen.
+                    // If you want it to convert to Indian time automatically, change 'UTC' to 'Asia/Kolkata'
+                    event.displayTime = d.toLocaleString('en-GB', {
+                        timeZone: 'UTC', 
+                        day: '2-digit', 
+                        month: 'short',
+                        hour: '2-digit', 
+                        minute: '2-digit'
+                    });
+                } else {
+                    event.safeUtcTime = "";
+                    event.displayTime = "TBA";
+                }
+            }
+        });
+    };
+
     // ==========================================
     // 2. CONDITIONAL TAB FETCHING (The Speed Boost)
     // ==========================================
@@ -85,9 +110,8 @@ router.get("/", async (req, res) => {
             break;
 
         case "Cricket":
-       case "Home":
+        case "Home":
         default:
-            // 1. Check if we have a combined cache for the home page
             const cachedHome = await redis.get("active_home_matches");
             
             if (cachedHome) {
@@ -96,7 +120,6 @@ router.get("/", async (req, res) => {
                 footballEvents = parsedHome.footballEvents;
                 tennisEvents = parsedHome.tennisEvents;
             } else {
-                // 2. Fetch all three sports at the exact same time
                 const [cricketData, footballData, tennisData] = await Promise.all([
                     Event.find({
                         sport: { $regex: /^cricket$/i },
@@ -141,6 +164,11 @@ router.get("/", async (req, res) => {
                 attachLiveOdds(footballEvents),
                 attachLiveOdds(tennisEvents)
             ]);
+            
+            // Format the dates AFTER Redis/DB fetch, right before rendering
+            formatDatesForFrontend(cricketEvents);
+            formatDatesForFrontend(footballEvents);
+            formatDatesForFrontend(tennisEvents);
             break;
     }
 
@@ -151,7 +179,7 @@ router.get("/", async (req, res) => {
       activeTab,
       cricketEvents,
       footballEvents, 
-      tennisEvents, // <-- ADDED: Pass to frontend
+      tennisEvents,
       bets,
       whatsappNumber,
       announcement
@@ -164,7 +192,7 @@ router.get("/", async (req, res) => {
       activeTab: req.query.tab || "Home",
       cricketEvents: [],
       footballEvents: [], 
-      tennisEvents: [], // <-- ADDED: Pass empty array on error
+      tennisEvents: [],
       bets: [],
       whatsappNumber: null,
       announcement: null

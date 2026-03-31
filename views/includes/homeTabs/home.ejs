@@ -275,15 +275,29 @@
                                         </p>
                                         <% } else if(Event.status==='pending' || Event.status==='upcoming' ) { %>
                                             <div class="flex items-center gap-2 mb-0.5">
-                                                <% let formattedDate="TBA" ; if (Event.startTime) { const d=new
-                                                    Date(Event.startTime); formattedDate=d.toLocaleDateString('en-GB', {
-                                                    day: '2-digit' , month: 'short' }) + ', ' +
-                                                    d.toLocaleTimeString('en-GB', { hour: '2-digit' , minute: '2-digit'
-                                                    }); } %>
-                                                    <p class="local-time match-time text-white/40 text-[9px] font-bold uppercase truncate"
-                                                        data-utc="<%= Event.startTime %>">
-                                                        <%= formattedDate %>
-                                                    </p>
+                                                <% 
+                                                    let formattedDate = "TBA"; 
+                                                    let safeUtcString = "";
+                                                    
+                                                    if (Event.startTime) { 
+                                                        const dateString = Event.startTime.$date || Event.startTime;
+                                                        const d = new Date(dateString); 
+                                                        
+                                                        if (!isNaN(d.getTime())) {
+                                                            safeUtcString = d.toISOString();
+                                                            formattedDate = d.toLocaleString('en-GB', {
+                                                                timeZone: 'UTC', // FORCED UTC
+                                                                day: '2-digit', 
+                                                                month: 'short',
+                                                                hour: '2-digit', 
+                                                                minute: '2-digit'
+                                                            }); 
+                                                        }
+                                                    } 
+                                                %>
+                                                <p class="local-time match-time text-white/40 text-[9px] font-bold uppercase truncate" data-utc="<%= safeUtcString %>">
+                                                    <%= formattedDate %>
+                                                </p>
 
                                                     <span class="text-white/20 text-[9px]">•</span>
 
@@ -385,8 +399,27 @@
                             </p>
                         <% } else if(Event.status==='pending' || Event.status==='upcoming' ) { %>
                             <div class="flex items-center gap-2 mb-0.5">
-                                <% let formattedDate="TBA" ; if (Event.startTime) { const d=new Date(Event.startTime); formattedDate=d.toLocaleDateString('en-GB', { day: '2-digit' , month: 'short' }) + ', ' + d.toLocaleTimeString('en-GB', { hour: '2-digit' , minute: '2-digit' }); } %>
-                                <p class="local-time match-time text-white/40 text-[9px] font-bold uppercase truncate" data-utc="<%= Event.startTime %>">
+                                <% 
+                                    let formattedDate = "TBA"; 
+                                    let safeUtcString = "";
+                                    
+                                    if (Event.startTime) { 
+                                        const dateString = Event.startTime.$date || Event.startTime;
+                                        const d = new Date(dateString); 
+                                        
+                                        if (!isNaN(d.getTime())) {
+                                            safeUtcString = d.toISOString();
+                                            formattedDate = d.toLocaleString('en-GB', {
+                                                timeZone: 'UTC', // FORCED UTC
+                                                day: '2-digit', 
+                                                month: 'short',
+                                                hour: '2-digit', 
+                                                minute: '2-digit'
+                                            }); 
+                                        }
+                                    } 
+                                %>
+                                <p class="local-time match-time text-white/40 text-[9px] font-bold uppercase truncate" data-utc="<%= safeUtcString %>">
                                     <%= formattedDate %>
                                 </p>
                                 <span class="text-white/20 text-[9px]">•</span>
@@ -480,8 +513,27 @@
                             </p>
                         <% } else if(Event.status==='pending' || Event.status==='upcoming' ) { %>
                             <div class="flex items-center gap-2 mb-0.5">
-                                <% let formattedDate="TBA" ; if (Event.startTime) { const d=new Date(Event.startTime); formattedDate=d.toLocaleDateString('en-GB', { day: '2-digit' , month: 'short' }) + ', ' + d.toLocaleTimeString('en-GB', { hour: '2-digit' , minute: '2-digit' }); } %>
-                                <p class="local-time match-time text-white/40 text-[9px] font-bold uppercase truncate" data-utc="<%= Event.startTime %>">
+                                <% 
+                                    let formattedDate = "TBA"; 
+                                    let safeUtcString = "";
+                                    
+                                    if (Event.startTime) { 
+                                        const dateString = Event.startTime.$date || Event.startTime;
+                                        const d = new Date(dateString); 
+                                        
+                                        if (!isNaN(d.getTime())) {
+                                            safeUtcString = d.toISOString();
+                                            formattedDate = d.toLocaleString('en-GB', {
+                                                timeZone: 'UTC', // FORCED UTC
+                                                day: '2-digit', 
+                                                month: 'short',
+                                                hour: '2-digit', 
+                                                minute: '2-digit'
+                                            }); 
+                                        }
+                                    } 
+                                %>
+                                <p class="local-time match-time text-white/40 text-[9px] font-bold uppercase truncate" data-utc="<%= safeUtcString %>">
                                     <%= formattedDate %>
                                 </p>
                                 <span class="text-white/20 text-[9px]">•</span>
@@ -589,15 +641,64 @@
         }
     }
     
-    document.querySelectorAll('.local-time').forEach(el => {
-        const utcDate = new Date(el.getAttribute('data-utc'));
-        el.innerText = utcDate.toLocaleString(undefined, {
-            day: 'numeric',
-            month: 'short',
-            hour: '2-digit',
-            minute: '2-digit'
+   document.addEventListener("DOMContentLoaded", () => {
+    const timeElements = document.querySelectorAll('.local-time');
+    
+    function updateMatchStatuses() {
+        const now = new Date(); // Gets the exact current time of the user's device
+        
+        timeElements.forEach(el => {
+            const utcString = el.getAttribute('data-utc');
+            if (!utcString || utcString === "undefined" || utcString === "null" || utcString === "") return;
+            
+            const matchDate = new Date(utcString);
+            const container = el.parentElement; // Grabs the div holding the time and the league name
+            
+            // SECURITY CHECK: Has the current time passed the match start time?
+            if (now.getTime() >= matchDate.getTime()) {
+                
+                // 1. Grab the League name before we delete the HTML
+                let leagueName = "MATCH";
+                const leagueElement = container.querySelector('p:last-child');
+                
+                if (leagueElement && !leagueElement.classList.contains('text-red-500')) {
+                    leagueName = leagueElement.innerText.trim();
+                    container.setAttribute('data-league', leagueName); // Save it for later
+                } else {
+                    leagueName = container.getAttribute('data-league') || "MATCH";
+                }
+
+                // 2. Inject the "LIVE" UI directly into the page (overwriting the upcoming time)
+                container.innerHTML = `
+                    <p class="text-red-500 text-[9px] font-bold mb-0.5 flex items-center gap-1">
+                        <span class="material-symbols-outlined text-[10px] animate-pulse">timer</span>
+                        LIVE || ${leagueName}
+                    </p>
+                `;
+                
+                // 3. Remove the class so we don't process this element again
+                el.classList.remove('local-time'); 
+                
+            } else {
+                // MATCH IS UPCOMING: Format the UTC string, FORCING UTC to ignore the browser's local timezone
+                el.innerText = matchDate.toLocaleString('en-GB', {
+                    timeZone: 'UTC', // FORCED UTC HERE AS WELL
+                    day: '2-digit', 
+                    month: 'short', 
+                    hour: '2-digit', 
+                    minute: '2-digit'
+                });
+            }
         });
-    });
+    }
+
+    // Run the check instantly when the page loads
+    updateMatchStatuses();
+    
+    // MAGIC TRICK: Run the check every 60 seconds. 
+    // If a user leaves the tab open, the match will automatically turn red and go LIVE without them refreshing!
+    setInterval(updateMatchStatuses, 60000); 
+});
 
     document.addEventListener("DOMContentLoaded", () => {
         const carousel = document.getElementById('game-carousel');
