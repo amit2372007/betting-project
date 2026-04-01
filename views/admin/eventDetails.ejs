@@ -138,8 +138,8 @@
                             <select name="result"
                                 class="w-full bg-dark-bg border-dark-border rounded-md text-white focus-neon-green transition-all py-2.5">
                                 <option value="" <%= !Event.result ? 'selected' : '' %>>Select Result</option>
-                                <option value="home" <%= Event.result === 'home' ? 'selected' : '' %>>Home Win</option>
-                                <option value="away" <%= Event.result === 'away' ? 'selected' : '' %>>Away Win</option>
+                                <option value="home" <%= Event.result === 'home' ? 'selected' : '' %>><%= Event.homeTeam %></option>
+                                <option value="away" <%= Event.result === 'away' ? 'selected' : '' %>> <%= Event.awayTeam %></option>
                                 <option value="draw" <%= Event.result === 'draw' ? 'selected' : '' %>>Draw</option>
                                 <option value="void" <%= Event.result === 'void' ? 'selected' : '' %>>Void</option>
                             </select>

@@ -17,8 +17,7 @@ const settleNextBallBets = async (eventId, result) => {
 
         if (pendingBets.length === 0) return;
 
-        console.log(`⚡ Settling ${pendingBets.length} ball bets for outcome: [${result.outcome}]`);
-
+       
         await Promise.all(pendingBets.map(async (bet) => {
             let isWinner = false;
             const selection = bet.selection.toLowerCase();
@@ -93,7 +92,7 @@ const settleMatchWinnerBets = async (eventId, finalWinnerSide) => {
 
         if (pendingBets.length === 0) return;
 
-        console.log(`🏆 Settling ${pendingBets.length} Match Winner bets for event: ${eventId}`);
+       
 
         // Map the backend winner ('home'/'away') to the frontend selection string
         let winningSelection = null;

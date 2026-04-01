@@ -459,11 +459,18 @@ module.exports.updateEventStatus = async (req, res) => {
     const { id } = req.params;
     const { status, result } = req.body;
     const event = await Event.findById(id);
+    
     if (!event) {
       req.flash("error", "Event not found");
       return res.redirect("/admin?tab=Dashboard");
     }
 
+    if (event.status === "settled") {
+      req.flash("error", "This event has already been settled. Status cannot be changed.");
+      return res.redirect(`/admin`);
+    }
+
+    // Update Event 
     event.status = status;
     event.result = result;
     await event.save();
@@ -475,7 +482,6 @@ module.exports.updateEventStatus = async (req, res) => {
         let winningTeam = "";
         const resLower = result.toLowerCase();
         
-        // Map the admin dropdown result to the actual team name
         if (resLower === "home") winningTeam = event.homeTeam;
         else if (resLower === "away") winningTeam = event.awayTeam;
         else if (resLower === "draw") winningTeam = "The Draw";
@@ -484,49 +490,52 @@ module.exports.updateEventStatus = async (req, res) => {
         if (winningTeam) {
             console.log(`🏆 Initiating Payouts for Winner: ${winningTeam}`);
 
-            // 🌟 THE FIX: Find ALL exposures that aren't already settled
+            // --- PART 1: SETTLE THE EXPOSURES & WALLETS (CONCURRENTLY) ---
             const activeExposures = await Exposure.find({ 
                 eventId: id, 
                 status: { $ne: 'SETTLED' } 
             });
 
-            console.log(`Found ${activeExposures.length} users to settle for this match.`);
-
-            for (let exposure of activeExposures) {
+            // Map over exposures to create an array of promises
+            await Promise.all(activeExposures.map(async (exposure) => {
                 let payout = 0;
                 let ledgerType = "bet_won";
                 let remarks = `Match Payout: ${event.homeTeam} vs ${event.awayTeam}`;
 
                 if (winningTeam === "void") {
-                    // Match Voided: Refund the locked liability completely
                     payout = Math.abs(exposure.liability || 0);
                     ledgerType = "refund";
                     remarks = `Match Voided Refund: ${event.homeTeam} vs ${event.awayTeam}`;
                 } else {
-                    // 🌟 THE FIX: Bulletproof Map-to-Object conversion
-                    const rawExposures = exposure.exposures;
-                    const exposuresObj = (rawExposures instanceof Map) 
-                        ? Object.fromEntries(rawExposures) 
-                        : (rawExposures || {});
+                    let userOutcomePnL = 0;
+                    const keysToCheck = [];
                     
-                    // Get the exact Profit/Loss for the team that won
-                    const userOutcomePnL = exposuresObj[winningTeam] || 0;
+                    if (resLower === "home") keysToCheck.push(event.homeTeam, event.homeId, "home");
+                    else if (resLower === "away") keysToCheck.push(event.awayTeam, event.awayId, "away");
+                    else if (resLower === "draw") keysToCheck.push("The Draw", "Draw", "draw");
+
+                    if (exposure.exposures && typeof exposure.exposures.get === 'function') {
+                        for (let k of keysToCheck) {
+                            if (!k) continue; 
+                            let val = exposure.exposures.get(k);
+                            if (val !== undefined && val !== null) {
+                                userOutcomePnL = val;
+                                break; 
+                            }
+                        }
+                    }
                     
-                    // The Liability was already deducted when they placed the bet.
-                    // The magic formula: Payout = Locked Liability + The Outcome's PnL
                     const lockedLiability = Math.abs(exposure.liability || 0);
                     payout = lockedLiability + userOutcomePnL;
                 }
 
                 if (payout > 0) {
-                    // Atomically add the winnings directly to the wallet
                     const userUpdate = await User.findByIdAndUpdate(
                         exposure.userId,
                         { $inc: { balance: payout } },
-                        { new: false } // Returns balance BEFORE the update
+                        { new: false } 
                     );
 
-                    // Create the passbook receipt
                     if (userUpdate) {
                         await Ledger.create({
                             userId: exposure.userId,
@@ -536,18 +545,57 @@ module.exports.updateEventStatus = async (req, res) => {
                             balanceAfter: userUpdate.balance + payout,
                             remarks: remarks
                         });
-                        console.log(`✅ Paid ₹${payout} to User: ${userUpdate.username || exposure.userId}`);
                     }
-                } else {
-                     console.log(`❌ User ${exposure.userId} lost or broke even. Payout: ₹0`);
                 }
 
-                // Close out this user's position for this match permanently
                 exposure.status = 'SETTLED';
                 exposure.liability = 0; 
                 await exposure.save();
-            }
-            console.log(`🏁 O(1) Exposure Settlement Complete for: ${event.homeTeam} vs ${event.awayTeam}`);
+            }));
+
+
+            // --- PART 2: SETTLE THE INDIVIDUAL BETSLIPS (CONCURRENTLY) ---
+            const pendingBets = await Bet.find({ eventId: id, status: "pending" });
+            
+            // Map over bets to create an array of promises
+            await Promise.all(pendingBets.map(async (bet) => {
+                if (winningTeam === "void") {
+                    bet.status = "void"; 
+                    bet.payout = bet.stake; 
+                } else {
+                    let isWin = false;
+                    const sel = bet.selection;
+                    
+                    if (sel === event.homeTeam || sel === event.homeId || sel === 'home') {
+                        isWin = (resLower === "home" && bet.type === "back") || (resLower !== "home" && bet.type === "lay");
+                    } 
+                    else if (sel === event.awayTeam || sel === event.awayId || sel === 'away') {
+                        isWin = (resLower === "away" && bet.type === "back") || (resLower !== "away" && bet.type === "lay");
+                    } 
+                    else if (sel && sel.toLowerCase().includes("draw")) {
+                        isWin = (resLower === "draw" && bet.type === "back") || (resLower !== "draw" && bet.type === "lay");
+                    }
+
+                    bet.status = isWin ? "won" : "lost"; 
+                    
+                    if (isWin) {
+                        if (bet.type === "back") {
+                            bet.payout = bet.stake * bet.odds; 
+                        } else if (bet.type === "lay") {
+                            bet.payout = bet.stake; 
+                        } else {
+                            bet.payout = bet.stake * bet.odds; 
+                        }
+                    } else {
+                        bet.payout = 0; 
+                    }
+                }
+                
+                bet.settledAt = new Date();
+                await bet.save(); 
+            }));
+            
+            console.log(`🏁 High-Speed Settlement Complete for: ${event.homeTeam} vs ${event.awayTeam}`);
         }
     }
     // =========================================================
@@ -560,6 +608,7 @@ module.exports.updateEventStatus = async (req, res) => {
     return res.redirect("/admin?tab=Dashboard");
   }
 };
+
 module.exports.updateMatchOdds = async (req, res) => {
   try {
     const { id } = req.params;

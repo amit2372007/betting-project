@@ -34,15 +34,21 @@
     <style>
         .multiplier-glow { text-shadow: 0 0 20px rgba(255, 77, 77, 0.6); }
         .success-glow { text-shadow: 0 0 20px rgba(40, 167, 69, 0.6); }
+        
         /* Hide number input arrows */
         input[type=number]::-webkit-inner-spin-button, 
-        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; 
+            margin: 0; 
+        }
+        
         /* Feed Animations */
         @keyframes slideDownFade {
             0% { opacity: 0; transform: translateY(-10px); }
             100% { opacity: 1; transform: translateY(0); }
         }
         .animate-bet-row { animation: slideDownFade 0.3s ease-out forwards; }
+        
         /* Toast Notification Animations */
         @keyframes toastEnter {
             0% { opacity: 0; transform: translateX(100%) scale(0.9); }
@@ -54,6 +60,19 @@
         }
         .toast-enter { animation: toastEnter 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
         .toast-leave { animation: toastLeave 0.3s ease-in forwards; }
+
+        /* Professional Button Loader */
+        .btn-loader {
+            width: 28px;
+            height: 28px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
     </style>
 </head>
 
@@ -89,7 +108,6 @@
                 
                 <% history.forEach(round => { %>
                     <% 
-                        // Color Logic: Purple/Green for huge wins, Red/Primary for normal, Grey for immediate busts
                         let colorClass = 'text-on-surface-variant';
                         if (round.crashPoint >= 10.0) colorClass = 'text-success';
                         else if (round.crashPoint >= 2.0) colorClass = 'text-primary';
@@ -202,7 +220,7 @@
 
             <div class="relative w-full">
                 <div id="live-bets-feed" class="flex flex-col gap-1 max-h-[180px] overflow-hidden">
-                    </div>
+                </div>
                 <div class="absolute bottom-0 left-0 w-full h-8 bg-gradient-to-t from-surface to-transparent pointer-events-none"></div>
             </div>
         </section>
@@ -216,14 +234,13 @@
     <script src="/socket.io/socket.io.js"></script>
     <script>
         // --- 🎵 AUDIO ASSETS 🎵 ---
-        
         const flewAway = new Audio('/sounds/flewAway.mp3');
         const flyingAviator = new Audio('/sounds/flyingAviator.mp3');
         const clockTicking = new Audio('/sounds/clockTicking.mp3');
         
         flewAway.volume = 0.8;
         flyingAviator.volume = 0.8;
-        flyingAviator.loop = true; 
+        flyingAviator.loop = true;
         clockTicking.volume = 0.8;
 
         // --- 🏆 PREMIUM TOAST NOTIFICATIONS ---
@@ -260,7 +277,6 @@
                     </div>
                 </div>
             `;
-
             container.appendChild(toast);
 
             setTimeout(() => {
@@ -271,10 +287,7 @@
         }
 
         // --- 👥 FAKE LIVE BETS ENGINE ---
-        const fakeNames = ["Akas***", "Raj***", "Dev***", "Poo***", "Shi***", "Vik***", "Sne***", "Joh***", "Roh***", "Moh***" , "Anu***", "Sai***", "Kav***", "Nikh***", "Har***", "Aar***", "Pri***", "Adh***", "Man***", "Shiv***", "Arj***" , "Kri***", "Suh***", "Tan***", "Dha***", "Yog***", "Ish***", "Par***", "Gau***", "Lak***", "Vi***", "Sha***", "Ragh***", "Kum***", "Chir***", "Samar***", "Nave***", "Tej***", "Vij***", "Ash***", "Mahi***", "Rit***", "Sidh***", "Ansh***", "Kaly***", "Shan***", "Raghv***", "Amit***", "Saty***", "Vish***", "Karan***", "Jai***", "Rah***", "Aditya***", "Suresh***", "Vikram***", "Sanjay***", "Rohit***", "Aman***", "Kunal***", "Pranav***", "Sahil***", "Nikhil***", "Harsh***", "Aarav***", "Priyansh***", "Adhvik***", "Manav***", "Shivam***", "Arjun***", "Krish***", "Suhas***", "Tanmay***", "Dhaval***", "Yogesh***", "Ishaan***", "Parth***", "Gaurav***", "Lakshay***", "Vishal***", "Shantanu***", "Raghavendra***", "Kumar***", "Chirag***"
-        , "Samar***", "Naveen***", "Tejas***", "Vijay***", "Ashish***", "Mahesh***", "Ritesh***", "Siddharth***", "Anshul***", "Kalyan***", "Shantanu***", "Raghvendra***", "Amitabh***", "Satyarth***", "Vishnu***", "Karanveer***", "Jaiwant***", "Rahul***", "Adityan***", "Suresh***", "Vikramaditya***", "Sanjay***", "Rohit***", "Amanpreet***", "Kunal***", "Pranav***", "Sahil***"
-        , "Nikhil***", "Harsh***", "Aarav***", "Priyansh***", "Adhvik***", "Manav***", "Shivam***", "Arjun***", "Krish***", "Suhas***", "Tanmay***", "Dhaval***", "Yogesh***", "Ishaan***", "Parth***", "Gaurav***", "Lakshay***", "Vishal***", "Shantanu***"
-        ];
+        const fakeNames = ["Akas***", "Raj***", "Dev***", "Poo***", "Shi***", "Vik***", "Sne***", "Joh***", "Roh***", "Moh***" , "Anu***", "Sai***", "Kav***", "Nikh***", "Har***", "Aar***", "Pri***", "Adh***", "Man***", "Shiv***", "Arj***" , "Kri***", "Suh***", "Tan***", "Dha***", "Yog***", "Ish***", "Par***", "Gau***", "Lak***", "Vi***", "Sha***", "Ragh***", "Kum***", "Chir***", "Samar***", "Nave***", "Tej***", "Vij***", "Ash***", "Mahi***", "Rit***", "Sidh***", "Ansh***", "Kaly***", "Shan***", "Raghv***", "Amit***", "Saty***", "Vish***", "Karan***", "Jai***", "Rah***", "Aditya***", "Suresh***", "Vikram***", "Sanjay***", "Rohit***", "Aman***", "Kunal***", "Pranav***", "Sahil***", "Nikhil***", "Harsh***", "Aarav***", "Priyansh***", "Adhvik***", "Manav***", "Shivam***", "Arjun***", "Krish***", "Suhas***", "Tanmay***", "Dhaval***", "Yogesh***", "Ishaan***", "Parth***", "Gaurav***", "Lakshay***", "Vishal***", "Shantanu***", "Raghavendra***", "Kumar***", "Chirag***", "Samar***", "Naveen***", "Tejas***", "Vijay***", "Ashish***", "Mahesh***", "Ritesh***", "Siddharth***", "Anshul***", "Kalyan***", "Shantanu***", "Raghvendra***", "Amitabh***", "Satyarth***", "Vishnu***", "Karanveer***", "Jaiwant***", "Rahul***", "Adityan***", "Suresh***", "Vikramaditya***", "Sanjay***", "Rohit***", "Amanpreet***", "Kunal***", "Pranav***", "Sahil***", "Nikhil***", "Harsh***", "Aarav***", "Priyansh***", "Adhvik***", "Manav***", "Shivam***", "Arjun***", "Krish***", "Suhas***", "Tanmay***", "Dhaval***", "Yogesh***", "Ishaan***", "Parth***", "Gaurav***", "Lakshay***", "Vishal***", "Shantanu***"];
         const fakeBetAmounts = [10, 50, 100, 200, 500, 1000, 2000, 5000];
         
         let fakeBetsMap = new Map(); 
@@ -283,7 +296,7 @@
         const feedContainer = document.getElementById('live-bets-feed');
 
         function startFakeBettingPhase() {
-            feedContainer.innerHTML = ''; 
+            feedContainer.innerHTML = '';
             fakeBetsMap.clear();
             document.getElementById('feed-live-icon').style.display = 'none';
             
@@ -296,11 +309,9 @@
 
         function placeRandomFakeBet(isInstant = false) {
             if (gameStatus !== 'starting') return;
-            
             const name = fakeNames[Math.floor(Math.random() * fakeNames.length)];
             const bet = fakeBetAmounts[Math.floor(Math.random() * fakeBetAmounts.length)];
             const rowId = 'fake-' + Date.now() + Math.random();
-
             const row = document.createElement('div');
             row.className = 'grid grid-cols-4 gap-2 items-center bg-surface-high rounded-lg px-2 py-1.5 border border-white/5 animate-bet-row transition-colors duration-300';
             row.id = rowId;
@@ -319,7 +330,6 @@
             }
 
             fakeBetsMap.set(rowId, { amount: bet, element: row, cashedOut: false });
-
             if (!isInstant) {
                 const nextBetDelay = Math.random() * 600 + 200;
                 fakeBetTimer = setTimeout(placeRandomFakeBet, nextBetDelay);
@@ -328,7 +338,6 @@
 
         function processFakeCashouts(currentMultiplier) {
             if (gameStatus !== 'flying') return;
-            
             fakeBetsMap.forEach((bet, id) => {
                 if (!bet.cashedOut && Math.random() < 0.06) {
                     bet.cashedOut = true;
@@ -362,10 +371,10 @@
         }
 
         // --- LIVE MULTIPLAYER STATE ---
-        const socket = io(); 
+        const socket = io();
         let currentBet = 100;
         let myBetPlaced = false;
-        let gameStatus = 'starting'; 
+        let gameStatus = 'starting';
         
         // AUTO-CASHOUT STATE
         let isAutoCashoutActive = false;
@@ -382,7 +391,7 @@
             autoInput: document.getElementById('auto-multiplier-input'),
             roundIdDisplay: document.getElementById('round-id-display')
         };
-
+        
         // --- ✈️ ANIMATION ENGINE ---
         const animUI = {
             canvas: document.getElementById('game-canvas'),
@@ -390,7 +399,6 @@
             trail: document.getElementById('trail-path'),
             grid: document.getElementById('grid-bg')
         };
-
         let gridOffset = 0;
 
         function updateFlightAnimation(multiplier) {
@@ -401,12 +409,15 @@
             const targetX = progress * (w - padding);
             const targetY = progress * (h - padding * 2);
             const tilt = Math.min(15, progress * 20); 
+            
             animUI.plane.style.transition = 'transform 0.1s linear';
             animUI.plane.style.transform = `translate(${targetX + 10}px, ${-targetY - 10}px) rotate(${-tilt}deg)`;
+            
             const startY = h;
             const curX = targetX + 10;
             const curY = h - targetY - 10;
             const pathData = `M 0,${startY} Q ${curX * 0.4},${startY} ${curX},${curY} L ${curX},${startY} Z`;
+            
             animUI.trail.setAttribute('d', pathData);
             gridOffset -= (1 + progress * 5); 
             animUI.grid.style.backgroundPosition = `${gridOffset}px ${gridOffset}px`;
@@ -439,7 +450,7 @@
         }
 
         function adjustBet(amount) {
-            if (myBetPlaced) return; 
+            if (myBetPlaced) return;
             currentBet = Math.max(10, currentBet + amount);
             ui.betInput.value = currentBet;
         }
@@ -453,11 +464,10 @@
         ui.betInput.addEventListener('input', (e) => {
             currentBet = parseInt(e.target.value) || 10;
         });
-
+        
         function toggleAutoCashout() {
             isAutoCashoutActive = ui.autoToggle.checked;
             ui.autoInput.disabled = !isAutoCashoutActive;
-            
             if (isAutoCashoutActive) {
                 ui.autoInput.classList.replace('text-on-surface-variant', 'text-white');
             } else {
@@ -468,11 +478,10 @@
         ui.autoInput.addEventListener('input', (e) => {
             targetAutoMultiplier = parseFloat(e.target.value) || 2.00;
         });
-
+        
         // --- CORE ACTIONS ---
         async function performCashout() {
             if (!myBetPlaced || isCashingOut) return;
-            
             isCashingOut = true;
             ui.actionBtn.disabled = true;
 
@@ -488,7 +497,6 @@
                     ui.actionBtn.style.boxShadow = "0 0 20px rgba(255,77,77,0.3)";       
                     ui.actionBtn.innerHTML = `BET`;
                     ui.actionBtn.disabled = false;
-
                     showToast("CASH OUT SUCCESS!", `Won ₹${data.payout.toFixed(2)} at ${data.lockedMultiplier}x`, "success");
                 } else {
                     showToast("CASHOUT FAILED", data.error, "error");
@@ -498,13 +506,18 @@
                 showToast("ERROR", "Network failure during cashout.", "error");
                 ui.actionBtn.disabled = false;
             } finally {
-                isCashingOut = false; 
+                isCashingOut = false;
             }
         }
 
         async function handleAction() {
             if (gameStatus === 'starting' && !myBetPlaced) {
+                // Instantly disable button to prevent double-click
                 ui.actionBtn.disabled = true;
+                
+                // Show professional loader
+                ui.actionBtn.innerHTML = '<div class="btn-loader"></div>';
+                
                 try {
                     const res = await fetch('/game/aviator/bet', {
                         method: 'POST',
@@ -522,11 +535,15 @@
                         showToast("BET PLACED", `₹${currentBet} ready for takeoff`, "info");
                     } else {
                         showToast("BET FAILED", data.error, "error");
+                        // Reset button on failure
                         ui.actionBtn.disabled = false;
+                        ui.actionBtn.innerHTML = 'BET';
                     }
                 } catch (err) {
                     showToast("ERROR", "Network failure placing bet.", "error");
+                    // Reset button on failure
                     ui.actionBtn.disabled = false;
+                    ui.actionBtn.innerHTML = 'BET';
                 }
             } else if (gameStatus === 'flying' && myBetPlaced) {
                 performCashout();
@@ -593,26 +610,24 @@
 
                 if (myBetPlaced) {
                    ui.actionBtn.disabled = false;
-                    ui.actionBtn.classList.remove('bg-primary', 'bg-error', 'hover:bg-primary-hover');
-                    ui.actionBtn.classList.add('bg-success'); 
-                    ui.actionBtn.style.boxShadow = "0 0 20px rgba(40,167,69,0.6)";
-                    const liveWin = (currentBet * currentMult).toFixed(2);
-                    ui.actionBtn.innerHTML = `CASH OUT<br><span class="text-sm shadow-black drop-shadow-md">₹${liveWin}</span>`;
+                   ui.actionBtn.classList.remove('bg-primary', 'bg-error', 'hover:bg-primary-hover');
+                   ui.actionBtn.classList.add('bg-success'); 
+                   ui.actionBtn.style.boxShadow = "0 0 20px rgba(40,167,69,0.6)";
+                   const liveWin = (currentBet * currentMult).toFixed(2);
+                   ui.actionBtn.innerHTML = `CASH OUT<br><span class="text-sm shadow-black drop-shadow-md">₹${liveWin}</span>`;
                 } else {
                     ui.actionBtn.disabled = true;
                     ui.actionBtn.innerHTML = 'WAIT FOR NEXT ROUND';
                 }
 
             } else if (state.status === 'crashed') {
-                hasStartedFakeBets = false; 
-
+                hasStartedFakeBets = false;
                 freezeFakeBets();
 
                 flyingAviator.pause();
                 flyingAviator.currentTime = 0;
                 flewAway.currentTime = 0;
                 flewAway.play().catch(e => console.log("Audio blocked:", e));
-
                 setTimeout(() => { flewAway.pause(); flewAway.currentTime = 0; }, 3000);
 
                 triggerCrashAnimation();
@@ -630,7 +645,7 @@
                 ui.actionBtn.style.boxShadow = "0 0 20px rgba(255,77,77,0.3)";
                 ui.actionBtn.disabled = true;
                 ui.actionBtn.innerHTML = 'WAIT FOR NEXT ROUND';
-
+                
                 const num = parseFloat(state.multiplier);
                 let colorClass = 'text-on-surface-variant';
                 if (num >= 10.0) colorClass = 'text-success';
@@ -642,7 +657,7 @@
 
                 const ticker = document.getElementById('history-ticker');
                 ticker.insertBefore(newBadge, ticker.children[1]);
-
+                
                 const badges = ticker.querySelectorAll('.history-badge');
                 if (badges.length > 10) badges[badges.length - 1].remove();
 
@@ -653,19 +668,18 @@
         socket.on('aviator_cashout_feed', (data) => {
             console.log(`${data.player} just won ₹${data.amountWon} at ${data.multiplier}x!`);
         });
-
+        
         let currentPlayers = Math.floor(Math.random() * (10000 - 1000 + 1)) + 1000;
         const playerDisplay = document.getElementById('live-players');
-
+        
         function simulateLivePlayers() {
-            const change = Math.floor(Math.random() * 41) - 15; 
+            const change = Math.floor(Math.random() * 41) - 15;
             currentPlayers += change;
 
             if (currentPlayers < 1000) currentPlayers = 1000;
             if (currentPlayers > 10000) currentPlayers = 10000;
 
             playerDisplay.innerText = currentPlayers.toLocaleString();
-
             const nextUpdate = Math.floor(Math.random() * 3000) + 2000;
             setTimeout(simulateLivePlayers, nextUpdate);
         }

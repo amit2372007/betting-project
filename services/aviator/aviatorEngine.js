@@ -30,15 +30,15 @@ class AviatorEngine {
         // ==========================================
         // 🔥 SECURE CASINO MATH (3% House Edge)
         // ==========================================
-        const MAX_MULTIPLIER = 100.00; // Protects the casino from bankruptcy
+        const MAX_MULTIPLIER = 50.00; // Protects the casino from bankruptcy
 
-        // 3% chance to crash instantly at 1.00x (Casino eats all bets)
-        if (Math.random() < 0.03) {
+        // 7% chance to crash instantly at 1.00x (Casino eats all bets)
+        if (Math.random() < 0.07) {
             this.crashPoint = 1.00;
         } else {
             // Standard Crash formula
             const h = Math.random(); 
-            let calculatedCrash = (0.97 / (1 - h));
+            let calculatedCrash = (0.93 / (1 - h));
             
             // Hard Cap: Ensure it never drops below 1.01, and never exceeds 10,000x
             this.crashPoint = Math.min(MAX_MULTIPLIER, Math.max(1.01, calculatedCrash)); 

@@ -250,13 +250,13 @@ const vsoEngine = new SuperOverEngine(io);
 const aviatorEngine = new AviatorEngine(io);
 
 const VSO_MULTIPLIERS = {
-    '0': 6.00,
-    '1': 3.70,
-    '2': 6.00,
-    '3': 45.00,
-    '4': 5.10,
+    '0': 4.00,
+    '1': 3.50,
+    '2': 4.00,
+    '3': 17.00,
+    '4': 4.50,
     '6': 6.00,
-    'W': 11.50,
+    'W': 8.50,
     'wd': 45.00
 };
 
@@ -353,6 +353,61 @@ app.post("/vso/place-bet", async (req, res) => {
         res.status(500).json({ success: false, error: "Server error placing bet." });
     }
 });
+
+const matchAutomation = async () => {
+    try {
+        const now = new Date();
+        
+        // Calculate our time boundaries
+        const inOneHour = new Date(now.getTime() + 60 * 60 * 1000);
+        const inThirtyMins = new Date(now.getTime() + 30 * 60 * 1000);
+
+        // ========================================================
+        // 1. SUSPEND TOSS MARKET (1 Hour Before)
+        // ========================================================
+        const tossEvents = await Event.find({
+            sport: { $regex: /^cricket$/i },
+            "tossMarket.status": "active",
+            startTime: { $lte: inOneHour } 
+        });
+
+        if (tossEvents.length > 0) {
+            await Promise.all(tossEvents.map(async (event) => {
+                event.tossMarket.status = "suspended";
+                await event.save();
+                console.log(`⏱️ [CRON] Automatically suspended Toss Market for: ${event.homeTeam} vs ${event.awayTeam}`);
+                // if (global.io) global.io.emit("odds_update", { eventId: event._id, tossStatus: "suspended" });
+            }));
+        }
+
+        // ========================================================
+        // 2. CHANGE EVENT STATUS (30 Mins Before)
+        // ========================================================
+        const startingEvents = await Event.find({
+            status: "upcoming",
+            startTime: { $lte: inThirtyMins } 
+        });
+
+        if (startingEvents.length > 0) {
+            await Promise.all(startingEvents.map(async (event) => {
+                event.status = "live"; 
+                await event.save();
+                console.log(`⏱️ [CRON] Match status changed to PENDING (Starts in 30m): ${event.homeTeam} vs ${event.awayTeam}`);
+            }));
+        }
+
+    } catch (error) {
+        console.error("❌ [CRON] Match Automation Error:", error.message);
+    }
+}
+
+const job5 = new CronJob(
+    "*/3 * * * *",
+    matchAutomation,
+    null,
+    true,
+    "Asia/Kolkata"
+);
 
 const settleSessionBets = async () => {
     try {
@@ -588,6 +643,7 @@ const job4 = new CronJob(
   true,
   "Asia/Kolkata",
 );
+
 
 app.get("/", (req, res) => {
   res.redirect("/home"); // Redirect root to home
