@@ -149,7 +149,7 @@ module.exports.submitComplaint = async (req, res) => {
         req.flash("success", `Ticket ${newTicketId} created successfully. Our team will review it shortly.`);
         
         // Redirecting with ?tab=history tells the frontend JS to automatically show the Past Tickets list!
-        res.redirect("/support?tab=history");
+        res.redirect("/home");
 
     } catch (err) {
         console.error("Error submitting complaint:", err);
