@@ -240,7 +240,12 @@ module.exports.renderUserHistory = async (req, res) => {
     try {
         const { id } = req.params;
         
-        // 1. Fetch User
+        // Pagination & Filter Parameters
+        const page = parseInt(req.query.page) || 1;
+        const limit = 10;
+        const filterType = req.query.type || 'all';
+        
+        // 1. Fetch User (using your specific model fields)
         const user = await User.findById(id).lean();
         if (!user) {
             req.flash("error", "User not found.");
@@ -251,9 +256,9 @@ module.exports.renderUserHistory = async (req, res) => {
         const bets = await Bet.find({ userId: id }).lean() || [];
         const transactions = await Transaction.find({ userId: id }).lean() || [];
 
-        // 3. Separate Deposits & Withdrawals for Stats Calculation
+        // 3. Separate Deposits & Withdrawals
         const deposits = transactions.filter(t => t.type === 'deposit');
-        const withdrawals = transactions.filter(t => t.type === 'withdrawal');
+        const withdrawals = transactions.filter(t => t.type === 'withdraw');
 
         const totalDeposits = deposits.filter(t => t.status === 'approved').reduce((sum, t) => sum + (t.amount || 0), 0);
         const totalWithdrawals = withdrawals.filter(t => t.status === 'approved').reduce((sum, t) => sum + (t.amount || 0), 0);
@@ -264,7 +269,7 @@ module.exports.renderUserHistory = async (req, res) => {
         let settledBets = 0;
 
         // 4. Build the Unified Ledger Array
-        const ledger = [];
+        let ledger = [];
 
         // Add Bets to Ledger
         bets.forEach(bet => {
@@ -278,11 +283,12 @@ module.exports.renderUserHistory = async (req, res) => {
             ledger.push({
                 _id: bet._id,
                 type: 'bet',
-                category: bet.status, // 'won', 'lost', 'pending'
-                title: bet.gameName || 'Sports Bet',
+                category: bet.status, // 'won', 'lost', 'void', 'pending'
+                title: bet.eventName || 'Sports/Casino Bet',
                 details: bet.selection || 'N/A',
+                betType: bet.type || '--', // 'back', 'lay', 'casino'
                 amount: bet.stake,
-                odds: bet.multiplier || bet.odds || '--',
+                odds: bet.odds || '--',
                 status: bet.status,
                 payout: bet.payout,
                 createdAt: bet.createdAt
@@ -292,11 +298,12 @@ module.exports.renderUserHistory = async (req, res) => {
         // Add Transactions to Ledger
         transactions.forEach(t => {
             ledger.push({
-                _id: t._id,
-                type: t.type, // 'deposit' or 'withdrawal'
+                _id: t.transactionId || t._id, // Using your custom TXN- ID
+                type: t.type, // 'deposit' or 'withdraw'
                 category: t.type,
                 title: t.type === 'deposit' ? 'Deposit' : 'Withdrawal',
-                details: t.method || 'Bank/Wallet',
+                details: t.type === 'withdraw' && t.bankDetails ? `A/C: ${t.bankDetails.accountNumber}` : (t.type === 'deposit' ? 'Payment Proof Uploaded' : 'N/A'),
+                betType: '--',
                 amount: t.amount,
                 odds: '--',
                 status: t.status, // 'approved', 'pending', 'rejected'
@@ -308,7 +315,18 @@ module.exports.renderUserHistory = async (req, res) => {
         // Sort the entire ledger from newest to oldest
         ledger.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
-        // 5. Calculate Averages
+        // 5. Apply Filter
+        if (filterType !== 'all') {
+            ledger = ledger.filter(item => item.category === filterType);
+        }
+
+        // 6. Pagination Logic
+        const totalItems = ledger.length;
+        const totalPages = Math.ceil(totalItems / limit) || 1;
+        const startIndex = (page - 1) * limit;
+        const paginatedLedger = ledger.slice(startIndex, startIndex + limit);
+
+        // 7. Calculate Averages
         const winRate = settledBets > 0 ? ((wonBets / settledBets) * 100).toFixed(1) : 0;
         const avgStake = bets.length > 0 ? (totalStake / bets.length).toFixed(2) : 0;
 
@@ -321,8 +339,15 @@ module.exports.renderUserHistory = async (req, res) => {
             totalBets: bets.length
         };
 
-        // 6. Render the page
-        res.render("./admin/userHistory.ejs", { user, ledger, stats });
+        // 8. Render the page
+        res.render("./admin/userHistory.ejs", { 
+            user, 
+            ledger: paginatedLedger, 
+            stats,
+            currentPage: page,
+            totalPages,
+            filterType
+        });
 
     } catch (error) {
         console.error("Error loading user history page:", error);

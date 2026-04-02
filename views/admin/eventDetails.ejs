@@ -280,8 +280,8 @@
                             <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Toss Winner</label>
                             <select name="winner" class="w-full bg-dark-bg border-dark-border rounded-md text-sm text-white focus-neon-blue py-2">
                                 <option value="" <%= !Event.tossMarket.winner ? 'selected' : '' %>>Undecided</option>
-                                <option value="home" <%= Event.tossMarket.winner === 'home' ? 'selected' : '' %>>Home Team</option>
-                                <option value="away" <%= Event.tossMarket.winner === 'away' ? 'selected' : '' %>>Away Team</option>
+                                <option value="home" <%= Event.tossMarket.winner === 'home' ? 'selected' : '' %>><%= Event.homeTeam %></option>
+                                <option value="away" <%= Event.tossMarket.winner === 'away' ? 'selected' : '' %>><%= Event.awayTeam %></option>
                             </select>
                         </div>
                     </div>
