@@ -103,20 +103,24 @@
                 
                 <% 
                     let lastDateStr = null;
-                    const todayDate = new Date().toDateString();
-                    const yesterdayDate = new Date(Date.now() - 86400000).toDateString();
+                    
+                    // IST FORMATTING LOGIC
+                    const istOptions = { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' };
+                    const now = new Date();
+                    const todayDate = now.toLocaleDateString('en-IN', istOptions);
+                    const yesterdayDate = new Date(now.getTime() - 86400000).toLocaleDateString('en-IN', istOptions);
 
                     statement.forEach(txn => { 
                         const txnDateObj = new Date(txn.createdAt);
-                        const txnDateString = txnDateObj.toDateString();
+                        const txnDateString = txnDateObj.toLocaleDateString('en-IN', istOptions);
                         
                         let dateHeader = "";
                         if (txnDateString === todayDate) {
-                            dateHeader = `Today — ${txnDateObj.toLocaleDateString('en-GB', { month: 'short', day: 'numeric' })}`;
+                            dateHeader = `Today — ${txnDateObj.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', month: 'short', day: 'numeric' })}`;
                         } else if (txnDateString === yesterdayDate) {
-                            dateHeader = `Yesterday — ${txnDateObj.toLocaleDateString('en-GB', { month: 'short', day: 'numeric' })}`;
+                            dateHeader = `Yesterday — ${txnDateObj.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', month: 'short', day: 'numeric' })}`;
                         } else {
-                            dateHeader = txnDateObj.toLocaleDateString('en-GB', { weekday: 'long', month: 'short', day: 'numeric' });
+                            dateHeader = txnDateObj.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', weekday: 'long', month: 'short', day: 'numeric' });
                         }
 
                         if (dateHeader !== lastDateStr) { 
@@ -183,7 +187,7 @@
                                 <div class="min-w-0">
                                     <h4 class="text-on-surface font-semibold text-[15px] truncate"><%= title %></h4>
                                     <p class="text-on-surface-variant text-[11px] mt-0.5 truncate">
-                                        <%= txnDateObj.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) %> • <%= subtitle %>
+                                        <%= txnDateObj.toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: true }) %> • <%= subtitle %>
                                     </p>
                                 </div>
                             </div>

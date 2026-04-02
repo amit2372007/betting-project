@@ -358,9 +358,13 @@ const matchAutomation = async () => {
     try {
         const now = new Date();
         
-        // Calculate our time boundaries
-        const inOneHour = new Date(now.getTime() + 60 * 60 * 1000);
-        const inThirtyMins = new Date(now.getTime() + 30 * 60 * 1000);
+        // 🌟 THE FIX: Offset the current time by +5.5 hours to match the scraper's DB format
+        const IST_OFFSET = 5.5 * 60 * 60 * 1000; // 5.5 hours in milliseconds
+        const dbNow = new Date(now.getTime() + IST_OFFSET);
+        
+        // Calculate our time boundaries using the synced dbNow
+        const inOneHour = new Date(dbNow.getTime() + 60 * 60 * 1000);
+        const inThirtyMins = new Date(dbNow.getTime() + 30 * 60 * 1000);
 
         // ========================================================
         // 1. SUSPEND TOSS MARKET (1 Hour Before)
@@ -376,7 +380,6 @@ const matchAutomation = async () => {
                 event.tossMarket.status = "suspended";
                 await event.save();
                 console.log(`⏱️ [CRON] Automatically suspended Toss Market for: ${event.homeTeam} vs ${event.awayTeam}`);
-                // if (global.io) global.io.emit("odds_update", { eventId: event._id, tossStatus: "suspended" });
             }));
         }
 
@@ -392,7 +395,7 @@ const matchAutomation = async () => {
             await Promise.all(startingEvents.map(async (event) => {
                 event.status = "live"; 
                 await event.save();
-                console.log(`⏱️ [CRON] Match status changed to PENDING (Starts in 30m): ${event.homeTeam} vs ${event.awayTeam}`);
+                console.log(`⏱️ [CRON] Match status changed to LIVE (Starts in 30m): ${event.homeTeam} vs ${event.awayTeam}`);
             }));
         }
 
