@@ -483,153 +483,222 @@ module.exports.updateEventStatus = async (req, res) => {
   try {
     const { id } = req.params;
     const { status, result } = req.body;
+
+    // =========================================================
+    // STEP 1: VALIDATE THE EVENT
+    // =========================================================
     const event = await Event.findById(id);
-    
+
     if (!event) {
-      req.flash("error", "Event not found");
+      req.flash("error", "Event not found.");
       return res.redirect("/admin?tab=Dashboard");
     }
 
+    // Hard stop — settled events are immutable
     if (event.status === "settled") {
-      req.flash("error", "This event has already been settled. Status cannot be changed.");
-      return res.redirect(`/admin`);
+      req.flash("error", "This event has already been settled and cannot be changed.");
+      return res.redirect(`/admin/event/${id}`);
     }
 
-    // Update Event 
-    event.status = status;
+    // If admin is just changing status to something other than "finished"
+    // (e.g. live → suspended), just save and exit. No payouts needed.
+    if (status !== "finished") {
+      event.status = status;
+      await event.save();
+      req.flash("success", `Event status updated to "${status}".`);
+      return res.redirect(`/admin/event/${id}`);
+    }
+
+    // "finished" requires a result
+    if (!result) {
+      req.flash("error", "You must provide a result when finishing an event.");
+      return res.redirect(`/admin/event/${id}`);
+    }
+
+    // =========================================================
+    // STEP 2: LOCK THE EVENT IMMEDIATELY
+    // Save "finished" + result first so new bets are blocked
+    // while settlement is running.
+    // =========================================================
+    event.status = "finished";
     event.result = result;
     await event.save();
 
     // =========================================================
-    // 🟢 GREEN BOOK O(1) INSTANT WALLET SETTLEMENT 🟢
+    // STEP 3: DETERMINE THE WINNER
     // =========================================================
-    if (status === "finished" && result) {
-        let winningTeam = "";
-        const resLower = result.toLowerCase();
-        
-        if (resLower === "home") winningTeam = event.homeTeam;
-        else if (resLower === "away") winningTeam = event.awayTeam;
-        else if (resLower === "draw") winningTeam = "The Draw";
-        else if (resLower === "void") winningTeam = "void";
+    const resLower = result.toLowerCase();
+    let winningTeam = "";
 
-        if (winningTeam) {
-            console.log(`🏆 Initiating Payouts for Winner: ${winningTeam}`);
+    if (resLower === "home")       winningTeam = event.homeTeam;
+    else if (resLower === "away")  winningTeam = event.awayTeam;
+    else if (resLower === "draw")  winningTeam = "The Draw";
+    else if (resLower === "void")  winningTeam = "void";
 
-            // --- PART 1: SETTLE THE EXPOSURES & WALLETS (CONCURRENTLY) ---
-            const activeExposures = await Exposure.find({ 
-                eventId: id, 
-                status: { $ne: 'SETTLED' } 
-            });
-
-            // Map over exposures to create an array of promises
-            await Promise.all(activeExposures.map(async (exposure) => {
-                let payout = 0;
-                let ledgerType = "bet_won";
-                let remarks = `Match Payout: ${event.homeTeam} vs ${event.awayTeam}`;
-
-                if (winningTeam === "void") {
-                    payout = Math.abs(exposure.liability || 0);
-                    ledgerType = "refund";
-                    remarks = `Match Voided Refund: ${event.homeTeam} vs ${event.awayTeam}`;
-                } else {
-                    let userOutcomePnL = 0;
-                    const keysToCheck = [];
-                    
-                    if (resLower === "home") keysToCheck.push(event.homeTeam, event.homeId, "home");
-                    else if (resLower === "away") keysToCheck.push(event.awayTeam, event.awayId, "away");
-                    else if (resLower === "draw") keysToCheck.push("The Draw", "Draw", "draw");
-
-                    if (exposure.exposures && typeof exposure.exposures.get === 'function') {
-                        for (let k of keysToCheck) {
-                            if (!k) continue; 
-                            let val = exposure.exposures.get(k);
-                            if (val !== undefined && val !== null) {
-                                userOutcomePnL = val;
-                                break; 
-                            }
-                        }
-                    }
-                    
-                    const lockedLiability = Math.abs(exposure.liability || 0);
-                    payout = lockedLiability + userOutcomePnL;
-                }
-
-                if (payout > 0) {
-                    const userUpdate = await User.findByIdAndUpdate(
-                        exposure.userId,
-                        { $inc: { balance: payout } },
-                        { new: false } 
-                    );
-
-                    if (userUpdate) {
-                        await Ledger.create({
-                            userId: exposure.userId,
-                            type: ledgerType,
-                            amount: payout,
-                            balanceBefore: userUpdate.balance,
-                            balanceAfter: userUpdate.balance + payout,
-                            remarks: remarks
-                        });
-                    }
-                }
-
-                exposure.status = 'SETTLED';
-                exposure.liability = 0; 
-                await exposure.save();
-            }));
-
-
-            // --- PART 2: SETTLE THE INDIVIDUAL BETSLIPS (CONCURRENTLY) ---
-            const pendingBets = await Bet.find({ eventId: id, status: "pending" });
-            
-            // Map over bets to create an array of promises
-            await Promise.all(pendingBets.map(async (bet) => {
-                if (winningTeam === "void") {
-                    bet.status = "void"; 
-                    bet.payout = bet.stake; 
-                } else {
-                    let isWin = false;
-                    const sel = bet.selection;
-                    
-                    if (sel === event.homeTeam || sel === event.homeId || sel === 'home') {
-                        isWin = (resLower === "home" && bet.type === "back") || (resLower !== "home" && bet.type === "lay");
-                    } 
-                    else if (sel === event.awayTeam || sel === event.awayId || sel === 'away') {
-                        isWin = (resLower === "away" && bet.type === "back") || (resLower !== "away" && bet.type === "lay");
-                    } 
-                    else if (sel && sel.toLowerCase().includes("draw")) {
-                        isWin = (resLower === "draw" && bet.type === "back") || (resLower !== "draw" && bet.type === "lay");
-                    }
-
-                    bet.status = isWin ? "won" : "lost"; 
-                    
-                    if (isWin) {
-                        if (bet.type === "back") {
-                            bet.payout = bet.stake * bet.odds; 
-                        } else if (bet.type === "lay") {
-                            bet.payout = bet.stake; 
-                        } else {
-                            bet.payout = bet.stake * bet.odds; 
-                        }
-                    } else {
-                        bet.payout = 0; 
-                    }
-                }
-                
-                bet.settledAt = new Date();
-                await bet.save(); 
-            }));
-            
-            console.log(`🏁 High-Speed Settlement Complete for: ${event.homeTeam} vs ${event.awayTeam}`);
-        }
+    if (!winningTeam) {
+      req.flash("error", `Invalid result value: "${result}". Must be home, away, draw, or void.`);
+      return res.redirect(`/admin/event/${id}`);
     }
-    // =========================================================
 
-    req.flash("success", "Event status updated and payouts processed successfully!");
-    res.redirect(`/admin/event/${id}`);
+    console.log(`🏆 Starting Settlement | Event: ${event.homeTeam} vs ${event.awayTeam} | Result: ${winningTeam}`);
+
+    // =========================================================
+    // PART 1: SETTLE MATCH ODDS EXPOSURES (GREEN BOOK PAYOUTS)
+    // Uses atomic findOneAndUpdate to claim one exposure at a time.
+    // This prevents double-payout if admin submits the form twice.
+    // =========================================================
+    let exposure;
+
+    while (
+      (exposure = await Exposure.findOneAndUpdate(
+        { eventId: id, status: "ACTIVE" },         // Only claim ACTIVE ones
+        { $set: { status: "PROCESSING" } },        // Atomically mark as claimed
+        { new: true }
+      )) != null
+    ) {
+      let payout = 0;
+      let ledgerType = "bet_won";
+      let remarks = `Match Payout: ${event.homeTeam} vs ${event.awayTeam}`;
+
+      if (winningTeam === "void") {
+        // ✅ VOID: Refund the exact amount locked from their wallet
+        // We sum all their pending back stakes + lay liabilities for this event
+        const userBets = await Bet.find({
+          eventId: id,
+          userId: exposure.userId,
+          status: "pending",
+          marketType: "match_odds"
+        });
+
+        payout = userBets.reduce((sum, b) => {
+          if (b.type === "back") return sum + b.stake;
+          if (b.type === "lay")  return sum + (b.stake * (b.odds - 1));
+          return sum;
+        }, 0);
+        payout = Math.round(payout * 100) / 100;
+
+        ledgerType = "refund";
+        remarks = `Match Voided — Full Refund: ${event.homeTeam} vs ${event.awayTeam}`;
+
+      } else {
+        // ✅ NORMAL RESULT: Look up what this user's green book says for the winning outcome
+        let userOutcomePnL = 0;
+
+        // Check multiple possible key formats the map might have been saved under
+        const keysToCheck = [];
+        if (resLower === "home")       keysToCheck.push(event.homeTeam, event.homeId, "home");
+        else if (resLower === "away")  keysToCheck.push(event.awayTeam, event.awayId, "away");
+        else if (resLower === "draw")  keysToCheck.push("The Draw", "Draw", "draw");
+
+        if (exposure.exposures && typeof exposure.exposures.get === "function") {
+          for (let k of keysToCheck) {
+            if (!k) continue;
+            const val = exposure.exposures.get(k);
+            if (val !== undefined && val !== null) {
+              userOutcomePnL = val;
+              break;
+            }
+          }
+        }
+
+        // Formula: locked liability is returned to them + their P&L on the winning outcome
+        const lockedLiability = Math.abs(exposure.liability || 0);
+        payout = Math.round((lockedLiability + userOutcomePnL) * 100) / 100;
+      }
+
+      // Only credit wallet if there is actually money to pay out
+      if (payout > 0) {
+        const userUpdate = await User.findByIdAndUpdate(
+          exposure.userId,
+          { $inc: { balance: payout } },
+          { new: true }  // Get post-update balance for accurate ledger
+        );
+
+        if (userUpdate) {
+          await Ledger.create({
+            userId:        exposure.userId,
+            type:          ledgerType,
+            amount:        payout,
+            balanceBefore: userUpdate.balance - payout, // Reconstruct pre-update balance
+            balanceAfter:  userUpdate.balance,
+            remarks:       remarks
+          });
+        }
+      }
+
+      // Mark exposure fully settled
+      exposure.status    = "SETTLED";
+      exposure.liability = 0;
+      await exposure.save();
+    }
+
+    console.log(`✅ Part 1 Complete — All exposures settled.`);
+
+    // =========================================================
+    // PART 2: UPDATE INDIVIDUAL BETSLIPS (For Bet History UI)
+    // This does NOT move money — the Exposure system already did that.
+    // This just marks each bet as won/lost so users can see results.
+    // =========================================================
+    const pendingBets = await Bet.find({ eventId: id, status: "pending" });
+
+    for (const bet of pendingBets) {
+
+      if (winningTeam === "void") {
+        bet.status = "void";
+        bet.payout = bet.stake; // Show what was refunded
+
+      } else {
+        const sel = bet.selection;
+        let isWin = false;
+
+        // Match the bet's selection against the result
+        if (sel === event.homeTeam || sel === event.homeId || sel === "home") {
+          isWin = (resLower === "home" && bet.type === "back") ||
+                  (resLower !== "home" && bet.type === "lay");
+
+        } else if (sel === event.awayTeam || sel === event.awayId || sel === "away") {
+          isWin = (resLower === "away" && bet.type === "back") ||
+                  (resLower !== "away" && bet.type === "lay");
+
+        } else if (sel && sel.toLowerCase().includes("draw")) {
+          isWin = (resLower === "draw" && bet.type === "back") ||
+                  (resLower !== "draw" && bet.type === "lay");
+        }
+
+        bet.status = isWin ? "won" : "lost";
+
+        if (isWin) {
+          // Back: full return (stake + profit). Lay: you keep the backer's stake.
+          bet.payout = bet.type === "back"
+            ? Math.round(bet.stake * bet.odds * 100) / 100
+            : bet.stake;
+        } else {
+          bet.payout = 0;
+        }
+      }
+
+      bet.settledAt = new Date();
+      await bet.save();
+    }
+
+    console.log(`✅ Part 2 Complete — ${pendingBets.length} betslips updated.`);
+
+    // =========================================================
+    // STEP 4: MARK EVENT AS FULLY SETTLED
+    // This is the final, irreversible state.
+    // The guard at the top of this function blocks any re-run.
+    // =========================================================
+    event.status = "settled";
+    await event.save();
+
+    console.log(`🏁 Settlement Complete | ${event.homeTeam} vs ${event.awayTeam}`);
+
+    req.flash("success", `Event settled successfully! All payouts for "${winningTeam}" have been processed.`);
+    return res.redirect(`/admin/event/${id}`);
+
   } catch (error) {
-    console.error("Error updating event status:", error);
-    req.flash("error", "Failed to update event status.");
+    console.error("❌ Settlement Error:", error);
+    req.flash("error", "Settlement failed. Check server logs. Some payouts may be incomplete.");
     return res.redirect("/admin?tab=Dashboard");
   }
 };

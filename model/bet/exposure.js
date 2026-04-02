@@ -26,11 +26,10 @@ const exposureSchema = new mongoose.Schema({
   liability: {
     type: Number,
     default: 0,
-    max: 0 // Liability should always be 0 or a negative number
   },
   status: {
     type: String,
-    enum: ['ACTIVE', 'SETTLED', 'VOID'],
+    enum: ['ACTIVE', 'SETTLED', 'VOID', 'PROCESSING'],
     default: 'ACTIVE'
   }
 }, { timestamps: true });

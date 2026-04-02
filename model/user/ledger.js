@@ -13,9 +13,9 @@ const LedgerSchema = new mongoose.Schema({
     enum: [
       "bet_placed",      // Money deducted for placing a bet
       "bet_won",         // Money added for winning a bet
+      "bet_lost",        // Money deducted for losing a bet
       "refund",          // Money returned (voided match)
       "admin_adjustment", // You manually added/removed funds
-      "refund"
     ],
     required: true
   },

@@ -32,9 +32,10 @@ const BetSchema = new mongoose.Schema({
     required: true
   },
   
-  marketType: { 
-    type: String, 
-    required: true
+   marketType: {
+    type: String,
+    required: true,
+    enum: ["match_odds", "session", "toss", ...NO_ODDS_GAMES]
   },
   
   selection: {
