@@ -9,7 +9,101 @@ const WhatsappNumber = require("../model/transactions/whatsapp.js");
 const Announcement = require("../model/user/announcement.js");
 const Exposure = require("../model/bet/exposure.js");
 const Ledger = require("../model/user/ledger.js");
+const Influencer = require("../model/user/Influencer.js");
 const redis = require("../config/redis.js");
+
+module.exports.renderInfluencerPage = async (req, res) => {
+  try {
+    // 1. Fetch all influencers from the database, sorted by newest first
+    const influencers = await Influencer.find({}).sort({ createdAt: -1 });
+
+    // // 2. Calculate the data for your Top Statistics Cards
+    // // Using .reduce() to sum up all the numbers across all influencers
+    const totalClicks = influencers.reduce(
+      (sum, inf) => sum + inf.totalClicks,
+      0,
+    );
+    const totalRegistrations = influencers.reduce(
+      (sum, inf) => sum + inf.totalRegistrations,
+      0,
+    );
+    const totalCommissionToSettle = influencers.reduce(
+      (sum, inf) => sum + inf.pendingPayout,
+      0,
+    );
+
+    // 3. Render the EJS file and pass the data & stats to the frontend
+    res.render("./admin/Influencers.ejs", {
+      influencers: influencers,
+      stats: {
+        activeInfluencers: influencers.length,
+        totalClicks: totalClicks,
+        totalRegistrations: totalRegistrations,
+        commissionToSettle: totalCommissionToSettle,
+      },
+    });
+  } catch (err) {
+    // 4. Always log the error for debugging and send a safe response
+    console.error("Error loading the Influencer Admin Page:", err);
+
+    // If you use connect-flash, you can do: req.flash('error', 'Failed to load data'); res.redirect('back');
+    // Otherwise, a standard 500 status works:
+    res.status(500).send("Internal Server Error: Could not load Influencers.");
+  }
+};
+
+module.exports.addInfluencer = async (req, res) => {
+  try {
+    // 1. Extract data from the incoming form submission (req.body)
+    const { name, contactNumber, promoCode, commissionRate } = req.body;
+
+    // 2. Basic Validation (Backend safety check)
+    if (!name || !promoCode) {
+      // If using connect-flash: req.flash('error', 'Name and Promo Code are required');
+      return res.status(400).send("Error: Name and Promo Code are required.");
+    }
+
+    // 3. Format the promo code
+    // Trims whitespace, makes it uppercase, and removes any internal spaces
+    // This ensures your join links (e.g., /join/PROMO50) are clean and reliable
+    const formattedPromo = promoCode.trim().toUpperCase().replace(/\s+/g, "");
+
+    // 4. Check for duplicates (prevents MongoDB crashing from a duplicate key error)
+    const existingInfluencer = await Influencer.findOne({
+      promoCode: formattedPromo,
+    });
+    if (existingInfluencer) {
+      // If using connect-flash: req.flash('error', 'Promo code already exists!');
+      // return res.redirect('/admin?tab=Influencer');
+      return res
+        .status(409)
+        .send(
+          "Error: This Promo Code is already active! Please choose a unique code.",
+        );
+    }
+
+    // 5. Create the new Influencer document
+    const newInfluencer = new Influencer({
+      name: name.trim(),
+      contactNumber: contactNumber ? contactNumber.trim() : "",
+      promoCode: formattedPromo,
+      // Convert to number, or default to 5% if the admin left the field blank
+      commissionRate: commissionRate ? Number(commissionRate) : 5,
+    });
+
+    // 6. Save to the database
+    await newInfluencer.save();
+
+    // 7. Success! Redirect the admin back to the Influencers tab
+    // (Adjust the redirect URL if your routing structure is different)
+    res.redirect("/admin/influencers");
+  } catch (err) {
+    console.error("Error creating new influencer:", err);
+    res
+      .status(500)
+      .send("Internal Server Error: Could not save the influencer.");
+  }
+};
 
 module.exports.renderAdminDashboard = async (req, res) => {
   try {
@@ -17,14 +111,19 @@ module.exports.renderAdminDashboard = async (req, res) => {
 
     // 1. Initialize ALL variables as empty arrays/objects/defaults so EJS never crashes on inactive tabs
     let users = [];
-    let activeEvents = [], liveEvents = [], upcomingEvents = [];
-    let deposits = [], withdrawals = [];
+    let activeEvents = [],
+      liveEvents = [],
+      upcomingEvents = [];
+    let deposits = [],
+      withdrawals = [];
     let totalUsers = 0;
-    let complaints = [], stats = { open: 0, inProgress: 0, resolvedToday: 0 };
-    let whatsappNumbers = [], announcements = [];
+    let complaints = [],
+      stats = { open: 0, inProgress: 0, resolvedToday: 0 };
+    let whatsappNumbers = [],
+      announcements = [];
 
     // Initialize NEW Pagination and Finance variables
-    let currentStatus = 'all';
+    let currentStatus = "all";
     let page = 1;
     let totalPages = 1;
     let totalItems = 0;
@@ -41,66 +140,78 @@ module.exports.renderAdminDashboard = async (req, res) => {
     // 2. CONDITIONAL FETCHING (Perfectly mapped to your EJS tabs)
     // ==========================================
     switch (activeTab) {
-      case "UserManagement": 
+      case "UserManagement":
         // Maps to includes/admin/userManagement.ejs
         users = await User.find().sort({ createdAt: -1 }).lean();
         break;
 
       case "Events":
         // Maps to includes/admin/events/events.ejs
-        activeEvents = await Event.find({ status: { $ne: "settled" } }).sort({ startTime: 1 }).lean();
+        activeEvents = await Event.find({ status: { $ne: "settled" } })
+          .sort({ startTime: 1 })
+          .lean();
         break;
 
-      case "Finances": { 
-        // Note the { } added here! This creates a block scope, allowing us to safely declare 
+      case "Finances": {
+        // Note the { } added here! This creates a block scope, allowing us to safely declare
         // temporary variables without bleeding into other switch cases.
-        
+
         // 1. Get query parameters for pagination and filtering
         page = parseInt(req.query.page) || 1;
         const limit = 20;
-        currentStatus = req.query.status || 'all';
+        currentStatus = req.query.status || "all";
 
         // 2. Build the query
         let query = { type: "deposit" };
-        if (currentStatus !== 'all') {
-            query.status = currentStatus;
+        if (currentStatus !== "all") {
+          query.status = currentStatus;
         }
 
         // 3. Fetch Paginated Data
         const skip = (page - 1) * limit;
         deposits = await Transaction.find(query)
-            .sort({ createdAt: -1 })
-            .skip(skip)
-            .limit(limit)
-            .populate("userId", "username email")
-            .lean();
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(limit)
+          .populate("userId", "username email")
+          .lean();
 
         // 4. Pagination Math
         totalItems = await Transaction.countDocuments(query);
         totalPages = Math.ceil(totalItems / limit) || 1; // Fallback to 1 if no items
 
         // 5. Stat Card Calculations
-        pendingCount = await Transaction.countDocuments({ type: "deposit", status: "pending" });
-        rejectedCount = await Transaction.countDocuments({ type: "deposit", status: "rejected" });
+        pendingCount = await Transaction.countDocuments({
+          type: "deposit",
+          status: "pending",
+        });
+        rejectedCount = await Transaction.countDocuments({
+          type: "deposit",
+          status: "rejected",
+        });
 
         const approvedStats = await Transaction.aggregate([
-            { $match: { type: "deposit", status: "approved" } },
-            { 
-                $group: { 
-                    _id: null, 
-                    totalAmount: { $sum: "$amount" },
-                    todayAmount: { 
-                        $sum: { 
-                            $cond: [ { $gte: ["$createdAt", startOfToday] }, "$amount", 0 ] 
-                        } 
-                    }
-                } 
-            }
+          { $match: { type: "deposit", status: "approved" } },
+          {
+            $group: {
+              _id: null,
+              totalAmount: { $sum: "$amount" },
+              todayAmount: {
+                $sum: {
+                  $cond: [{ $gte: ["$createdAt", startOfToday] }, "$amount", 0],
+                },
+              },
+            },
+          },
         ]);
 
-        totalApprovedAmount = approvedStats[0] ? approvedStats[0].totalAmount : 0;
-        totalDepositsToday = approvedStats[0] ? approvedStats[0].todayAmount : 0;
-        
+        totalApprovedAmount = approvedStats[0]
+          ? approvedStats[0].totalAmount
+          : 0;
+        totalDepositsToday = approvedStats[0]
+          ? approvedStats[0].todayAmount
+          : 0;
+
         break;
       }
 
@@ -115,36 +226,53 @@ module.exports.renderAdminDashboard = async (req, res) => {
       case "Complaints":
         // Maps to includes/admin/complaints.ejs
         complaints = await Complaint.find()
-          .populate('userId', 'name _id')
+          .populate("userId", "name _id")
           .sort({ createdAt: -1 })
           .lean();
 
-        stats.open = complaints.filter(c => c.status === 'Open').length;
-        stats.inProgress = complaints.filter(c => c.status === 'In Progress').length;
-        stats.resolvedToday = complaints.filter(c => c.status === 'Resolved' && new Date(c.updatedAt) >= startOfToday).length;
+        stats.open = complaints.filter((c) => c.status === "Open").length;
+        stats.inProgress = complaints.filter(
+          (c) => c.status === "In Progress",
+        ).length;
+        stats.resolvedToday = complaints.filter(
+          (c) =>
+            c.status === "Resolved" && new Date(c.updatedAt) >= startOfToday,
+        ).length;
         break;
 
-      case "WhatsApp": 
+      case "WhatsApp":
         // Maps to includes/admin/WhatsAppManage.ejs
-        whatsappNumbers = await WhatsappNumber.find().sort({ createdAt: -1 }).lean();
+        whatsappNumbers = await WhatsappNumber.find()
+          .sort({ createdAt: -1 })
+          .lean();
         break;
 
       case "Dashboard":
       default: {
         // 🚀 HIGH-SPEED DASHBOARD SUMMARY
         // Enclosed in { } to scope const variables
-        const [dashEvents, dashDeposits, dashWithdrawals, dashUsersCount, dashAnnouncements] = await Promise.all([
-            Event.find({ status: { $ne: "settled" } }).sort({ startTime: 1 }).lean(),
-            Transaction.find({ type: "deposit" }).lean(), 
-            Transaction.find({ type: "withdraw" }).lean(), 
-            User.countDocuments(),
-            Announcement.find({}).sort({ createdAt: -1 }).lean()
+        const [
+          dashEvents,
+          dashDeposits,
+          dashWithdrawals,
+          dashUsersCount,
+          dashAnnouncements,
+        ] = await Promise.all([
+          Event.find({ status: { $ne: "settled" } })
+            .sort({ startTime: 1 })
+            .lean(),
+          Transaction.find({ type: "deposit" }).lean(),
+          Transaction.find({ type: "withdraw" }).lean(),
+          User.countDocuments(),
+          Announcement.find({}).sort({ createdAt: -1 }).lean(),
         ]);
 
         activeEvents = dashEvents;
-        liveEvents = activeEvents.filter(event => event.status === "live");
-        upcomingEvents = activeEvents.filter(event => event.status === "pending" || event.status === "upcoming");
-        
+        liveEvents = activeEvents.filter((event) => event.status === "live");
+        upcomingEvents = activeEvents.filter(
+          (event) => event.status === "pending" || event.status === "upcoming",
+        );
+
         deposits = dashDeposits;
         withdrawals = dashWithdrawals;
         totalUsers = dashUsersCount;
@@ -155,36 +283,35 @@ module.exports.renderAdminDashboard = async (req, res) => {
 
     // Flash message removed to prevent it popping up on every tab click
     // req.flash("success", "Welcome Amit to the Admin Dashboard!");
-    
+
     // 3. Render Dashboard with all variables securely passed
-    res.render("./admin/dashboard.ejs", { 
-      activeTab, 
+    res.render("./admin/dashboard.ejs", {
+      activeTab,
       users,
       complaints,
       stats,
-      activeEvents, 
-      liveEvents, 
+      activeEvents,
+      liveEvents,
       upcomingEvents,
-      deposits,            
-      withdrawals,         
+      deposits,
+      withdrawals,
       totalUsers,
       whatsappNumbers,
       announcements,
       // Pass the new Finance variables to EJS
-      currentStatus, 
-      page, 
-      totalPages, 
-      totalItems, 
-      pendingCount, 
-      rejectedCount, 
-      totalApprovedAmount, 
-      totalDepositsToday
+      currentStatus,
+      page,
+      totalPages,
+      totalItems,
+      pendingCount,
+      rejectedCount,
+      totalApprovedAmount,
+      totalDepositsToday,
     });
-
   } catch (err) {
     console.error("Error loading admin dashboard:", err);
     req.flash("error", "Failed to load admin dashboard.");
-    return res.redirect("/home"); 
+    return res.redirect("/home");
   }
 };
 
@@ -195,7 +322,7 @@ module.exports.renderAddEventPage = (req, res) => {
 module.exports.renderManagePayments = async (req, res) => {
   try {
     const accountDetails = await DepositAccount.find().lean();
-    res.render("./admin/managePayments.ejs", { accountDetails});
+    res.render("./admin/managePayments.ejs", { accountDetails });
   } catch (error) {
     console.error("Error fetching account details:", error);
     req.flash("error", "Failed to load payment methods.");
@@ -219,14 +346,14 @@ module.exports.renderEventDetails = async (req, res) => {
   }
 };
 
-module.exports.renderUserManagement = async (req, res) => { 
-  try { 
+module.exports.renderUserManagement = async (req, res) => {
+  try {
     const { id } = req.params;
     const user = await User.findById(id).lean();
     if (!user) {
       req.flash("error", "User not found.");
 
-      return res.redirect("/admin?tab=UserManagement"); 
+      return res.redirect("/admin?tab=UserManagement");
     }
     res.render("./admin/adjustBalance.ejs", { user });
   } catch (error) {
@@ -237,181 +364,198 @@ module.exports.renderUserManagement = async (req, res) => {
 };
 
 module.exports.renderUserHistory = async (req, res) => {
-    try {
-        const { id } = req.params;
-        
-        // Pagination & Filter Parameters
-        const page = parseInt(req.query.page) || 1;
-        const limit = 10;
-        const filterType = req.query.type || 'all';
-        
-        // 1. Fetch User (using your specific model fields)
-        const user = await User.findById(id).lean();
-        if (!user) {
-            req.flash("error", "User not found.");
-            return res.redirect("/admin?tab=UserManagement");
-        }
+  try {
+    const { id } = req.params;
 
-        // 2. Fetch User's Bets & Transactions
-        const bets = await Bet.find({ userId: id }).lean() || [];
-        const transactions = await Transaction.find({ userId: id }).lean() || [];
+    // Pagination & Filter Parameters
+    const page = parseInt(req.query.page) || 1;
+    const limit = 10;
+    const filterType = req.query.type || "all";
 
-        // 3. Separate Deposits & Withdrawals
-        const deposits = transactions.filter(t => t.type === 'deposit');
-        const withdrawals = transactions.filter(t => t.type === 'withdraw');
-
-        const totalDeposits = deposits.filter(t => t.status === 'approved').reduce((sum, t) => sum + (t.amount || 0), 0);
-        const totalWithdrawals = withdrawals.filter(t => t.status === 'approved').reduce((sum, t) => sum + (t.amount || 0), 0);
-
-        let wonBets = 0;
-        let totalStake = 0;
-        let maxWin = 0;
-        let settledBets = 0;
-
-        // 4. Build the Unified Ledger Array
-        let ledger = [];
-
-        // Add Bets to Ledger
-        bets.forEach(bet => {
-            totalStake += (bet.stake || 0);
-            if (bet.status !== 'pending') settledBets++;
-            if (bet.status === 'won') {
-                wonBets++;
-                if (bet.payout > maxWin) maxWin = bet.payout;
-            }
-            
-            ledger.push({
-                _id: bet._id,
-                type: 'bet',
-                category: bet.status, // 'won', 'lost', 'void', 'pending'
-                title: bet.eventName || 'Sports/Casino Bet',
-                details: bet.selection || 'N/A',
-                betType: bet.type || '--', // 'back', 'lay', 'casino'
-                amount: bet.stake,
-                odds: bet.odds || '--',
-                status: bet.status,
-                payout: bet.payout,
-                createdAt: bet.createdAt
-            });
-        });
-
-        // Add Transactions to Ledger
-        transactions.forEach(t => {
-            ledger.push({
-                _id: t.transactionId || t._id, // Using your custom TXN- ID
-                type: t.type, // 'deposit' or 'withdraw'
-                category: t.type,
-                title: t.type === 'deposit' ? 'Deposit' : 'Withdrawal',
-                details: t.type === 'withdraw' && t.bankDetails ? `A/C: ${t.bankDetails.accountNumber}` : (t.type === 'deposit' ? 'Payment Proof Uploaded' : 'N/A'),
-                betType: '--',
-                amount: t.amount,
-                odds: '--',
-                status: t.status, // 'approved', 'pending', 'rejected'
-                payout: t.type === 'deposit' ? t.amount : -t.amount,
-                createdAt: t.createdAt
-            });
-        });
-
-        // Sort the entire ledger from newest to oldest
-        ledger.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-
-        // 5. Apply Filter
-        if (filterType !== 'all') {
-            ledger = ledger.filter(item => item.category === filterType);
-        }
-
-        // 6. Pagination Logic
-        const totalItems = ledger.length;
-        const totalPages = Math.ceil(totalItems / limit) || 1;
-        const startIndex = (page - 1) * limit;
-        const paginatedLedger = ledger.slice(startIndex, startIndex + limit);
-
-        // 7. Calculate Averages
-        const winRate = settledBets > 0 ? ((wonBets / settledBets) * 100).toFixed(1) : 0;
-        const avgStake = bets.length > 0 ? (totalStake / bets.length).toFixed(2) : 0;
-
-        const stats = {
-            totalDeposits,
-            totalWithdrawals,
-            winRate,
-            avgStake,
-            maxWin,
-            totalBets: bets.length
-        };
-
-        // 8. Render the page
-        res.render("./admin/userHistory.ejs", { 
-            user, 
-            ledger: paginatedLedger, 
-            stats,
-            currentPage: page,
-            totalPages,
-            filterType
-        });
-
-    } catch (error) {
-        console.error("Error loading user history page:", error);
-        req.flash("error", "Failed to load user history page.");
-        return res.redirect("/admin?tab=UserManagement");
+    // 1. Fetch User (using your specific model fields)
+    const user = await User.findById(id).lean();
+    if (!user) {
+      req.flash("error", "User not found.");
+      return res.redirect("/admin?tab=UserManagement");
     }
+
+    // 2. Fetch User's Bets & Transactions
+    const bets = (await Bet.find({ userId: id }).lean()) || [];
+    const transactions = (await Transaction.find({ userId: id }).lean()) || [];
+
+    // 3. Separate Deposits & Withdrawals
+    const deposits = transactions.filter((t) => t.type === "deposit");
+    const withdrawals = transactions.filter((t) => t.type === "withdraw");
+
+    const totalDeposits = deposits
+      .filter((t) => t.status === "approved")
+      .reduce((sum, t) => sum + (t.amount || 0), 0);
+    const totalWithdrawals = withdrawals
+      .filter((t) => t.status === "approved")
+      .reduce((sum, t) => sum + (t.amount || 0), 0);
+
+    let wonBets = 0;
+    let totalStake = 0;
+    let maxWin = 0;
+    let settledBets = 0;
+
+    // 4. Build the Unified Ledger Array
+    let ledger = [];
+
+    // Add Bets to Ledger
+    bets.forEach((bet) => {
+      totalStake += bet.stake || 0;
+      if (bet.status !== "pending") settledBets++;
+      if (bet.status === "won") {
+        wonBets++;
+        if (bet.payout > maxWin) maxWin = bet.payout;
+      }
+
+      ledger.push({
+        _id: bet._id,
+        type: "bet",
+        category: bet.status, // 'won', 'lost', 'void', 'pending'
+        title: bet.eventName || "Sports/Casino Bet",
+        details: bet.selection || "N/A",
+        betType: bet.type || "--", // 'back', 'lay', 'casino'
+        amount: bet.stake,
+        odds: bet.odds || "--",
+        status: bet.status,
+        payout: bet.payout,
+        createdAt: bet.createdAt,
+      });
+    });
+
+    // Add Transactions to Ledger
+    transactions.forEach((t) => {
+      ledger.push({
+        _id: t.transactionId || t._id, // Using your custom TXN- ID
+        type: t.type, // 'deposit' or 'withdraw'
+        category: t.type,
+        title: t.type === "deposit" ? "Deposit" : "Withdrawal",
+        details:
+          t.type === "withdraw" && t.bankDetails
+            ? `A/C: ${t.bankDetails.accountNumber}`
+            : t.type === "deposit"
+              ? "Payment Proof Uploaded"
+              : "N/A",
+        betType: "--",
+        amount: t.amount,
+        odds: "--",
+        status: t.status, // 'approved', 'pending', 'rejected'
+        payout: t.type === "deposit" ? t.amount : -t.amount,
+        createdAt: t.createdAt,
+      });
+    });
+
+    // Sort the entire ledger from newest to oldest
+    ledger.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    // 5. Apply Filter
+    if (filterType !== "all") {
+      ledger = ledger.filter((item) => item.category === filterType);
+    }
+
+    // 6. Pagination Logic
+    const totalItems = ledger.length;
+    const totalPages = Math.ceil(totalItems / limit) || 1;
+    const startIndex = (page - 1) * limit;
+    const paginatedLedger = ledger.slice(startIndex, startIndex + limit);
+
+    // 7. Calculate Averages
+    const winRate =
+      settledBets > 0 ? ((wonBets / settledBets) * 100).toFixed(1) : 0;
+    const avgStake =
+      bets.length > 0 ? (totalStake / bets.length).toFixed(2) : 0;
+
+    const stats = {
+      totalDeposits,
+      totalWithdrawals,
+      winRate,
+      avgStake,
+      maxWin,
+      totalBets: bets.length,
+    };
+
+    // 8. Render the page
+    res.render("./admin/userHistory.ejs", {
+      user,
+      ledger: paginatedLedger,
+      stats,
+      currentPage: page,
+      totalPages,
+      filterType,
+    });
+  } catch (error) {
+    console.error("Error loading user history page:", error);
+    req.flash("error", "Failed to load user history page.");
+    return res.redirect("/admin?tab=UserManagement");
+  }
 };
 
 module.exports.addPaymentMethod = async (req, res) => {
-    try {
-        const { 
-            methodType, displayName, minDeposit, maxDeposit, 
-            accountName, accountNumber, ifscCode, bankName,
-            upiId, merchantName, qrCodeUrl
-        } = req.body;
+  try {
+    const {
+      methodType,
+      displayName,
+      minDeposit,
+      maxDeposit,
+      accountName,
+      accountNumber,
+      ifscCode,
+      bankName,
+      upiId,
+      merchantName,
+      qrCodeUrl,
+    } = req.body;
 
-        // Build the payload dynamically based on the selected type
-        const payload = {
-            methodType,
-            displayName,
-            minDeposit: minDeposit || 100,
-            maxDeposit: maxDeposit || 50000,
-            isActive: true
-        };
+    // Build the payload dynamically based on the selected type
+    const payload = {
+      methodType,
+      displayName,
+      minDeposit: minDeposit || 100,
+      maxDeposit: maxDeposit || 50000,
+      isActive: true,
+    };
 
-        if (methodType === 'bank_transfer') {
-            payload.bankDetails = { accountName, accountNumber, ifscCode, bankName };
-        } else if (methodType === 'upi') {
-            payload.upiDetails = { upiId, merchantName };
-        } else if (methodType === 'qr_scanner') {
-            payload.upiDetails = { upiId, merchantName };
-            payload.qrCodeUrl = qrCodeUrl;
-        }
-
-        await DepositAccount.create(payload);
-        req.flash("success", "Payment method added successfully!");
-        res.redirect("/admin/manage-payments");
-
-    } catch (error) {
-        console.error("Error adding payment method:", error);
-        req.flash("error", "Failed to add payment method.");
-        res.redirect("/admin/manage-payments");
+    if (methodType === "bank_transfer") {
+      payload.bankDetails = { accountName, accountNumber, ifscCode, bankName };
+    } else if (methodType === "upi") {
+      payload.upiDetails = { upiId, merchantName };
+    } else if (methodType === "qr_scanner") {
+      payload.upiDetails = { upiId, merchantName };
+      payload.qrCodeUrl = qrCodeUrl;
     }
+
+    await DepositAccount.create(payload);
+    req.flash("success", "Payment method added successfully!");
+    res.redirect("/admin/manage-payments");
+  } catch (error) {
+    console.error("Error adding payment method:", error);
+    req.flash("error", "Failed to add payment method.");
+    res.redirect("/admin/manage-payments");
+  }
 };
 
 module.exports.deletePaymentMethod = async (req, res) => {
-    try {
-        await DepositAccount.findByIdAndDelete(req.params.id);
-        res.json({ success: true });
-    } catch (error) {
-        console.error("Error deleting account:", error);
-        res.status(500).json({ success: false });
-    }
+  try {
+    await DepositAccount.findByIdAndDelete(req.params.id);
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Error deleting account:", error);
+    res.status(500).json({ success: false });
+  }
 };
 
 module.exports.togglePaymentMethod = async (req, res) => {
-    try {
-        const { isActive } = req.body;
-        await DepositAccount.findByIdAndUpdate(req.params.id, { isActive });
-        res.json({ success: true });
-    } catch (error) {
-        console.error("Error toggling status:", error);
-        res.status(500).json({ success: false });
-    }
+  try {
+    const { isActive } = req.body;
+    await DepositAccount.findByIdAndUpdate(req.params.id, { isActive });
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Error toggling status:", error);
+    res.status(500).json({ success: false });
+  }
 };
 
 module.exports.addEvent = async (req, res) => {
@@ -429,8 +573,8 @@ module.exports.addEvent = async (req, res) => {
       homeId,
       awayTeam,
       awayId,
-      matchOdds,  // This comes in as an object containing back/lay odds
-      tossMarket  // This comes in as an object containing back/lay odds
+      matchOdds, // This comes in as an object containing back/lay odds
+      tossMarket, // This comes in as an object containing back/lay odds
     } = req.body;
 
     // 2. Map the form data to your Mongoose schema structure
@@ -445,37 +589,39 @@ module.exports.addEvent = async (req, res) => {
       startTime,
       status,
       providerId,
-      
+
       // We parse the nested odds as Floats safely using optional chaining (?)
       matchOdds: {
         homeOdds: parseFloat(matchOdds?.homeOdds) || 0,
-        homeLay:  parseFloat(matchOdds?.homeLay)  || 0,
+        homeLay: parseFloat(matchOdds?.homeLay) || 0,
         awayOdds: parseFloat(matchOdds?.awayOdds) || 0,
-        awayLay:  parseFloat(matchOdds?.awayLay)  || 0,
+        awayLay: parseFloat(matchOdds?.awayLay) || 0,
         drawOdds: parseFloat(matchOdds?.drawOdds) || 0,
-        drawLay:  parseFloat(matchOdds?.drawLay)  || 0,
-        status: "active" 
+        drawLay: parseFloat(matchOdds?.drawLay) || 0,
+        status: "active",
       },
-      
+
       tossMarket: {
         homeOdds: parseFloat(tossMarket?.homeOdds) || 0,
-        homeLay:  parseFloat(tossMarket?.homeLay)  || 0,
+        homeLay: parseFloat(tossMarket?.homeLay) || 0,
         awayOdds: parseFloat(tossMarket?.awayOdds) || 0,
-        awayLay:  parseFloat(tossMarket?.awayLay)  || 0,
+        awayLay: parseFloat(tossMarket?.awayLay) || 0,
         status: "active",
-        winner: null
-      }
+        winner: null,
+      },
     });
 
     // 3. Save to database
     await newEvent.save();
-    
+
     req.flash("success", "Event created successfully!");
     res.redirect("/admin?=tab=Dashboard");
-
   } catch (error) {
     console.error("Error creating event:", error);
-    res.status(500).json({ message: "Internal Server Error while creating event", error: error.message });
+    res.status(500).json({
+      message: "Internal Server Error while creating event",
+      error: error.message,
+    });
   }
 };
 
@@ -496,7 +642,10 @@ module.exports.updateEventStatus = async (req, res) => {
 
     // Hard stop — settled events are immutable
     if (event.status === "settled") {
-      req.flash("error", "This event has already been settled and cannot be changed.");
+      req.flash(
+        "error",
+        "This event has already been settled and cannot be changed.",
+      );
       return res.redirect(`/admin/event/${id}`);
     }
 
@@ -530,17 +679,22 @@ module.exports.updateEventStatus = async (req, res) => {
     const resLower = result.toLowerCase();
     let winningTeam = "";
 
-    if (resLower === "home")       winningTeam = event.homeTeam;
-    else if (resLower === "away")  winningTeam = event.awayTeam;
-    else if (resLower === "draw")  winningTeam = "The Draw";
-    else if (resLower === "void")  winningTeam = "void";
+    if (resLower === "home") winningTeam = event.homeTeam;
+    else if (resLower === "away") winningTeam = event.awayTeam;
+    else if (resLower === "draw") winningTeam = "The Draw";
+    else if (resLower === "void") winningTeam = "void";
 
     if (!winningTeam) {
-      req.flash("error", `Invalid result value: "${result}". Must be home, away, draw, or void.`);
+      req.flash(
+        "error",
+        `Invalid result value: "${result}". Must be home, away, draw, or void.`,
+      );
       return res.redirect(`/admin/event/${id}`);
     }
 
-    console.log(`🏆 Starting Settlement | Event: ${event.homeTeam} vs ${event.awayTeam} | Result: ${winningTeam}`);
+    console.log(
+      `🏆 Starting Settlement | Event: ${event.homeTeam} vs ${event.awayTeam} | Result: ${winningTeam}`,
+    );
 
     // =========================================================
     // PART 1: SETTLE MATCH ODDS EXPOSURES (GREEN BOOK PAYOUTS)
@@ -551,9 +705,9 @@ module.exports.updateEventStatus = async (req, res) => {
 
     while (
       (exposure = await Exposure.findOneAndUpdate(
-        { eventId: id, status: "ACTIVE" },         // Only claim ACTIVE ones
-        { $set: { status: "PROCESSING" } },        // Atomically mark as claimed
-        { new: true }
+        { eventId: id, status: "ACTIVE" }, // Only claim ACTIVE ones
+        { $set: { status: "PROCESSING" } }, // Atomically mark as claimed
+        { new: true },
       )) != null
     ) {
       let payout = 0;
@@ -567,30 +721,35 @@ module.exports.updateEventStatus = async (req, res) => {
           eventId: id,
           userId: exposure.userId,
           status: "pending",
-          marketType: "match_odds"
+          marketType: "match_odds",
         });
 
         payout = userBets.reduce((sum, b) => {
           if (b.type === "back") return sum + b.stake;
-          if (b.type === "lay")  return sum + (b.stake * (b.odds - 1));
+          if (b.type === "lay") return sum + b.stake * (b.odds - 1);
           return sum;
         }, 0);
         payout = Math.round(payout * 100) / 100;
 
         ledgerType = "refund";
         remarks = `Match Voided — Full Refund: ${event.homeTeam} vs ${event.awayTeam}`;
-
       } else {
         // ✅ NORMAL RESULT: Look up what this user's green book says for the winning outcome
         let userOutcomePnL = 0;
 
         // Check multiple possible key formats the map might have been saved under
         const keysToCheck = [];
-        if (resLower === "home")       keysToCheck.push(event.homeTeam, event.homeId, "home");
-        else if (resLower === "away")  keysToCheck.push(event.awayTeam, event.awayId, "away");
-        else if (resLower === "draw")  keysToCheck.push("The Draw", "Draw", "draw");
+        if (resLower === "home")
+          keysToCheck.push(event.homeTeam, event.homeId, "home");
+        else if (resLower === "away")
+          keysToCheck.push(event.awayTeam, event.awayId, "away");
+        else if (resLower === "draw")
+          keysToCheck.push("The Draw", "Draw", "draw");
 
-        if (exposure.exposures && typeof exposure.exposures.get === "function") {
+        if (
+          exposure.exposures &&
+          typeof exposure.exposures.get === "function"
+        ) {
           for (let k of keysToCheck) {
             if (!k) continue;
             const val = exposure.exposures.get(k);
@@ -611,23 +770,23 @@ module.exports.updateEventStatus = async (req, res) => {
         const userUpdate = await User.findByIdAndUpdate(
           exposure.userId,
           { $inc: { balance: payout } },
-          { new: true }  // Get post-update balance for accurate ledger
+          { new: true }, // Get post-update balance for accurate ledger
         );
 
         if (userUpdate) {
           await Ledger.create({
-            userId:        exposure.userId,
-            type:          ledgerType,
-            amount:        payout,
+            userId: exposure.userId,
+            type: ledgerType,
+            amount: payout,
             balanceBefore: userUpdate.balance - payout, // Reconstruct pre-update balance
-            balanceAfter:  userUpdate.balance,
-            remarks:       remarks
+            balanceAfter: userUpdate.balance,
+            remarks: remarks,
           });
         }
       }
 
       // Mark exposure fully settled
-      exposure.status    = "SETTLED";
+      exposure.status = "SETTLED";
       exposure.liability = 0;
       await exposure.save();
     }
@@ -642,36 +801,40 @@ module.exports.updateEventStatus = async (req, res) => {
     const pendingBets = await Bet.find({ eventId: id, status: "pending" });
 
     for (const bet of pendingBets) {
-
       if (winningTeam === "void") {
         bet.status = "void";
         bet.payout = bet.stake; // Show what was refunded
-
       } else {
         const sel = bet.selection;
         let isWin = false;
 
         // Match the bet's selection against the result
         if (sel === event.homeTeam || sel === event.homeId || sel === "home") {
-          isWin = (resLower === "home" && bet.type === "back") ||
-                  (resLower !== "home" && bet.type === "lay");
-
-        } else if (sel === event.awayTeam || sel === event.awayId || sel === "away") {
-          isWin = (resLower === "away" && bet.type === "back") ||
-                  (resLower !== "away" && bet.type === "lay");
-
+          isWin =
+            (resLower === "home" && bet.type === "back") ||
+            (resLower !== "home" && bet.type === "lay");
+        } else if (
+          sel === event.awayTeam ||
+          sel === event.awayId ||
+          sel === "away"
+        ) {
+          isWin =
+            (resLower === "away" && bet.type === "back") ||
+            (resLower !== "away" && bet.type === "lay");
         } else if (sel && sel.toLowerCase().includes("draw")) {
-          isWin = (resLower === "draw" && bet.type === "back") ||
-                  (resLower !== "draw" && bet.type === "lay");
+          isWin =
+            (resLower === "draw" && bet.type === "back") ||
+            (resLower !== "draw" && bet.type === "lay");
         }
 
         bet.status = isWin ? "won" : "lost";
 
         if (isWin) {
           // Back: full return (stake + profit). Lay: you keep the backer's stake.
-          bet.payout = bet.type === "back"
-            ? Math.round(bet.stake * bet.odds * 100) / 100
-            : bet.stake;
+          bet.payout =
+            bet.type === "back"
+              ? Math.round(bet.stake * bet.odds * 100) / 100
+              : bet.stake;
         } else {
           bet.payout = 0;
         }
@@ -691,14 +854,21 @@ module.exports.updateEventStatus = async (req, res) => {
     event.status = "settled";
     await event.save();
 
-    console.log(`🏁 Settlement Complete | ${event.homeTeam} vs ${event.awayTeam}`);
+    console.log(
+      `🏁 Settlement Complete | ${event.homeTeam} vs ${event.awayTeam}`,
+    );
 
-    req.flash("success", `Event settled successfully! All payouts for "${winningTeam}" have been processed.`);
+    req.flash(
+      "success",
+      `Event settled successfully! All payouts for "${winningTeam}" have been processed.`,
+    );
     return res.redirect(`/admin/event/${id}`);
-
   } catch (error) {
     console.error("❌ Settlement Error:", error);
-    req.flash("error", "Settlement failed. Check server logs. Some payouts may be incomplete.");
+    req.flash(
+      "error",
+      "Settlement failed. Check server logs. Some payouts may be incomplete.",
+    );
     return res.redirect("/admin?tab=Dashboard");
   }
 };
@@ -706,13 +876,16 @@ module.exports.updateEventStatus = async (req, res) => {
 module.exports.updateMatchOdds = async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     // 1. Destructure ALL inputs sent from your EJS form, including the Lay odds
-    const { 
-      homeOdds, homeLay,
-      drawOdds, drawLay,
-      awayOdds, awayLay, 
-      marketStatus 
+    const {
+      homeOdds,
+      homeLay,
+      drawOdds,
+      drawLay,
+      awayOdds,
+      awayLay,
+      marketStatus,
     } = req.body;
 
     // The checkbox only sends "active" if checked. If unchecked, it's undefined.
@@ -724,16 +897,16 @@ module.exports.updateMatchOdds = async (req, res) => {
       {
         "matchOdds.homeOdds": parseFloat(homeOdds) || 0,
         "matchOdds.homeLay": parseFloat(homeLay) || 0,
-        
+
         "matchOdds.drawOdds": parseFloat(drawOdds) || 0,
         "matchOdds.drawLay": parseFloat(drawLay) || 0,
-        
+
         "matchOdds.awayOdds": parseFloat(awayOdds) || 0,
         "matchOdds.awayLay": parseFloat(awayLay) || 0,
-        
-        "matchOdds.status": resolvedStatus
+
+        "matchOdds.status": resolvedStatus,
       },
-      { new: true } 
+      { new: true },
     );
 
     if (!updatedEvent) {
@@ -741,9 +914,11 @@ module.exports.updateMatchOdds = async (req, res) => {
       return res.redirect("/admin?tab=Dashboard");
     }
 
-    req.flash("success", `Match odds updated! Market is now ${resolvedStatus.toUpperCase()}.`);
+    req.flash(
+      "success",
+      `Match odds updated! Market is now ${resolvedStatus.toUpperCase()}.`,
+    );
     res.redirect(`/admin/event/${id}`);
-    
   } catch (error) {
     console.error("Error updating match odds:", error);
     req.flash("error", "Failed to update match odds.");
@@ -754,7 +929,7 @@ module.exports.updateMatchOdds = async (req, res) => {
 module.exports.updateTossResult = async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     // Match the exact name attributes from your EJS form
     const { homeOdds, homeLay, awayOdds, awayLay, status, winner } = req.body;
 
@@ -771,104 +946,110 @@ module.exports.updateTossResult = async (req, res) => {
     // =========================================================
     // If Admin selects "Settled" and it wasn't already settled before
     if (status === "settled" && event.tossMarket.status !== "settled") {
-        
-        if (!resolvedWinner) {
-            req.flash("error", "You must select a Toss Winner to settle the market.");
-            return res.redirect(`/admin/event/${id}`);
+      if (!resolvedWinner) {
+        req.flash(
+          "error",
+          "You must select a Toss Winner to settle the market.",
+        );
+        return res.redirect(`/admin/event/${id}`);
+      }
+
+      let winningSelection = "";
+      let isVoid = false;
+
+      // Map the admin dropdown result to the actual bet string
+      if (resolvedWinner === "home")
+        winningSelection = `${event.homeTeam} (Toss)`;
+      else if (resolvedWinner === "away")
+        winningSelection = `${event.awayTeam} (Toss)`;
+      else if (resolvedWinner === "void") isVoid = true;
+
+      // Find all pending Toss bets for this specific match
+      const pendingTossBets = await Bet.find({
+        eventId: id,
+        marketType: "toss",
+        status: "pending",
+      });
+
+      console.log(`🪙 Settling ${pendingTossBets.length} Toss Bets...`);
+
+      // Process Payouts
+      for (const bet of pendingTossBets) {
+        let payout = 0;
+        let finalStatus = "lost";
+        let ledgerType = "bet_won";
+        let remarks = `Toss Winnings: ${event.homeTeam} vs ${event.awayTeam}`;
+
+        if (isVoid) {
+          // Refund the stake if the toss was cancelled
+          payout = bet.stake;
+          finalStatus = "void";
+          ledgerType = "refund";
+          remarks = `Toss Voided Refund: ${event.homeTeam} vs ${event.awayTeam}`;
+        } else if (bet.type === "back" && bet.selection === winningSelection) {
+          // Backed the correct team
+          payout = bet.stake + bet.potentialWin;
+          finalStatus = "won";
+        } else if (bet.type === "lay" && bet.selection !== winningSelection) {
+          // Layed the wrong team (meaning you win)
+          payout = bet.stake + bet.potentialWin;
+          finalStatus = "won";
+        } else {
+          payout = 0;
+          finalStatus = "lost";
         }
 
-        let winningSelection = "";
-        let isVoid = false;
+        // Update user wallet and create Ledger receipt
+        if (payout > 0) {
+          const userUpdate = await User.findByIdAndUpdate(
+            bet.userId,
+            { $inc: { balance: payout } },
+            { new: false }, // Get balance BEFORE update
+          );
 
-        // Map the admin dropdown result to the actual bet string
-        if (resolvedWinner === "home") winningSelection = `${event.homeTeam} (Toss)`;
-        else if (resolvedWinner === "away") winningSelection = `${event.awayTeam} (Toss)`;
-        else if (resolvedWinner === "void") isVoid = true;
-
-        // Find all pending Toss bets for this specific match
-        const pendingTossBets = await Bet.find({
-            eventId: id,
-            marketType: "toss",
-            status: "pending"
-        });
-
-        console.log(`🪙 Settling ${pendingTossBets.length} Toss Bets...`);
-
-        // Process Payouts
-        for (const bet of pendingTossBets) {
-            let payout = 0;
-            let finalStatus = "lost";
-            let ledgerType = "bet_won";
-            let remarks = `Toss Winnings: ${event.homeTeam} vs ${event.awayTeam}`;
-
-            if (isVoid) {
-                // Refund the stake if the toss was cancelled
-                payout = bet.stake;
-                finalStatus = "void";
-                ledgerType = "refund";
-                remarks = `Toss Voided Refund: ${event.homeTeam} vs ${event.awayTeam}`;
-            } else if (bet.type === "back" && bet.selection === winningSelection) {
-                // Backed the correct team
-                payout = bet.stake + bet.potentialWin;
-                finalStatus = "won";
-            } else if (bet.type === "lay" && bet.selection !== winningSelection) {
-                // Layed the wrong team (meaning you win)
-                payout = bet.stake + bet.potentialWin;
-                finalStatus = "won";
-            } else {
-                payout = 0;
-                finalStatus = "lost";
-            }
-
-            // Update user wallet and create Ledger receipt
-            if (payout > 0) {
-                const userUpdate = await User.findByIdAndUpdate(
-                    bet.userId,
-                    { $inc: { balance: payout } },
-                    { new: false } // Get balance BEFORE update
-                );
-
-                if (userUpdate) {
-                    await Ledger.create({
-                        userId: bet.userId,
-                        type: ledgerType,
-                        amount: payout,
-                        balanceBefore: userUpdate.balance,
-                        balanceAfter: userUpdate.balance + payout,
-                        betId: bet._id, 
-                        remarks: remarks
-                    });
-                    console.log(`✅ Paid ₹${payout} to User for Toss Win`);
-                }
-            }
-
-            // Update the individual Bet Receipt
-            bet.status = finalStatus;
-            bet.payout = payout;
-            bet.settledAt = new Date();
-            await bet.save();
+          if (userUpdate) {
+            await Ledger.create({
+              userId: bet.userId,
+              type: ledgerType,
+              amount: payout,
+              balanceBefore: userUpdate.balance,
+              balanceAfter: userUpdate.balance + payout,
+              betId: bet._id,
+              remarks: remarks,
+            });
+            console.log(`✅ Paid ₹${payout} to User for Toss Win`);
+          }
         }
+
+        // Update the individual Bet Receipt
+        bet.status = finalStatus;
+        bet.payout = payout;
+        bet.settledAt = new Date();
+        await bet.save();
+      }
     }
     // =========================================================
 
     // Update the Event Document with the new odds and status
     event.tossMarket.homeOdds = parseFloat(homeOdds) || 0;
-    event.tossMarket.homeLay  = parseFloat(homeLay) || 0;
+    event.tossMarket.homeLay = parseFloat(homeLay) || 0;
     event.tossMarket.awayOdds = parseFloat(awayOdds) || 0;
-    event.tossMarket.awayLay  = parseFloat(awayLay) || 0;
-    event.tossMarket.status   = status;
-    event.tossMarket.winner   = resolvedWinner;
-    
+    event.tossMarket.awayLay = parseFloat(awayLay) || 0;
+    event.tossMarket.status = status;
+    event.tossMarket.winner = resolvedWinner;
+
     await event.save();
 
-    if (status === 'settled') {
-        req.flash("success", "Toss market settled and winners paid out successfully!");
+    if (status === "settled") {
+      req.flash(
+        "success",
+        "Toss market settled and winners paid out successfully!",
+      );
     } else {
-        req.flash("success", "Toss market updated successfully!");
+      req.flash("success", "Toss market updated successfully!");
     }
-    
+
     res.redirect(`/admin/event/${id}`);
-    
   } catch (error) {
     console.error("Error updating toss market:", error);
     req.flash("error", "Failed to update toss market.");
@@ -879,11 +1060,11 @@ module.exports.updateTossResult = async (req, res) => {
 module.exports.addSession = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, value, yesOdds, noOdds , category} = req.body;
+    const { name, value, yesOdds, noOdds, category } = req.body;
 
     // Create the new session object
-    const newSession = new Session( {
-      eventId: id, 
+    const newSession = new Session({
+      eventId: id,
       marketId: `sess_${Date.now()}`,
       name: name,
       category: category,
@@ -891,18 +1072,17 @@ module.exports.addSession = async (req, res) => {
       yesOdds: parseFloat(yesOdds),
       noOdds: parseFloat(noOdds),
       status: "active",
-      result: null
+      result: null,
     });
 
     // Push it to the sessions array in MongoDB
     await Event.findByIdAndUpdate(id, {
-      $push: { sessions: newSession }
+      $push: { sessions: newSession },
     });
     await newSession.save();
     await Event.save();
     req.flash("success", "Session market added successfully!");
     res.redirect(`/admin/event/${id}`);
-
   } catch (error) {
     console.error("Error adding session:", error);
     req.flash("error", "Failed to add session market.");
@@ -913,7 +1093,7 @@ module.exports.addSession = async (req, res) => {
 module.exports.updateSession = async (req, res) => {
   try {
     const { eventId, sessionId } = req.params;
-    
+
     const { category, yesOdds, noOdds, status, result } = req.body;
 
     const resolvedResult = result === "" ? null : result;
@@ -926,10 +1106,10 @@ module.exports.updateSession = async (req, res) => {
           yesOdds: parseFloat(yesOdds) || 0,
           noOdds: parseFloat(noOdds) || 0,
           status: status,
-          result: resolvedResult
-        }
+          result: resolvedResult,
+        },
       },
-      { new: true }
+      { new: true },
     );
 
     if (!updatedSession) {
@@ -941,12 +1121,11 @@ module.exports.updateSession = async (req, res) => {
     // const io = req.app.get("io");
     // io.to(eventId).emit("sessionUpdated", updatedSession);
 
-    // If result was settled to 'yes' or 'no', here is where you would call 
+    // If result was settled to 'yes' or 'no', here is where you would call
     // a function to distribute funds to users who won their bets!
 
     req.flash("success", "Session updated successfully!");
     res.redirect(`/admin/event/${eventId}`);
-
   } catch (error) {
     console.error("Error updating session:", error);
     req.flash("error", "Failed to update session.");
@@ -957,9 +1136,9 @@ module.exports.updateSession = async (req, res) => {
 module.exports.processTransaction = async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     // Extract the action (from the button value) and the remarks input
-    const { action, remarks } = req.body; 
+    const { action, remarks } = req.body;
 
     // 1. Find the transaction
     const transaction = await Transaction.findById(id);
@@ -979,11 +1158,11 @@ module.exports.processTransaction = async (req, res) => {
     const newStatus = action === "approve" ? "approved" : "rejected";
 
     // 3. Handle Wallet Balances Securely
-    
+
     // SCENARIO A: Deposit is Approved -> Add money to wallet
     if (transaction.type === "deposit" && newStatus === "approved") {
       await User.findByIdAndUpdate(transaction.userId, {
-        $inc: { balance: transaction.amount } // Assumes your User model has a 'balance' field
+        $inc: { balance: transaction.amount }, // Assumes your User model has a 'balance' field
       });
     }
 
@@ -991,7 +1170,7 @@ module.exports.processTransaction = async (req, res) => {
     // (This assumes you deducted the balance immediately when the user requested the withdrawal to prevent them from spending it while waiting)
     if (transaction.type === "withdraw" && newStatus === "rejected") {
       await User.findByIdAndUpdate(transaction.userId, {
-        $inc: { balance: transaction.amount }
+        $inc: { balance: transaction.amount },
       });
     }
 
@@ -1003,10 +1182,12 @@ module.exports.processTransaction = async (req, res) => {
 
     req.flash("success", `Transaction successfully ${newStatus}!`);
     res.redirect("/admin?tab=Finances");
-
   } catch (error) {
     console.error("Error processing transaction:", error);
-    req.flash("error", "A server error occurred while processing the transaction.");
+    req.flash(
+      "error",
+      "A server error occurred while processing the transaction.",
+    );
     res.redirect("/admin?tab=Finances");
   }
 };
@@ -1014,9 +1195,9 @@ module.exports.processTransaction = async (req, res) => {
 module.exports.adjustUserBalance = async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     // 'action' should be either 'credit' or 'debit' coming from your modal's radio buttons
-    const { action, amount, remarks } = req.body; 
+    const { action, amount, remarks } = req.body;
     const numericAmount = parseFloat(amount);
 
     if (!numericAmount || numericAmount <= 0) {
@@ -1032,7 +1213,10 @@ module.exports.adjustUserBalance = async (req, res) => {
 
     // Prevent negative balances if the admin tries to debit too much
     if (action === "debit" && (user.balance || 0) < numericAmount) {
-      req.flash("error", `Cannot deduct ₹${numericAmount}. User only has ₹${user.balance}.`);
+      req.flash(
+        "error",
+        `Cannot deduct ₹${numericAmount}. User only has ₹${user.balance}.`,
+      );
       return res.redirect("/admin?tab=UserManagement");
     }
 
@@ -1041,7 +1225,7 @@ module.exports.adjustUserBalance = async (req, res) => {
 
     // 1. Update the User's Balance using $inc for thread safety
     await User.findByIdAndUpdate(id, {
-      $inc: { balance: adjustment }
+      $inc: { balance: adjustment },
     });
 
     // 2. Create an automatic transaction record for the ledger
@@ -1050,15 +1234,17 @@ module.exports.adjustUserBalance = async (req, res) => {
       type: action === "credit" ? "deposit" : "withdraw",
       amount: numericAmount,
       status: "approved", // Automatically approved since it is a manual admin action
-      remarks: `Admin Adjustment: ${remarks || 'No reason provided'}`,
-      settledAt: Date.now()
+      remarks: `Admin Adjustment: ${remarks || "No reason provided"}`,
+      settledAt: Date.now(),
     });
-    
+
     await adminTxn.save();
 
-    req.flash("success", `Successfully ${action}ed ₹${numericAmount} to ${user.username}'s wallet.`);
+    req.flash(
+      "success",
+      `Successfully ${action}ed ₹${numericAmount} to ${user.username}'s wallet.`,
+    );
     res.redirect("/admin?tab=UserManagement");
-
   } catch (error) {
     console.error("Error adjusting user balance:", error);
     req.flash("error", "Failed to adjust user balance.");
@@ -1072,7 +1258,7 @@ module.exports.toggleUserStatus = async (req, res) => {
 
     // 1. Find the user in the database
     const user = await User.findById(id);
-    
+
     if (!user) {
       req.flash("error", "User not found.");
       return res.redirect("/admin?tab=UserManagement");
@@ -1080,7 +1266,7 @@ module.exports.toggleUserStatus = async (req, res) => {
 
     // 2. Toggle the boolean value (if true becomes false, if false becomes true)
     user.isBlocked = !user.isBlocked;
-    
+
     // 3. Save the update
     await user.save();
 
@@ -1089,229 +1275,289 @@ module.exports.toggleUserStatus = async (req, res) => {
     // Note: passport-local-mongoose adds 'username' automatically, so user.username works!
     req.flash("success", `User ${user.username} has been ${statusWord}.`);
     res.redirect("/admin?tab=UserManagement");
-
   } catch (error) {
     console.error("Error toggling user status:", error);
     req.flash("error", "Failed to update user status.");
     res.redirect("/admin?tab=UserManagement");
   }
-}
+};
 
 module.exports.createUser = async (req, res) => {
-    try {
-        const { name, username, password, contactNumber, role, balance } = req.body;
+  try {
+    const {
+      name,
+      username,
+      password,
+      contactNumber,
+      promo,
+      BonusRate,
+      role,
+      balance,
+    } = req.body;
 
-        // 1. Create the base user object (excluding the password)
-        const newUser = new User({
-            name: name,
-            username: username, 
-            contactNumber: contactNumber,
-            role: role || "user",
-            balance: parseFloat(balance) || 0
-        });
+    // Parse numeric inputs to avoid NaN or string concatenation errors
+    const parsedBalance = parseFloat(balance) || 0;
+    const parsedBonusRate = parseFloat(BonusRate) || 0;
 
-        // 2. Use the passport-local-mongoose register method to hash the password and save
-        await User.register(newUser, password);
+    let influencer = null;
 
-        // 3. If they were given a starting balance, you might want to create a Transaction record for the ledger!
-        if (parseFloat(balance) > 0) {
-            const adminTxn = new Transaction({
-                userId: newUser._id,
-                type: "deposit",
-                amount: parseFloat(balance),
-                status: "approved",
-                remarks: "Initial Account Funding by Admin",
-                settledAt: Date.now()
-            });
-            await adminTxn.save();
-        }
+    // Only look up the influencer if a promo code was actually provided
+    if (promo) {
+      // FIX 1: Use findOne to get a single object or null
+      influencer = await Influencer.findOne({ promoCode: promo });
 
-        req.flash("success", `Account for ${username} created successfully!`);
-        res.redirect("/admin?tab=UserManagement");
-
-    } catch (error) {
-        console.error("Error creating user:", error);
-        
-        // Handle duplicate username errors gracefully
-        if (error.name === 'UserExistsError') {
-            req.flash("error", "That username is already taken. Please choose another.");
-        } else {
-            req.flash("error", "Failed to create user account.");
-        }
-        
-        res.redirect("/admin?tab=UserManagement");
+      if (!influencer) {
+        req.flash("error", "Invalid Influencer Promo Code");
+        // FIX 2: Add 'return' to stop execution
+        return res.redirect("/admin?tab=Dashboard");
+      }
     }
+
+    // 1. Create the base user object (excluding the password)
+    const newUser = new User({
+      name,
+      username,
+      contactNumber,
+      role: role || "user",
+      balance: parsedBalance,
+    });
+
+    // 2. Hash the password and save the user
+    await User.register(newUser, password);
+
+    // 3. Handle Initial Balance Transaction
+    if (parsedBalance > 0) {
+      const adminTxn = new Transaction({
+        userId: newUser._id,
+        type: "deposit",
+        amount: parsedBalance,
+        status: "approved",
+        remarks: "Initial Account Funding by Admin",
+        settledAt: Date.now(),
+      });
+      await adminTxn.save();
+    }
+
+    // 4. Handle Bonus Logic
+    if (parsedBonusRate > 0 && parsedBalance > 0) {
+      const bonusAmount = (parsedBalance * parsedBonusRate) / 100;
+
+      // Update user balance
+      newUser.balance += bonusAmount;
+      await newUser.save();
+
+      // Log bonus transaction
+      const bonusTxn = new Transaction({
+        userId: newUser._id,
+        type: "deposit",
+        amount: bonusAmount,
+        status: "approved",
+        remarks: "First Time Deposit Bonus",
+        settledAt: Date.now(),
+      });
+      await bonusTxn.save();
+    }
+
+    // 5. Handle Influencer Commission (if an influencer was found)
+    if (influencer) {
+      const influencerCommission =
+        (influencer.commissionRate * parsedBalance) / 100;
+      influencer.totalRegistrations += 1;
+      influencer.totalEarnings += influencerCommission;
+      influencer.pendingPayout += influencerCommission;
+
+      // FIX 3: Save the instance (lowercase 'i'), not the Model
+      await influencer.save();
+    }
+
+    req.flash("success", `Account for ${username} created successfully!`);
+    res.redirect("/admin?tab=UserManagement");
+  } catch (error) {
+    console.error("Error creating user:", error);
+
+    // Handle duplicate username errors gracefully
+    if (error.name === "UserExistsError") {
+      req.flash(
+        "error",
+        "That username is already taken. Please choose another.",
+      );
+    } else {
+      req.flash("error", "Failed to create user account.");
+    }
+
+    res.redirect("/admin?tab=UserManagement");
+  }
 };
 
 module.exports.replyToComplaint = async (req, res) => {
-    try {
-        const { status, adminReply } = req.body;
-        
-        // Find the complaint and update it
-        await Complaint.findByIdAndUpdate(req.params.id, {
-            status: status,
-            adminReply: adminReply.trim()
-        });
+  try {
+    const { status, adminReply } = req.body;
 
-        req.flash('success', `Ticket updated successfully.`);
-        res.redirect('/admin?tab=Complaints');
-        
-    } catch (err) {
-        console.error(err);
-        req.flash('error', `Failed to update ticket.`);
-        res.redirect('/admin/complaints');
-    }
+    // Find the complaint and update it
+    await Complaint.findByIdAndUpdate(req.params.id, {
+      status: status,
+      adminReply: adminReply.trim(),
+    });
+
+    req.flash("success", `Ticket updated successfully.`);
+    res.redirect("/admin?tab=Complaints");
+  } catch (err) {
+    console.error(err);
+    req.flash("error", `Failed to update ticket.`);
+    res.redirect("/admin/complaints");
+  }
 };
 
 module.exports.updateComboMarket = async (req, res) => {
-    try {
-        const { eventId, sessionId } = req.params;
-        const { status, result } = req.body;
+  try {
+    const { eventId, sessionId } = req.params;
+    const { status, result } = req.body;
 
-        // 1. Fetch the specific combo session
-        const session = await Session.findById(sessionId);
-        
-        if (!session || !session.isCombo) {
-            req.flash('error', 'Combo market not found.');
-            return res.redirect('back');
-        }
+    // 1. Fetch the specific combo session
+    const session = await Session.findById(sessionId);
 
-        // 2. Update the primary market status and result
-        session.status = status;
-        
-        // If the admin selected "Open" (which sends an empty string), set it back to null
-        session.result = result === "" ? null : result;
-
-        // 3. Update the individual combo legs dynamically
-        // The form sends them as legStatus_0, legStatus_1, etc.
-        session.comboLegs.forEach((leg, index) => {
-            const submittedLegStatus = req.body[`legStatus_${index}`];
-            if (submittedLegStatus) {
-                leg.status = submittedLegStatus;
-            }
-        });
-
-        // 4. Save the updated document to the database
-        await session.save();
-
-        // 5. Provide feedback and redirect back to the management dashboard
-        req.flash('success', `${session.name} updated successfully.`);
-        res.redirect(`/admin/event/${eventId}/manage`);
-
-    } catch (err) {
-        console.error("Error updating combo market:", err);
-        req.flash('error', 'Something went wrong while updating the combo.');
-        res.redirect('back');
+    if (!session || !session.isCombo) {
+      req.flash("error", "Combo market not found.");
+      return res.redirect("back");
     }
+
+    // 2. Update the primary market status and result
+    session.status = status;
+
+    // If the admin selected "Open" (which sends an empty string), set it back to null
+    session.result = result === "" ? null : result;
+
+    // 3. Update the individual combo legs dynamically
+    // The form sends them as legStatus_0, legStatus_1, etc.
+    session.comboLegs.forEach((leg, index) => {
+      const submittedLegStatus = req.body[`legStatus_${index}`];
+      if (submittedLegStatus) {
+        leg.status = submittedLegStatus;
+      }
+    });
+
+    // 4. Save the updated document to the database
+    await session.save();
+
+    // 5. Provide feedback and redirect back to the management dashboard
+    req.flash("success", `${session.name} updated successfully.`);
+    res.redirect(`/admin/event/${eventId}/manage`);
+  } catch (err) {
+    console.error("Error updating combo market:", err);
+    req.flash("error", "Something went wrong while updating the combo.");
+    res.redirect("back");
+  }
 };
 
-
 module.exports.addWhatsAppNumber = async (req, res) => {
-    try {
-        const { phoneNumber, purpose, status, activeUntil } = req.body;
-        await WhatsappNumber.create({ phoneNumber, purpose, status, activeUntil });
-        req.flash('success', 'WhatsApp number added successfully!');
-        res.redirect('/admin?tab=WhatsApp');
-    } catch (err) {
-        console.error('Error adding number:', err);
-        req.flash('error', 'Failed to add number. Make sure the number is unique.');
-        res.redirect('/admin?tab=WhatsApp');
-    }
+  try {
+    const { phoneNumber, purpose, status, activeUntil } = req.body;
+    await WhatsappNumber.create({ phoneNumber, purpose, status, activeUntil });
+    req.flash("success", "WhatsApp number added successfully!");
+    res.redirect("/admin?tab=WhatsApp");
+  } catch (err) {
+    console.error("Error adding number:", err);
+    req.flash("error", "Failed to add number. Make sure the number is unique.");
+    res.redirect("/admin?tab=WhatsApp");
+  }
 };
 
 module.exports.editWhatsAppNumber = async (req, res) => {
-    try {
-        const { phoneNumber, purpose, status, activeUntil } = req.body;
-        await WhatsappNumber.findByIdAndUpdate(req.params.id, {
-            phoneNumber, purpose, status, activeUntil
-        });
-        req.flash('success', 'WhatsApp number updated successfully!');
-        res.redirect('/admin?tab=WhatsApp');
-    } catch (err) {
-        console.error('Error updating number:', err);
-        req.flash('error', 'Failed to update number.');
-        res.redirect('/admin?tab=WhatsApp');
-    }
+  try {
+    const { phoneNumber, purpose, status, activeUntil } = req.body;
+    await WhatsappNumber.findByIdAndUpdate(req.params.id, {
+      phoneNumber,
+      purpose,
+      status,
+      activeUntil,
+    });
+    req.flash("success", "WhatsApp number updated successfully!");
+    res.redirect("/admin?tab=WhatsApp");
+  } catch (err) {
+    console.error("Error updating number:", err);
+    req.flash("error", "Failed to update number.");
+    res.redirect("/admin?tab=WhatsApp");
+  }
 };
 
 module.exports.deleteWhatsAppNumber = async (req, res) => {
-    try {
-        await WhatsappNumber.findByIdAndDelete(req.params.id);
-        req.flash('success', 'WhatsApp number deleted.');
-        res.redirect('/admin?tab=WhatsApp');
-    } catch (err) {
-        console.error('Error deleting number:', err);
-        req.flash('error', 'Failed to delete number.');
-        res.redirect('/admin?tab=WhatsApp');
-    }
+  try {
+    await WhatsappNumber.findByIdAndDelete(req.params.id);
+    req.flash("success", "WhatsApp number deleted.");
+    res.redirect("/admin?tab=WhatsApp");
+  } catch (err) {
+    console.error("Error deleting number:", err);
+    req.flash("error", "Failed to delete number.");
+    res.redirect("/admin?tab=WhatsApp");
+  }
 };
 
 module.exports.createAnnouncement = async (req, res) => {
-    try {
-        const { message, theme } = req.body;
+  try {
+    const { message, theme } = req.body;
 
-        // Deactivate all existing announcements first (enforcing the "only 1 active" rule)
-        await Announcement.updateMany({}, { isActive: false });
+    // Deactivate all existing announcements first (enforcing the "only 1 active" rule)
+    await Announcement.updateMany({}, { isActive: false });
 
-        // Create the new one (isActive defaults to true in your schema)
-        await Announcement.create({
-            message,
-            theme,
-            isActive: true 
-        });
+    // Create the new one (isActive defaults to true in your schema)
+    await Announcement.create({
+      message,
+      theme,
+      isActive: true,
+    });
 
-        req.flash('success', 'Announcement broadcasted successfully!');
-        res.redirect('/admin?tab=Dashboard'); // Adjust redirect to where your dashboard is
-    } catch (err) {
-        console.error('Error creating announcement:', err);
-        req.flash('error', 'Failed to broadcast announcement.');
-        res.redirect('/admin?tab=Dashboard');
-    }
+    req.flash("success", "Announcement broadcasted successfully!");
+    res.redirect("/admin?tab=Dashboard"); // Adjust redirect to where your dashboard is
+  } catch (err) {
+    console.error("Error creating announcement:", err);
+    req.flash("error", "Failed to broadcast announcement.");
+    res.redirect("/admin?tab=Dashboard");
+  }
 };
 
 // 2. Toggle Active Status
 module.exports.toggleAnnouncement = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const announcement = await Announcement.findById(id);
+  try {
+    const { id } = req.params;
+    const announcement = await Announcement.findById(id);
 
-        if (!announcement) {
-            req.flash('error', 'Announcement not found.');
-            return res.redirect('/admin?tab=Dashboard');
-        }
-
-        if (announcement.isActive) {
-            // If it's currently active, just turn it off
-            announcement.isActive = false;
-            await announcement.save();
-            req.flash('success', 'Announcement deactivated.');
-        } else {
-            // If we are turning it ON, we must turn all others OFF first
-            await Announcement.updateMany({}, { isActive: false });
-            announcement.isActive = true;
-            await announcement.save();
-            req.flash('success', 'Announcement activated.');
-        }
-
-        res.redirect('/admin?tab=Dashboard');
-    } catch (err) {
-        console.error('Error toggling announcement:', err);
-        req.flash('error', 'Failed to toggle status.');
-        res.redirect('/admin?tab=Dashboard');
+    if (!announcement) {
+      req.flash("error", "Announcement not found.");
+      return res.redirect("/admin?tab=Dashboard");
     }
+
+    if (announcement.isActive) {
+      // If it's currently active, just turn it off
+      announcement.isActive = false;
+      await announcement.save();
+      req.flash("success", "Announcement deactivated.");
+    } else {
+      // If we are turning it ON, we must turn all others OFF first
+      await Announcement.updateMany({}, { isActive: false });
+      announcement.isActive = true;
+      await announcement.save();
+      req.flash("success", "Announcement activated.");
+    }
+
+    res.redirect("/admin?tab=Dashboard");
+  } catch (err) {
+    console.error("Error toggling announcement:", err);
+    req.flash("error", "Failed to toggle status.");
+    res.redirect("/admin?tab=Dashboard");
+  }
 };
 
 // 3. Delete Announcement
 module.exports.deleteAnnouncement = async (req, res) => {
-    try {
-        const { id } = req.params;
-        await Announcement.findByIdAndDelete(id);
-        
-        req.flash('success', 'Announcement deleted.');
-        res.redirect('/admin?tab=Dashboard');
-    } catch (err) {
-        console.error('Error deleting announcement:', err);
-        req.flash('error', 'Failed to delete announcement.');
-        res.redirect('/admin?tab=Dashboard');
-    }
+  try {
+    const { id } = req.params;
+    await Announcement.findByIdAndDelete(id);
+
+    req.flash("success", "Announcement deleted.");
+    res.redirect("/admin?tab=Dashboard");
+  } catch (err) {
+    console.error("Error deleting announcement:", err);
+    req.flash("error", "Failed to delete announcement.");
+    res.redirect("/admin?tab=Dashboard");
+  }
 };

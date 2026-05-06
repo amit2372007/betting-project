@@ -1,0 +1,865 @@
+<%#
+  ============================================================
+  WicketAdda.in — Influencer Management Dashboard
+  File: views/admin/influencers.ejs
+  Stack: EJS + Tailwind CSS (CDN) + FontAwesome + Vanilla JS
+  ============================================================
+  Expected data passed from Express route:
+    - stats.activeInfluencers  {Number}
+    - stats.totalClicks        {Number}
+    - stats.totalRegistrations {Number}
+    - stats.commissionToSettle {String}  e.g. "₹12,400"
+    - influencers              {Array}   see card section for shape
+  ============================================================
+%>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Manage Influencers — WicketAdda Admin</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- FontAwesome 6 -->
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+    integrity="sha512-Avb2QiuDEEvB4bZJYdft2mNjVShBftLdPG8FJ0V7irTLQ8Uu0qcPxh4Plq7G5tGm0rU+1SPhVotteLpBERwTkw=="
+    crossorigin="anonymous"
+    referrerpolicy="no-referrer"
+  />
+
+  <!-- Google Fonts: Syne (display) + DM Sans (body) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap"
+    rel="stylesheet"
+  />
+
+  <script>
+    /* ── Tailwind config extension ── */
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            display: ['Syne', 'sans-serif'],
+            body: ['DM Sans', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50:  '#ecfdf5',
+              100: '#d1fae5',
+              400: '#34d399',
+              500: '#10b981',
+              600: '#059669',
+              700: '#047857',
+            },
+          },
+          boxShadow: {
+            'glow-emerald': '0 0 20px rgba(16,185,129,0.35)',
+            'glow-emerald-sm': '0 0 10px rgba(16,185,129,0.2)',
+            'card': '0 4px 24px rgba(0,0,0,0.4)',
+          },
+          backgroundImage: {
+            'grid-slate': "url(\"data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%231e293b' fill-opacity='0.5'%3E%3Cpath d='M0 0h1v40H0V0zm40 0v1H0V0h40z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")",
+          },
+        },
+      },
+    };
+  </script>
+
+  <style>
+    /* ── Base reset & font ── */
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background-color: #020617; /* slate-950 */
+      color: #e2e8f0;
+      min-height: 100vh;
+    }
+
+    /* ── Subtle grid background ── */
+    .bg-grid {
+      background-color: #020617;
+      background-image:
+        linear-gradient(rgba(16,185,129,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(16,185,129,0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+
+    /* ── Glassmorphism card ── */
+    .glass-card {
+      background: rgba(15, 23, 42, 0.7);   /* slate-900 ~70% */
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(51, 65, 85, 0.6); /* slate-700 */
+    }
+
+    /* ── Stat card gradient border trick ── */
+    .stat-card-accent::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      padding: 1px;
+      background: linear-gradient(135deg, rgba(16,185,129,0.4), transparent 60%);
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      pointer-events: none;
+    }
+
+    /* ── Glowing Add button ── */
+    .btn-glow {
+      transition: box-shadow 0.25s ease, transform 0.2s ease;
+    }
+    .btn-glow:hover {
+      box-shadow: 0 0 22px rgba(16,185,129,0.55);
+      transform: translateY(-1px);
+    }
+    .btn-glow:active { transform: translateY(0); }
+
+    /* ── Promo badge ── */
+    .promo-badge {
+      border: 1.5px dashed rgba(16,185,129,0.55);
+      background: rgba(16,185,129,0.08);
+      letter-spacing: 0.12em;
+      transition: background 0.2s;
+    }
+    .promo-badge:hover { background: rgba(16,185,129,0.14); }
+
+    /* ── Input glow on focus ── */
+    .input-glow:focus {
+      outline: none;
+      border-color: #10b981;
+      box-shadow: 0 0 0 3px rgba(16,185,129,0.18);
+    }
+
+    /* ── Modal backdrop ── */
+    #modal-backdrop {
+      transition: opacity 0.25s ease;
+    }
+    #modal-backdrop.hidden { opacity: 0; pointer-events: none; }
+
+    /* ── Modal panel slide-in ── */
+    #modal-panel {
+      transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1), opacity 0.25s ease;
+    }
+    #modal-backdrop.hidden #modal-panel {
+      transform: translateY(24px) scale(0.97);
+      opacity: 0;
+    }
+
+    /* ── Influencer card hover ── */
+    .influencer-card {
+      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    }
+    .influencer-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+      border-color: rgba(16,185,129,0.3);
+    }
+
+    /* ── Action icon buttons ── */
+    .action-btn {
+      transition: background 0.15s, transform 0.15s;
+    }
+    .action-btn:hover { transform: scale(1.1); }
+
+    /* ── Copy toast ── */
+    #copy-toast {
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+    #copy-toast.show {
+      opacity: 1 !important;
+      transform: translateY(0) !important;
+    }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #0f172a; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #475569; }
+  </style>
+</head>
+
+<body class="bg-grid">
+
+  <!-- ══════════════════════════════════════════════════════════
+       COPY TOAST NOTIFICATION
+  ══════════════════════════════════════════════════════════ -->
+  <div
+    id="copy-toast"
+    class="fixed bottom-6 right-6 z-[9999] flex items-center gap-2 px-4 py-3
+           bg-slate-800 border border-brand-500/40 rounded-xl shadow-glow-emerald-sm
+           opacity-0 translate-y-3 pointer-events-none"
+    style="opacity:0; transform:translateY(12px);"
+  >
+    <i class="fa-solid fa-circle-check text-brand-400 text-sm"></i>
+    <span class="text-sm font-body text-slate-200" id="copy-toast-msg">Copied!</span>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════
+       TOP NAVIGATION & ACTION BAR
+  ══════════════════════════════════════════════════════════ -->
+  <header class="sticky top-0 z-40 border-b border-slate-800 bg-slate-950/80 backdrop-blur-xl">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16 gap-4">
+
+        <!-- Left: Back + Title -->
+        <div class="flex items-center gap-4 min-w-0">
+          <a
+            href="/admin"
+            class="flex items-center gap-2 px-3 py-1.5 rounded-lg
+                   border border-slate-700 text-slate-400 hover:text-slate-100
+                   hover:border-slate-500 hover:bg-slate-800/60
+                   transition-all duration-200 text-sm font-body shrink-0"
+          >
+            <i class="fa-solid fa-arrow-left text-xs"></i>
+            <span class="hidden sm:inline">Back to Admin</span>
+          </a>
+
+          <div class="flex items-center gap-3 min-w-0">
+            <div class="w-8 h-8 rounded-lg bg-brand-500/15 border border-brand-500/30
+                        flex items-center justify-center shrink-0">
+              <i class="fa-solid fa-users text-brand-400 text-sm"></i>
+            </div>
+            <div class="min-w-0">
+              <h1 class="font-display text-white text-base sm:text-lg leading-none truncate">
+                Manage Influencers
+              </h1>
+              <p class="text-xs text-slate-500 mt-0.5 font-body hidden sm:block">
+                WicketAdda.in — Admin Panel
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Add button -->
+        <button
+          id="open-modal-btn"
+          onclick="openModal()"
+          class="btn-glow flex items-center gap-2 px-4 py-2 rounded-xl
+                 bg-brand-500 hover:bg-brand-600 text-white
+                 font-body font-semibold text-sm shrink-0
+                 shadow-glow-emerald-sm"
+        >
+          <i class="fa-solid fa-plus text-xs"></i>
+          <span class="hidden sm:inline">Add New Influencer</span>
+          <span class="sm:hidden">Add</span>
+        </button>
+
+      </div>
+    </div>
+  </header>
+
+
+  <!-- ══════════════════════════════════════════════════════════
+       MAIN CONTENT
+  ══════════════════════════════════════════════════════════ -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+
+
+    <!-- ─────────────────────────────────────────────────────
+         STATS ROW
+    ───────────────────────────────────────────────────────── -->
+    <section class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+
+      <!-- Stat 1: Active Influencers -->
+      <div class="relative glass-card stat-card-accent rounded-2xl p-5 shadow-card overflow-hidden">
+        <div class="absolute -top-4 -right-4 w-20 h-20 rounded-full
+                    bg-brand-500/8 blur-xl pointer-events-none"></div>
+        <div class="flex items-start justify-between mb-4">
+          <div class="w-10 h-10 rounded-xl bg-brand-500/15 border border-brand-500/25
+                      flex items-center justify-center">
+            <i class="fa-solid fa-user-check text-brand-400"></i>
+          </div>
+          <span class="text-xs font-body text-brand-400 bg-brand-500/10 border border-brand-500/20
+                       px-2 py-0.5 rounded-full">Active</span>
+        </div>
+        <p class="font-display text-3xl text-white leading-none">
+          <%= stats.activeInfluencers %>
+        </p>
+        <p class="text-sm text-slate-400 font-body mt-1">Total Active Influencers</p>
+      </div>
+
+      <!-- Stat 2: Total Link Clicks -->
+      <div class="relative glass-card rounded-2xl p-5 shadow-card overflow-hidden"
+           style="border: 1px solid rgba(51,65,85,0.6);">
+        <div class="absolute -top-4 -right-4 w-20 h-20 rounded-full
+                    bg-sky-500/6 blur-xl pointer-events-none"></div>
+        <div class="flex items-start justify-between mb-4">
+          <div class="w-10 h-10 rounded-xl bg-sky-500/15 border border-sky-500/25
+                      flex items-center justify-center">
+            <i class="fa-solid fa-arrow-pointer text-sky-400"></i>
+          </div>
+          <span class="text-xs font-body text-sky-400 bg-sky-500/10 border border-sky-500/20
+                       px-2 py-0.5 rounded-full">Clicks</span>
+        </div>
+        <p class="font-display text-3xl text-white leading-none">
+          <%= stats.totalClicks.toLocaleString('en-IN') %>
+        </p>
+        <p class="text-sm text-slate-400 font-body mt-1">Total Link Clicks</p>
+      </div>
+
+      <!-- Stat 3: Conversions / Registrations -->
+      <div class="relative glass-card rounded-2xl p-5 shadow-card overflow-hidden"
+           style="border: 1px solid rgba(51,65,85,0.6);">
+        <div class="absolute -top-4 -right-4 w-20 h-20 rounded-full
+                    bg-violet-500/6 blur-xl pointer-events-none"></div>
+        <div class="flex items-start justify-between mb-4">
+          <div class="w-10 h-10 rounded-xl bg-violet-500/15 border border-violet-500/25
+                      flex items-center justify-center">
+            <i class="fa-solid fa-chart-line text-violet-400"></i>
+          </div>
+          <span class="text-xs font-body text-violet-400 bg-violet-500/10 border border-violet-500/20
+                       px-2 py-0.5 rounded-full">Conversions</span>
+        </div>
+        <p class="font-display text-3xl text-white leading-none">
+          <%= stats.totalRegistrations.toLocaleString('en-IN') %>
+        </p>
+        <p class="text-sm text-slate-400 font-body mt-1">Total Registrations</p>
+      </div>
+
+      <!-- Stat 4: Commission to Settle (ACTIONABLE — stands out) -->
+      <div class="relative rounded-2xl p-5 shadow-card overflow-hidden col-span-2 lg:col-span-1
+                  bg-gradient-to-br from-amber-500/15 via-orange-500/8 to-transparent
+                  border border-amber-500/30">
+        <div class="absolute -bottom-6 -right-6 w-24 h-24 rounded-full
+                    bg-amber-400/10 blur-2xl pointer-events-none"></div>
+        <div class="flex items-start justify-between mb-4">
+          <div class="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/35
+                      flex items-center justify-center">
+            <i class="fa-solid fa-sack-dollar text-amber-400"></i>
+          </div>
+          <span class="text-xs font-body text-amber-400 bg-amber-500/15 border border-amber-500/30
+                       px-2 py-0.5 rounded-full animate-pulse">
+            ⚡ Settle Now
+          </span>
+        </div>
+        <p class="font-display text-3xl text-amber-300 leading-none">
+          <%= stats.commissionToSettle %>
+        </p>
+        <p class="text-sm text-amber-400/80 font-body mt-1">Commission to Settle</p>
+      </div>
+
+    </section>
+
+
+    <!-- ─────────────────────────────────────────────────────
+         SECTION HEADER
+    ───────────────────────────────────────────────────────── -->
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <h2 class="font-display text-xl text-white">Influencer Roster</h2>
+        <span class="text-xs font-body text-brand-400 bg-brand-500/10 border border-brand-500/20
+                     px-2.5 py-1 rounded-full">
+          <%= influencers.length %> total
+        </span>
+      </div>
+      <!-- Decorative divider -->
+      <div class="hidden sm:block flex-1 h-px bg-gradient-to-r from-transparent via-slate-700 to-transparent ml-6"></div>
+    </div>
+
+
+    <!-- ─────────────────────────────────────────────────────
+         INFLUENCER CARDS GRID
+    ───────────────────────────────────────────────────────── -->
+    <% if (influencers && influencers.length > 0) { %>
+
+      <section class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+
+        <% influencers.forEach(function(influencer) { %>
+        <%#
+          Expected influencer object shape:
+          {
+            _id            : String,
+            name           : String,
+            phone          : String,
+            promoCode      : String,
+            commissionRate : Number,   // e.g. 15  (percent)
+            clicks         : Number,
+            registrations  : Number,
+            totalEarnings  : String,   // e.g. "₹4,200"
+            pendingPayout  : String,   // e.g. "₹1,800"
+          }
+        %>
+
+        <article class="influencer-card glass-card rounded-2xl shadow-card
+                        border border-slate-800 flex flex-col overflow-hidden">
+
+          <div class="px-5 pt-5 pb-4 border-b border-slate-800/80">
+            <div class="flex items-start justify-between gap-3">
+              <div class="flex items-center gap-3 min-w-0">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-500/30 to-brand-700/20
+                            border border-brand-500/25 flex items-center justify-center shrink-0">
+                  <span class="font-display text-brand-300 text-sm">
+                    <%= influencer.name.charAt(0).toUpperCase() %>
+                  </span>
+                </div>
+                <div class="min-w-0">
+                  <h3 class="font-display text-white text-sm truncate leading-tight">
+                    <%= influencer.name %>
+                  </h3>
+                  <div class="flex items-center gap-1.5 mt-0.5">
+                    <span class="text-xs text-slate-400 font-body">
+                      <%= influencer.contactNumber || 'N/A' %>
+                    </span>
+                    <button
+                      onclick="copyText('<%= influencer.contactNumber %>', 'Contact copied!')"
+                      title="Copy contact number"
+                      class="action-btn w-5 h-5 rounded flex items-center justify-center
+                             text-slate-500 hover:text-brand-400 hover:bg-brand-500/10"
+                    >
+                      <i class="fa-regular fa-copy text-[10px]"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <span class="shrink-0 text-xs font-body font-semibold px-2.5 py-1 rounded-lg
+                           bg-slate-800 border border-slate-700 text-slate-300">
+                <%= influencer.commissionRate %>% comm.
+              </span>
+            </div>
+
+            <div class="mt-4 flex items-center gap-2">
+              <span class="text-xs text-slate-500 font-body uppercase tracking-wide">Promo:</span>
+              <button
+                onclick="copyText('<%= influencer.promoCode %>', 'Promo code copied!')"
+                class="promo-badge flex items-center gap-2 px-3 py-1.5 rounded-lg cursor-pointer"
+                title="Click to copy promo code"
+              >
+                <i class="fa-solid fa-tag text-brand-400 text-xs"></i>
+                <span class="font-display text-brand-300 text-sm tracking-widest">
+                  <%= influencer.promoCode %>
+                </span>
+                <i class="fa-regular fa-clone text-slate-500 text-xs ml-1"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="px-5 py-4 border-b border-slate-800/80">
+            <p class="text-[11px] uppercase tracking-widest text-slate-600 font-body mb-3">
+              Analytics
+            </p>
+            <div class="grid grid-cols-3 gap-3">
+
+              <div class="rounded-xl bg-slate-800/50 border border-slate-700/50 p-3 text-center">
+                <p class="font-display text-lg text-sky-300 leading-none">
+                  <%= influencer.totalClicks ? influencer.totalClicks.toLocaleString('en-IN') : '0' %>
+                </p>
+                <p class="text-[11px] text-slate-500 font-body mt-1">Clicks</p>
+              </div>
+
+              <div class="rounded-xl bg-slate-800/50 border border-slate-700/50 p-3 text-center">
+                <p class="font-display text-lg text-violet-300 leading-none">
+                  <%= influencer.totalRegistrations ? influencer.totalRegistrations.toLocaleString('en-IN') : '0' %>
+                </p>
+                <p class="text-[11px] text-slate-500 font-body mt-1">Regs</p>
+              </div>
+
+              <div class="rounded-xl bg-slate-800/50 border border-slate-700/50 p-3 text-center">
+                <p class="font-display text-lg leading-none
+                          <%= influencer.clickRate >= 5 ? 'text-brand-300' : 'text-slate-300' %>">
+                  <%= influencer.clickRate || 0 %>%
+                </p>
+                <p class="text-[11px] text-slate-500 font-body mt-1">CTR</p>
+              </div>
+
+            </div>
+          </div>
+
+          <div class="px-5 py-4 flex-1 flex flex-col justify-between">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <p class="text-[11px] uppercase tracking-widest text-slate-600 font-body">
+                  Total Earned
+                </p>
+                <p class="font-display text-lg text-white mt-0.5">
+                  ₹<%= influencer.totalEarnings || 0 %>
+                </p>
+              </div>
+              <div class="text-right">
+                <p class="text-[11px] uppercase tracking-widest text-slate-600 font-body">
+                  Pending Payout
+                </p>
+                <p class="font-display text-lg text-amber-400 mt-0.5 flex items-center gap-1.5 justify-end">
+                  <span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+                  ₹<%= influencer.pendingPayout || 0 %>
+                </p>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-2 pt-3 border-t border-slate-800/80">
+
+              <a
+                href="/admin/influencers/edit/<%= influencer._id %>"
+                title="Edit influencer"
+                class="action-btn flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl
+                       bg-sky-500/10 border border-sky-500/25 text-sky-400
+                       hover:bg-sky-500/20 hover:border-sky-500/40 text-sm font-body font-medium"
+              >
+                <i class="fa-solid fa-pen-to-square text-xs"></i>
+                <span>Edit</span>
+              </a>
+
+              <a
+                href="/admin/influencers/settle/<%= influencer._id %>"
+                title="Settle payment"
+                class="action-btn flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl
+                       bg-brand-500/10 border border-brand-500/25 text-brand-400
+                       hover:bg-brand-500/20 hover:border-brand-500/40 text-sm font-body font-medium"
+                onclick="return confirm('Mark ₹<%= influencer.pendingPayout %> as settled for <%= influencer.name %>?')"
+              >
+                <i class="fa-solid fa-circle-check text-xs"></i>
+                <span>Settle</span>
+              </a>
+
+              <a
+                href="/admin/influencers/delete/<%= influencer._id %>"
+                title="Delete influencer"
+                class="action-btn flex items-center justify-center w-9 h-9 rounded-xl
+                       bg-red-500/10 border border-red-500/25 text-red-400
+                       hover:bg-red-500/20 hover:border-red-500/40"
+                onclick="return confirm('Permanently delete <%= influencer.name %>? This cannot be undone.')"
+              >
+                <i class="fa-solid fa-trash-can text-xs"></i>
+              </a>
+
+            </div>
+          </div>
+
+        </article>
+
+        <% }); /* end forEach */ %>
+
+      </section>
+
+    <% } else { %>
+    <!-- ─────────────────────────────────────────────────────
+         EMPTY STATE
+    ───────────────────────────────────────────────────────── -->
+    <div class="flex flex-col items-center justify-center py-24 px-6 text-center">
+      <!-- Decorative ring -->
+      <div class="relative w-28 h-28 mb-8">
+        <div class="absolute inset-0 rounded-full border-2 border-dashed border-slate-700 animate-spin"
+             style="animation-duration:12s;"></div>
+        <div class="absolute inset-4 rounded-full bg-slate-900/80 border border-slate-700
+                    flex items-center justify-center">
+          <i class="fa-solid fa-users-slash text-3xl text-slate-600"></i>
+        </div>
+      </div>
+
+      <h3 class="font-display text-2xl text-white mb-2">No Influencers Yet</h3>
+      <p class="text-slate-500 font-body max-w-sm mb-8 leading-relaxed">
+        You haven't added any influencers. Start growing your network by adding
+        your first influencer partner.
+      </p>
+
+      <button
+        onclick="openModal()"
+        class="btn-glow flex items-center gap-2 px-6 py-3 rounded-xl
+               bg-brand-500 hover:bg-brand-600 text-white
+               font-body font-semibold shadow-glow-emerald"
+      >
+        <i class="fa-solid fa-plus text-sm"></i>
+        Add Your First Influencer
+      </button>
+    </div>
+    <% } %>
+
+  </main>
+
+
+  <!-- ══════════════════════════════════════════════════════════
+       ADD INFLUENCER MODAL
+  ══════════════════════════════════════════════════════════ -->
+  <div
+    id="modal-backdrop"
+    class="hidden fixed inset-0 z-50 flex items-center justify-center p-4
+           bg-slate-950/80 backdrop-blur-sm"
+    onclick="handleBackdropClick(event)"
+  >
+    <div
+      id="modal-panel"
+      class="w-full max-w-md glass-card rounded-2xl shadow-[0_24px_64px_rgba(0,0,0,0.7)]
+             border border-slate-700/60 overflow-hidden"
+    >
+
+      <!-- Modal Header -->
+      <div class="px-6 py-5 border-b border-slate-800 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-lg bg-brand-500/15 border border-brand-500/30
+                      flex items-center justify-center">
+            <i class="fa-solid fa-user-plus text-brand-400 text-sm"></i>
+          </div>
+          <div>
+            <h2 class="font-display text-white text-base leading-none">New Influencer</h2>
+            <p class="text-xs text-slate-500 font-body mt-0.5">Fill in the details below</p>
+          </div>
+        </div>
+        <button
+          onclick="closeModal()"
+          class="w-8 h-8 rounded-lg flex items-center justify-center
+                 text-slate-500 hover:text-slate-200 hover:bg-slate-800
+                 transition-colors"
+        >
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Modal Form -->
+      <form
+        action="/admin/influencers/add"
+        method="POST"
+        class="px-6 py-5 space-y-4"
+        id="add-influencer-form"
+      >
+
+        <!-- Influencer Name -->
+        <div>
+          <label class="block text-xs font-body font-semibold text-slate-400 uppercase
+                        tracking-wider mb-1.5" for="inf-name">
+            Influencer Name
+          </label>
+          <div class="relative">
+            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm">
+              <i class="fa-solid fa-user"></i>
+            </span>
+            <input
+              id="inf-name"
+              type="text"
+              name="name"
+              placeholder="e.g. Rohit Sharma"
+              required
+              class="input-glow w-full pl-9 pr-4 py-2.5 rounded-xl
+                     bg-slate-800/60 border border-slate-700
+                     text-slate-100 placeholder-slate-600
+                     font-body text-sm transition-all duration-200"
+            />
+          </div>
+        </div>
+
+        <!-- Contact Number -->
+        <div>
+          <label class="block text-xs font-body font-semibold text-slate-400 uppercase
+                        tracking-wider mb-1.5" for="inf-phone">
+            Contact Number
+          </label>
+          <div class="relative">
+            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm">
+              <i class="fa-solid fa-phone"></i>
+            </span>
+            <input
+              id="inf-phone"
+              type="tel"
+              name="contactNumber"
+              placeholder="+91 98765 43210"
+              required
+              class="input-glow w-full pl-9 pr-4 py-2.5 rounded-xl
+                     bg-slate-800/60 border border-slate-700
+                     text-slate-100 placeholder-slate-600
+                     font-body text-sm transition-all duration-200"
+            />
+          </div>
+        </div>
+
+        <!-- Promo Code + Commission (2-col on sm+) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+          <!-- Promo Code -->
+          <div>
+            <label class="block text-xs font-body font-semibold text-slate-400 uppercase
+                          tracking-wider mb-1.5" for="inf-promo">
+              Promo Code
+            </label>
+            <div class="relative">
+              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm">
+                <i class="fa-solid fa-tag"></i>
+              </span>
+              <input
+                id="inf-promo"
+                type="text"
+                name="promoCode"
+                placeholder="e.g. ROHIT10"
+                required
+                class="input-glow w-full pl-9 pr-4 py-2.5 rounded-xl
+                       bg-slate-800/60 border border-slate-700
+                       text-slate-100 placeholder-slate-600
+                       font-body text-sm uppercase tracking-widest transition-all duration-200"
+              />
+            </div>
+          </div>
+
+          <!-- Commission Rate -->
+          <div>
+            <label class="block text-xs font-body font-semibold text-slate-400 uppercase
+                          tracking-wider mb-1.5" for="inf-commission">
+              Commission Rate
+            </label>
+            <div class="relative">
+              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm">
+                <i class="fa-solid fa-percent"></i>
+              </span>
+              <input
+                id="inf-commission"
+                type="number"
+                name="commissionRate"
+                placeholder="e.g. 15"
+                min="1"
+                max="100"
+                required
+                class="input-glow w-full pl-9 pr-4 py-2.5 rounded-xl
+                       bg-slate-800/60 border border-slate-700
+                       text-slate-100 placeholder-slate-600
+                       font-body text-sm transition-all duration-200"
+              />
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Form footer note -->
+        <p class="text-xs text-slate-600 font-body pt-1">
+          <i class="fa-solid fa-circle-info mr-1"></i>
+          A unique referral link will be auto-generated after creation.
+        </p>
+
+        <!-- Action Buttons -->
+        <div class="flex items-center gap-3 pt-2">
+          <button
+            type="button"
+            onclick="closeModal()"
+            class="flex-1 py-2.5 rounded-xl border border-slate-700 text-slate-400
+                   hover:text-slate-100 hover:bg-slate-800 hover:border-slate-600
+                   font-body font-medium text-sm transition-all duration-200"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            class="btn-glow flex-1 flex items-center justify-center gap-2
+                   py-2.5 rounded-xl bg-brand-500 hover:bg-brand-600
+                   text-white font-body font-semibold text-sm
+                   shadow-glow-emerald-sm"
+          >
+            <i class="fa-solid fa-link text-xs"></i>
+            Create Link
+          </button>
+        </div>
+
+      </form>
+
+    </div>
+  </div>
+  <!-- END MODAL -->
+
+
+  <!-- ══════════════════════════════════════════════════════════
+       SCRIPTS
+  ══════════════════════════════════════════════════════════ -->
+  <script>
+    /* ────────────────────────────────────────────────────────
+       MODAL OPEN / CLOSE
+    ──────────────────────────────────────────────────────── */
+    const backdrop  = document.getElementById('modal-backdrop');
+    const modalPanel = document.getElementById('modal-panel');
+
+    function openModal() {
+      backdrop.classList.remove('hidden');
+      // Tiny delay so CSS transition kicks in after display:flex
+      requestAnimationFrame(() => {
+        backdrop.style.opacity = '1';
+        modalPanel.style.transform = 'translateY(0) scale(1)';
+        modalPanel.style.opacity = '1';
+      });
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeModal() {
+      backdrop.style.opacity = '0';
+      modalPanel.style.transform = 'translateY(24px) scale(0.97)';
+      modalPanel.style.opacity = '0';
+      setTimeout(() => {
+        backdrop.classList.add('hidden');
+        document.body.style.overflow = '';
+      }, 280);
+    }
+
+    /* Close when clicking outside the panel */
+    function handleBackdropClick(e) {
+      if (e.target === backdrop) closeModal();
+    }
+
+    /* Close on Escape key */
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !backdrop.classList.contains('hidden')) {
+        closeModal();
+      }
+    });
+
+    /* Initialise modal panel style for transitions */
+    (function initModal() {
+      modalPanel.style.transition = 'transform 0.3s cubic-bezier(0.34,1.56,0.64,1), opacity 0.28s ease';
+      modalPanel.style.transform  = 'translateY(24px) scale(0.97)';
+      modalPanel.style.opacity    = '0';
+      backdrop.style.transition   = 'opacity 0.25s ease';
+      backdrop.style.opacity      = '0';
+    })();
+
+    /* Auto-uppercase promo code as user types */
+    const promoInput = document.getElementById('inf-promo');
+    if (promoInput) {
+      promoInput.addEventListener('input', function () {
+        const pos = this.selectionStart;
+        this.value = this.value.toUpperCase();
+        this.setSelectionRange(pos, pos);
+      });
+    }
+
+
+    /* ────────────────────────────────────────────────────────
+       COPY TO CLIPBOARD
+    ──────────────────────────────────────────────────────── */
+    const toast    = document.getElementById('copy-toast');
+    const toastMsg = document.getElementById('copy-toast-msg');
+    let toastTimer = null;
+
+    function copyText(text, message) {
+      navigator.clipboard.writeText(text).then(() => {
+        showToast(message || 'Copied!');
+      }).catch(() => {
+        /* Fallback for older browsers */
+        const el = document.createElement('textarea');
+        el.value = text;
+        el.style.position = 'fixed';
+        el.style.opacity  = '0';
+        document.body.appendChild(el);
+        el.select();
+        document.execCommand('copy');
+        document.body.removeChild(el);
+        showToast(message || 'Copied!');
+      });
+    }
+
+    function showToast(message) {
+      toastMsg.textContent = message;
+      toast.style.opacity   = '1';
+      toast.style.transform = 'translateY(0)';
+      toast.style.pointerEvents = 'none';
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        toast.style.opacity   = '0';
+        toast.style.transform = 'translateY(12px)';
+      }, 2200);
+    }
+
+  </script>
+
+</body>
+</html>
